@@ -1,0 +1,33 @@
+- name: Verify fail2ban role
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Check fail2ban service is active
+      ansible.builtin.service_facts:
+
+    - name: Assert fail2ban is running
+      ansible.builtin.assert:
+        that: ansible_facts.services['fail2ban.service'].state == 'running'
+        fail_msg: "fail2ban service is not running"
+
+    - name: Check jail.local exists
+      ansible.builtin.stat:
+        path: /etc/fail2ban/jail.local
+      register: jail_stat
+
+    - name: Assert jail.local exists
+      ansible.builtin.assert:
+        that: jail_stat.stat.exists
+        fail_msg: "/etc/fail2ban/jail.local not found"
+
+    - name: Read jail.local
+      ansible.builtin.slurp:
+        src: /etc/fail2ban/jail.local
+      register: jail_content
+
+    - name: Assert sshd jail is enabled
+      ansible.builtin.assert:
+        that: "'enabled  = true' in (jail_content.content | b64decode)"
+        fail_msg: "fail2ban sshd jail not enabled"

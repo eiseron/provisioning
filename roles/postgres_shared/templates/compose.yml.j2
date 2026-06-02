@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: {{ postgres_shared_image }}
+    container_name: {{ postgres_shared_container_name }}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: {{ pg_shared_user }}
+      POSTGRES_PASSWORD: {{ pg_shared_password }}
+      POSTGRES_DB: postgres
+    volumes:
+      - {{ postgres_shared_data_dir }}:/var/lib/postgresql/data
+    networks:
+      - {{ postgres_shared_network }}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ pg_shared_user }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  {{ postgres_shared_network }}:
+    external: true

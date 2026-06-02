@@ -1,0 +1,71 @@
+- name: Verify docker role
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Check Docker is installed
+      ansible.builtin.command: docker --version
+      changed_when: false
+      register: docker_version
+
+    - name: Assert Docker reports a version
+      ansible.builtin.assert:
+        that: docker_version.stdout is search('Docker version')
+        fail_msg: "docker --version did not return a version string"
+
+    - name: Check docker-prune.service exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/docker-prune.service
+      register: prune_service
+
+    - name: Assert docker-prune.service was installed
+      ansible.builtin.assert:
+        that: prune_service.stat.exists
+        fail_msg: "/etc/systemd/system/docker-prune.service not found"
+
+    - name: Read docker-prune.service
+      ansible.builtin.slurp:
+        src: /etc/systemd/system/docker-prune.service
+      register: prune_service_content
+
+    - name: Assert prune service runs the expected command
+      ansible.builtin.assert:
+        that:
+          - "'docker system prune -af --volumes' in (prune_service_content.content | b64decode)"
+          - "'Type=oneshot' in (prune_service_content.content | b64decode)"
+        fail_msg: "docker-prune.service does not contain the prune command or oneshot type"
+
+    - name: Check docker-prune.timer exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/docker-prune.timer
+      register: prune_timer
+
+    - name: Assert docker-prune.timer was installed
+      ansible.builtin.assert:
+        that: prune_timer.stat.exists
+        fail_msg: "/etc/systemd/system/docker-prune.timer not found"
+
+    - name: Read docker-prune.timer
+      ansible.builtin.slurp:
+        src: /etc/systemd/system/docker-prune.timer
+      register: prune_timer_content
+
+    - name: Assert timer is calendar-scheduled and persistent
+      ansible.builtin.assert:
+        that:
+          - "'OnCalendar=Sun 04:00' in (prune_timer_content.content | b64decode)"
+          - "'Persistent=true' in (prune_timer_content.content | b64decode)"
+        fail_msg: "docker-prune.timer schedule or persistence directive missing"
+
+    - name: Query timer state
+      ansible.builtin.systemd:
+        name: docker-prune.timer
+      register: prune_timer_state
+
+    - name: Assert timer is enabled and active
+      ansible.builtin.assert:
+        that:
+          - prune_timer_state.status.UnitFileState == 'enabled'
+          - prune_timer_state.status.ActiveState == 'active'
+        fail_msg: "docker-prune.timer is not enabled+active"

@@ -1,0 +1,13 @@
+ufw_ssh_port: "22"
+
+ufw_allow_public_ssh: true
+ufw_allow_cloudflare_web: true
+
+ufw_cloudflare_ports:
+  - "80"
+  - "443"
+
+ufw_cloudflare_ipv4_url: "https://www.cloudflare.com/ips-v4"
+ufw_cloudflare_ipv6_url: "https://www.cloudflare.com/ips-v6"
+
+ufw_extra_rules: []

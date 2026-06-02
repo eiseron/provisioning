@@ -1,0 +1,6 @@
+docker_prune_enabled: true
+docker_prune_schedule: "*-*-* 04:00:00 America/Sao_Paulo"
+docker_prune_args: "-af --volumes"
+
+docker_daemon_log_max_size: "50m"
+docker_daemon_log_max_file: "3"

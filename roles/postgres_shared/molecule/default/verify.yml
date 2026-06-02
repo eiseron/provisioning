@@ -1,0 +1,60 @@
+- name: Verify postgres_shared role
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Check postgres-shared install directory exists
+      ansible.builtin.stat:
+        path: /opt/postgres-shared
+      register: pg_install
+
+    - name: Assert postgres-shared install directory exists
+      ansible.builtin.assert:
+        that: pg_install.stat.isdir is defined and pg_install.stat.isdir
+        fail_msg: "/opt/postgres-shared directory missing"
+
+    - name: Check postgres-shared data directory exists
+      ansible.builtin.stat:
+        path: /var/lib/postgres-shared
+      register: pg_data
+
+    - name: Assert postgres-shared data directory exists
+      ansible.builtin.assert:
+        that: pg_data.stat.isdir is defined and pg_data.stat.isdir
+        fail_msg: "/var/lib/postgres-shared directory missing"
+
+    - name: Check postgres-shared compose file rendered
+      ansible.builtin.stat:
+        path: /opt/postgres-shared/compose.yml
+      register: pg_compose
+
+    - name: Assert postgres-shared compose file exists
+      ansible.builtin.assert:
+        that: pg_compose.stat.exists
+        fail_msg: "/opt/postgres-shared/compose.yml not rendered"
+
+    - name: Read postgres-shared compose file
+      ansible.builtin.slurp:
+        src: /opt/postgres-shared/compose.yml
+      register: pg_compose_body
+
+    - name: Assert postgres-shared compose declares container name shared-pg
+      ansible.builtin.assert:
+        that: "'container_name: shared-pg' in (pg_compose_body.content | b64decode)"
+        fail_msg: "postgres-shared compose.yml missing container_name: shared-pg"
+
+    - name: Assert postgres-shared compose has pg_isready healthcheck
+      ansible.builtin.assert:
+        that: "'pg_isready' in (pg_compose_body.content | b64decode)"
+        fail_msg: "postgres-shared compose.yml missing pg_isready healthcheck"
+
+    - name: Assert postgres-shared compose joins external postgres network
+      ansible.builtin.assert:
+        that: "'external: true' in (pg_compose_body.content | b64decode)"
+        fail_msg: "postgres-shared compose.yml missing external network declaration"
+
+    - name: Assert postgres-shared compose does not publish host ports
+      ansible.builtin.assert:
+        that: "'ports:' not in (pg_compose_body.content | b64decode)"
+        fail_msg: "postgres-shared must not publish host ports"

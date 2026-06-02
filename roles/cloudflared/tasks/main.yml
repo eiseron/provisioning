@@ -1,0 +1,61 @@
+- name: Assert cloudflared_tunnel_token is provided
+  ansible.builtin.assert:
+    that:
+      - cloudflared_tunnel_token is defined
+      - cloudflared_tunnel_token | length > 0
+    fail_msg: "cloudflared_tunnel_token must be supplied (group_vars or --extra-vars)"
+
+- name: Install prerequisites
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - gnupg
+    state: present
+    update_cache: true
+
+- name: Ensure apt keyring directory exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Add Cloudflare apt signing key
+  ansible.builtin.get_url:
+    url: "{{ cloudflared_apt_keyring_url }}"
+    dest: /etc/apt/keyrings/cloudflare-main.gpg
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Add Cloudflare apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/cloudflare-main.gpg] {{ cloudflared_apt_repo_url }}"
+    filename: cloudflared
+    state: present
+
+- name: Install cloudflared package
+  ansible.builtin.apt:
+    name: cloudflared
+    state: present
+    update_cache: true
+
+- name: Check whether cloudflared service is already installed
+  ansible.builtin.stat:
+    path: /etc/systemd/system/cloudflared.service
+  register: cloudflared_service_unit
+
+- name: Register cloudflared as a systemd service with the tunnel token
+  ansible.builtin.command: cloudflared service install {{ cloudflared_tunnel_token }}
+  args:
+    creates: /etc/systemd/system/cloudflared.service
+  when: not cloudflared_service_unit.stat.exists
+  no_log: true
+
+- name: Enable cloudflared service
+  ansible.builtin.systemd:
+    name: cloudflared
+    enabled: true
+    daemon_reload: true

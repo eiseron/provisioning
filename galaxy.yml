@@ -1,0 +1,24 @@
+namespace: eiseron
+name: provisioning
+version: 0.1.0
+readme: README.md
+authors:
+  - Eiseron <ops@eiseron.com>
+description: Reusable Ansible roles for provisioning Eiseron preview and application hosts
+license:
+  - Apache-2.0
+repository: https://gitlab.com/eiseron/stack/provisioning
+issues: https://gitlab.com/eiseron/stack/provisioning/-/issues
+tags:
+  - infrastructure
+  - provisioning
+  - hetzner
+  - docker
+  - traefik
+  - postgres
+build_ignore:
+  - modules
+  - .gitlab-ci.yml
+  - .gitignore
+  - build
+  - "*.tar.gz"

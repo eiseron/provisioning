@@ -1,0 +1,5 @@
+- name: Restart postgres-shared
+  community.docker.docker_compose_v2:
+    project_src: "{{ postgres_shared_install_dir }}"
+    state: restarted
+  ignore_errors: true

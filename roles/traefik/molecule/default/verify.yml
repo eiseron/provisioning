@@ -1,0 +1,136 @@
+- name: Verify traefik role
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Check traefik install directory exists
+      ansible.builtin.stat:
+        path: /opt/traefik
+      register: traefik_dir
+
+    - name: Assert traefik install directory exists
+      ansible.builtin.assert:
+        that: traefik_dir.stat.isdir is defined and traefik_dir.stat.isdir
+        fail_msg: "/opt/traefik directory missing"
+
+    - name: Check traefik static config rendered
+      ansible.builtin.stat:
+        path: /opt/traefik/traefik.yml
+      register: traefik_static
+
+    - name: Assert traefik static config exists
+      ansible.builtin.assert:
+        that: traefik_static.stat.exists
+        fail_msg: "/opt/traefik/traefik.yml not rendered"
+
+    - name: Read traefik static config
+      ansible.builtin.slurp:
+        src: /opt/traefik/traefik.yml
+      register: traefik_static_body
+
+    - name: Assert traefik static config defines tunnel entrypoint
+      ansible.builtin.assert:
+        that: "'tunnel:' in (traefik_static_body.content | b64decode)"
+        fail_msg: "traefik.yml missing tunnel entrypoint"
+
+    - name: Assert traefik static config defines websecure entrypoint
+      ansible.builtin.assert:
+        that: "'websecure:' in (traefik_static_body.content | b64decode)"
+        fail_msg: "traefik.yml missing websecure entrypoint"
+
+    - name: Assert websecure entrypoint configures CF cert resolver
+      ansible.builtin.assert:
+        that: "'certResolver: cf' in (traefik_static_body.content | b64decode)"
+        fail_msg: "traefik.yml missing default certResolver=cf on websecure entrypoint"
+
+    - name: Assert ACME resolver uses Cloudflare DNS-01
+      ansible.builtin.assert:
+        that:
+          - "'provider: cloudflare' in (traefik_static_body.content | b64decode)"
+          - "'dnsChallenge:' in (traefik_static_body.content | b64decode)"
+        fail_msg: "traefik.yml missing dnsChallenge with cloudflare provider"
+
+    - name: Assert ACME storage targets the mounted acme dir
+      ansible.builtin.assert:
+        that: "'storage: /etc/traefik/acme/acme.json' in (traefik_static_body.content | b64decode)"
+        fail_msg: "traefik.yml ACME storage path differs from /etc/traefik/acme/acme.json"
+
+    - name: Assert traefik static config disables exposedByDefault
+      ansible.builtin.assert:
+        that: "'exposedByDefault: false' in (traefik_static_body.content | b64decode)"
+        fail_msg: "traefik.yml missing exposedByDefault: false"
+
+    - name: Check ACME storage directory exists
+      ansible.builtin.stat:
+        path: /opt/traefik/acme
+      register: traefik_acme_dir
+
+    - name: Assert ACME storage directory exists with 0700
+      ansible.builtin.assert:
+        that:
+          - traefik_acme_dir.stat.isdir is defined and traefik_acme_dir.stat.isdir
+          - traefik_acme_dir.stat.mode == "0700"
+        fail_msg: "/opt/traefik/acme missing or wrong perms (lego refuses non-secure ACME storage)"
+
+    - name: Check traefik env file rendered
+      ansible.builtin.stat:
+        path: /opt/traefik/traefik.env
+      register: traefik_env
+
+    - name: Assert traefik env file rendered with 0600
+      ansible.builtin.assert:
+        that:
+          - traefik_env.stat.exists
+          - traefik_env.stat.mode == "0600"
+        fail_msg: "/opt/traefik/traefik.env missing or world-readable"
+
+    - name: Check traefik compose file rendered
+      ansible.builtin.stat:
+        path: /opt/traefik/compose.yml
+      register: traefik_compose
+
+    - name: Assert traefik compose file exists
+      ansible.builtin.assert:
+        that: traefik_compose.stat.exists
+        fail_msg: "/opt/traefik/compose.yml not rendered"
+
+    - name: Read traefik compose file
+      ansible.builtin.slurp:
+        src: /opt/traefik/compose.yml
+      register: traefik_compose_body
+
+    - name: Assert traefik compose declares external traefik network
+      ansible.builtin.assert:
+        that: "'external: true' in (traefik_compose_body.content | b64decode)"
+        fail_msg: "traefik compose.yml missing external network declaration"
+
+    - name: Check traefik log directory exists
+      ansible.builtin.stat:
+        path: /var/log/traefik
+      register: traefik_logs
+
+    - name: Assert traefik log directory exists
+      ansible.builtin.assert:
+        that: traefik_logs.stat.isdir is defined and traefik_logs.stat.isdir
+        fail_msg: "/var/log/traefik directory missing"
+
+    - name: Inspect traefik docker network
+      ansible.builtin.command: docker network inspect traefik
+      changed_when: false
+      register: traefik_net
+
+    - name: Assert traefik docker network exists
+      ansible.builtin.assert:
+        that: "'\"Name\": \"traefik\"' in traefik_net.stdout"
+        fail_msg: "traefik external docker network missing"
+
+    - name: Inspect postgres docker network
+      ansible.builtin.command: docker network inspect postgres
+      changed_when: false
+      register: postgres_net
+
+    - name: Assert postgres docker network exists
+      ansible.builtin.assert:
+        that: "'\"Name\": \"postgres\"' in postgres_net.stdout"
+        fail_msg: "postgres external docker network missing"

@@ -1,0 +1,30 @@
+deploy_user: deploy
+deploy_group: deploy
+deploy_ssh_public_key: ""
+
+app_user: app
+app_group: app
+app_uid: 1000
+app_gid: 1000
+
+timezone: UTC
+
+common_swap_file_path: /swapfile
+common_swap_file_size_mb: 2048
+common_swap_swappiness: 10
+
+common_packages:
+  - curl
+  - gnupg
+  - ca-certificates
+  - wget
+  - htop
+  - vim
+  - age
+  - iputils-ping
+  - iproute2
+  - traceroute
+  - dnsutils
+  - net-tools
+  - mtr-tiny
+  - netcat-openbsd

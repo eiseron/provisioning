@@ -1,0 +1,9 @@
+#cloud-config
+hostname: ${name}
+preserve_hostname: false
+timezone: UTC
+
+package_update: true
+packages:
+  - curl
+  - ca-certificates

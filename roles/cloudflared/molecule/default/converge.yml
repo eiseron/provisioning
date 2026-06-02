@@ -1,0 +1,13 @@
+- name: Converge
+  hosts: all
+  become: true
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  pre_tasks:
+    - name: Install apt-utils to avoid dpkg warnings
+      ansible.builtin.apt:
+        name: apt-utils
+        state: present
+        update_cache: true
+  roles:
+    - role: cloudflared

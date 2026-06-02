@@ -1,0 +1,90 @@
+- name: Verify common role
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Check age is installed
+      ansible.builtin.command: age --version
+      changed_when: false
+
+    - name: Check app user exists with correct UID
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ app_user | default('app') }}"
+      register: app_entry
+
+    - name: Assert app user has UID 1000
+      ansible.builtin.assert:
+        that: app_entry.ansible_facts.getent_passwd[app_user | default('app')][1] == '1000'
+        fail_msg: "{{ app_user | default('app') }} user does not have UID 1000"
+
+    - name: Assert app user has nologin shell
+      ansible.builtin.assert:
+        that: "'/nologin' in app_entry.ansible_facts.getent_passwd[app_user | default('app')][5]"
+        fail_msg: "{{ app_user | default('app') }} user should have nologin shell"
+
+    - name: Check app user home directory exists
+      ansible.builtin.stat:
+        path: "/home/{{ app_user | default('app') }}"
+      register: app_home_stat
+
+    - name: Assert app user home directory exists
+      ansible.builtin.assert:
+        that: app_home_stat.stat.isdir is defined and app_home_stat.stat.isdir
+        fail_msg: "/home/{{ app_user | default('app') }} does not exist"
+
+    - name: Check deploy user exists
+      ansible.builtin.getent:
+        database: passwd
+        key: deploy
+
+    - name: Check deploy user home directory exists
+      ansible.builtin.stat:
+        path: /home/deploy
+      register: deploy_home_stat
+
+    - name: Assert deploy user home directory exists
+      ansible.builtin.assert:
+        that: deploy_home_stat.stat.isdir is defined and deploy_home_stat.stat.isdir
+        fail_msg: "/home/deploy does not exist"
+
+    - name: Check deploy sudoers file exists
+      ansible.builtin.stat:
+        path: /etc/sudoers.d/deploy
+      register: sudoers_stat
+
+    - name: Assert deploy sudoers file exists
+      ansible.builtin.assert:
+        that: sudoers_stat.stat.exists
+        fail_msg: "/etc/sudoers.d/deploy not found"
+
+    - name: Read deploy sudoers file
+      ansible.builtin.slurp:
+        src: /etc/sudoers.d/deploy
+      register: sudoers_content
+
+    - name: Assert deploy has passwordless sudo
+      ansible.builtin.assert:
+        that: "'deploy ALL=(ALL) NOPASSWD: ALL' in (sudoers_content.content | b64decode)"
+        fail_msg: "deploy passwordless sudo entry not found"
+
+    - name: Check deploy is in docker group
+      ansible.builtin.command: id -Gn deploy
+      changed_when: false
+      register: deploy_groups
+
+    - name: Assert deploy belongs to docker group
+      ansible.builtin.assert:
+        that: "'docker' in deploy_groups.stdout.split()"
+        fail_msg: "deploy user is not in the docker group"
+
+    - name: Check provisioning marker exists
+      ansible.builtin.stat:
+        path: /etc/provisioned
+      register: provisioned_marker
+
+    - name: Assert provisioning marker was created
+      ansible.builtin.assert:
+        that: provisioned_marker.stat.exists
+        fail_msg: "/etc/provisioned marker not found after first boot"

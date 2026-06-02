@@ -1,0 +1,40 @@
+- name: Install prerequisites
+  ansible.builtin.apt:
+    name:
+      - curl
+      - bash
+    state: present
+    update_cache: true
+
+- name: Download Netdata kickstart script
+  ansible.builtin.get_url:
+    url: https://get.netdata.cloud/kickstart.sh
+    dest: /tmp/netdata-kickstart.sh
+    mode: "0755"
+  when: not (ansible_check_mode | bool)
+
+- name: Install Netdata
+  ansible.builtin.command: >
+    /tmp/netdata-kickstart.sh
+    --non-interactive
+    --stable-channel
+    --disable-telemetry
+    --dont-start-it
+  args:
+    creates: /usr/sbin/netdata
+
+- name: Deploy disk alert overrides
+  ansible.builtin.template:
+    src: disk.conf.j2
+    dest: /etc/netdata/health.d/disk.conf
+    owner: netdata
+    group: netdata
+    mode: "0640"
+  notify: Restart netdata
+
+- name: Enable and start Netdata
+  ansible.builtin.service:
+    name: netdata
+    enabled: true
+    state: started
+  ignore_errors: true

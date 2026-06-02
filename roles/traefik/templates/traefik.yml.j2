@@ -1,0 +1,46 @@
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+log:
+  level: {{ traefik_log_level }}
+  filePath: /var/log/traefik/traefik.log
+
+accessLog:
+  filePath: /var/log/traefik/access.log
+
+entryPoints:
+  tunnel:
+    address: ":{{ traefik_tunnel_entrypoint_port }}"
+  websecure:
+    address: ":{{ traefik_websecure_entrypoint_port }}"
+    http:
+      tls:
+        certResolver: cf
+        domains:
+          - main: {{ traefik_acme_root_domain }}
+            sans:
+              - "*.{{ traefik_acme_root_domain }}"
+
+certificatesResolvers:
+  cf:
+    acme:
+      email: {{ traefik_acme_email }}
+      storage: /etc/traefik/acme/acme.json
+{% if traefik_acme_use_staging %}
+      caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+{% endif %}
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
+
+providers:
+  docker:
+    exposedByDefault: false
+    network: {{ traefik_network_external }}
+
+api:
+  dashboard: false
+  insecure: false

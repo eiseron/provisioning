@@ -1,93 +1,130 @@
 # provisioning
 
-Reusable Terraform modules and Ansible roles shared across Eiseron products
+Reusable Terraform modules and Ansible roles shared across Eiseron products.
 
-## Getting started
+This repository is **self-hostable**: with your own Hetzner Cloud and Cloudflare
+credentials you can stand up a preview host identical to the one Eiseron runs.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+## Layout
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/eiseron/stack/provisioning.git
-git branch -M main
-git push -uf origin main
+galaxy.yml                  Ansible collection metadata (eiseron.provisioning)
+roles/                      Ansible roles (consumed as eiseron.provisioning.<role>)
+playbooks/preview-host.yml  Reference composition for a preview host
+modules/preview_host/       Terraform module for the Hetzner Cloud host + Cloudflare wiring
 ```
 
-## Integrate with your tools
+The Ansible roles ship as the collection **`eiseron.provisioning`**. The Terraform
+module is consumed directly via a pinned `git::` source.
 
-* [Set up project integrations](https://gitlab.com/eiseron/stack/provisioning/-/settings/integrations)
+## Consuming the Ansible roles
 
-## Collaborate with your team
+Add to a consumer's `requirements.yml`, pinned to an immutable tag:
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+```yaml
+collections:
+  - name: git+https://gitlab.com/eiseron/stack/provisioning.git
+    type: git
+    version: v0.1.0
+```
 
-## Test and Deploy
+```sh
+ansible-galaxy collection install -r requirements.yml
+```
 
-Use the built-in continuous integration in GitLab.
+Reference roles by their fully-qualified name, e.g. `eiseron.provisioning.docker`.
+See `playbooks/preview-host.yml` for a full composition.
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+## Consuming the Terraform module
 
-***
+```hcl
+module "preview_host" {
+  source = "git::https://gitlab.com/eiseron/stack/provisioning.git//modules/preview_host?ref=v0.1.0"
+  # ...
+}
+```
 
-# Editing this README
+## Roles
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+| Role | Purpose |
+|------|---------|
+| `common` | Baseline OS config; creates the unprivileged app runtime user; writes a first-boot marker. |
+| `ssh` | Hardened `sshd`: key-only auth, root login disabled, restricted ciphers. |
+| `hardening` | sysctl hardening, `AllowUsers`, unattended security upgrades, optional swap. |
+| `ufw` | Default-deny firewall; inbound web ports limited to Cloudflare ranges. |
+| `fail2ban` | SSH brute-force jail with a configurable allowlist. |
+| `docker` | Docker engine + compose plugin + a periodic `docker system prune` timer. |
+| `traefik` | Reverse proxy with a wildcard Let's Encrypt cert via Cloudflare DNS-01. |
+| `postgres_shared` | A shared Postgres container on an internal docker network. |
+| `cloudflared` | Cloudflare tunnel agent (optional ingress path). |
+| `netdata` | Host metrics agent. |
 
-## Suggestions for a good README
+## Consumer responsibilities
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+- **Secrets** (SSH keys, Cloudflare API token, registry credentials, Postgres
+  passwords) are never stored here. Supply them at runtime via environment
+  variables or SOPS-encrypted group vars in the consumer repo.
+- **Application database roles** (e.g. per-tenant RLS roles) are the consumer's
+  responsibility. `postgres_shared` provisions only the shared server; the
+  consumer's deploy/seed step creates app-specific roles and databases.
+- `traefik_acme_root_domain` and `traefik_acme_email` have no defaults and are
+  asserted at run time — set them for your zone.
 
-## Name
-Choose a self-explaining name for your project.
+## Design and security rationale
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+Rationale that previously lived as source comments is consolidated here.
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+### SSH and access
+- Root SSH login is disabled; access is via an unprivileged `deploy` user
+  (passwordless sudo, docker group). `sshd` is key-only (`PasswordAuthentication
+  no`), Ed25519-only, `MaxAuthTries 3`.
+- `AllowUsers` is restricted to `deploy`. The app runtime user (`app`, UID 1000)
+  has a `nologin` shell and no SSH — it exists only to own container processes.
+- When a CI runner reaches the host as `root` over SSH (e.g. preview deploys),
+  set `ssh_permit_root_login: prohibit-password` and add `root` to
+  `hardening_allowed_users`, otherwise the first provision locks the runner out
+  of every subsequent run.
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+### TLS / ACME
+- Traefik issues a wildcard `*.<root_domain>` Let's Encrypt cert via the
+  **DNS-01** challenge. HTTP-01 / TLS-ALPN-01 cannot validate here because
+  inbound is restricted to Cloudflare ranges and the proxy mediates requests; a
+  single wildcard emission covers every preview slug.
+- The `websecure` entrypoint pre-populates the cert `domains` so the cert is
+  issued at startup (warm) rather than on first request. `acme.json` lives in a
+  `0700` dir (lego refuses insecure ACME storage). A staging toggle
+  (`traefik_acme_use_staging`) avoids the production wildcard rate limit while
+  debugging.
+- `traefik_acme_cf_dns_api_token` is required; an empty value is rejected so the
+  host fails fast instead of half-configuring.
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+### Network exposure
+- Traefik binds `:80`/`:443`, reached by Cloudflare's proxied A record; UFW
+  limits those ports to Cloudflare IP ranges.
+- Postgres listens only on the internal `postgres` docker network and publishes
+  no host ports.
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+### Host resources
+- A modest swapfile (default 2 GiB, `vm.swappiness=10`) is an OOM safety net for
+  small hosts where a deploy spike (concurrent image pulls + migrations + asset
+  compile) could OOM-kill live containers before host load registers. Skipped
+  under containerized molecule runs.
+- A systemd `docker system prune` timer (`Persistent=true` to backfill misses)
+  keeps the small SSD from filling with stale images and orphaned volumes —
+  disk is the tightest bound on the default `cx23`.
+- sysctl: SYN cookies, `rp_filter`, no ICMP redirects, `kernel.dmesg_restrict`.
+  `net.ipv4.ip_forward=1` is intentional (Docker requires it).
+- The Postgres data dir is created `0700` with unmanaged owner/group: the
+  postgres image entrypoint chowns it on first start, and re-asserting ownership
+  on every run would break the server.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+### Terraform module notes
+- Shrinking `server_type` to a smaller-disk type cannot be done in place
+  (Hetzner rejects the change); use a one-shot
+  `terraform apply -replace=module.preview_host.hcloud_server.this`. Per-MR data
+  lives on docker volumes recreated by CD, so a rebuild is safe — but the host
+  IPv4 changes and the consumer must update their inventory.
+- The bootstrap `hcloud_ssh_key` deliberately does not ignore `public_key`
+  changes, so rotating the key propagates end-to-end instead of desyncing.
+- The Cloudflare tunnel SSH hostname rule must precede the `*.<domain>` wildcard
+  rule so SSH reaches `sshd` instead of Traefik. Order is load-bearing.

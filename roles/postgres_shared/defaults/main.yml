@@ -1,0 +1,6 @@
+postgres_shared_image: "postgres:18"
+postgres_shared_install_dir: /opt/postgres-shared
+postgres_shared_data_dir: /var/lib/postgres-shared
+postgres_shared_container_name: shared-pg
+
+postgres_shared_network: postgres

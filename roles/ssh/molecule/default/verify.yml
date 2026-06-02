@@ -1,0 +1,40 @@
+- name: Verify ssh role
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Check hardening config file exists
+      ansible.builtin.stat:
+        path: /etc/ssh/sshd_config.d/hardening.conf
+      register: sshd_config_stat
+
+    - name: Assert config file exists
+      ansible.builtin.assert:
+        that: sshd_config_stat.stat.exists
+        fail_msg: "/etc/ssh/sshd_config.d/hardening.conf not found"
+
+    - name: Read hardening config
+      ansible.builtin.slurp:
+        src: /etc/ssh/sshd_config.d/hardening.conf
+      register: sshd_config_content
+
+    - name: Assert PermitRootLogin is no
+      ansible.builtin.assert:
+        that: "'PermitRootLogin no' in (sshd_config_content.content | b64decode)"
+        fail_msg: "PermitRootLogin no not found in hardening config"
+
+    - name: Assert PasswordAuthentication is no
+      ansible.builtin.assert:
+        that: "'PasswordAuthentication no' in (sshd_config_content.content | b64decode)"
+        fail_msg: "PasswordAuthentication no not found in hardening config"
+
+    - name: Assert MaxAuthTries is 3
+      ansible.builtin.assert:
+        that: "'MaxAuthTries 3' in (sshd_config_content.content | b64decode)"
+        fail_msg: "MaxAuthTries 3 not found in hardening config"
+
+    - name: Assert only Ed25519 keys are accepted
+      ansible.builtin.assert:
+        that: "'PubkeyAcceptedAlgorithms ssh-ed25519' in (sshd_config_content.content | b64decode)"
+        fail_msg: "PubkeyAcceptedAlgorithms not restricted to Ed25519"

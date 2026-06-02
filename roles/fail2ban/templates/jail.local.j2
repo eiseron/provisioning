@@ -1,0 +1,9 @@
+[DEFAULT]
+backend = systemd
+ignoreip = {{ fail2ban_ignoreip | join(' ') }}
+
+[sshd]
+enabled  = true
+maxretry = {{ fail2ban_ssh_maxretry }}
+bantime  = {{ fail2ban_ssh_bantime }}
+findtime = {{ fail2ban_ssh_findtime }}

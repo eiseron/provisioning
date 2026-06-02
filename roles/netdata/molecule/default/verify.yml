@@ -1,0 +1,40 @@
+- name: Verify netdata role
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Check netdata binary exists
+      ansible.builtin.stat:
+        path: /usr/sbin/netdata
+      register: netdata_bin
+
+    - name: Assert netdata binary exists
+      ansible.builtin.assert:
+        that: netdata_bin.stat.exists
+        fail_msg: "netdata binary not found at /usr/sbin/netdata"
+
+    - name: Check disk alert config exists
+      ansible.builtin.stat:
+        path: /etc/netdata/health.d/disk.conf
+      register: disk_conf
+
+    - name: Assert disk alert config exists
+      ansible.builtin.assert:
+        that: disk_conf.stat.exists
+        fail_msg: "/etc/netdata/health.d/disk.conf not found"
+
+    - name: Read disk alert config
+      ansible.builtin.slurp:
+        src: /etc/netdata/health.d/disk.conf
+      register: disk_conf_content
+
+    - name: Assert disk warning threshold is 80
+      ansible.builtin.assert:
+        that: "'warn: $this > 80' in (disk_conf_content.content | b64decode)"
+        fail_msg: "disk warning threshold not set to 80 in disk.conf"
+
+    - name: Assert disk critical threshold is 90
+      ansible.builtin.assert:
+        that: "'crit: $this > 90' in (disk_conf_content.content | b64decode)"
+        fail_msg: "disk critical threshold not set to 90 in disk.conf"

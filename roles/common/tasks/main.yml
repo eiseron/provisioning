@@ -1,0 +1,147 @@
+- name: Check if first-boot provisioning has run
+  ansible.builtin.stat:
+    path: /etc/provisioned
+  register: provisioned
+
+- name: Update apt cache (first boot)
+  ansible.builtin.apt:
+    update_cache: true
+  when: not provisioned.stat.exists
+
+- name: Full system upgrade (first boot only)
+  ansible.builtin.apt:
+    upgrade: full
+  when: not provisioned.stat.exists
+
+- name: Reboot after full upgrade (first boot only, skipped in containers)
+  ansible.builtin.reboot:
+    reboot_timeout: 300
+    msg: "Rebooting after full upgrade"
+  when:
+    - not provisioned.stat.exists
+    - ansible_virtualization_type not in ['docker', 'container', 'podman', 'lxc']
+
+- name: Mark server as provisioned
+  ansible.builtin.file:
+    path: /etc/provisioned
+    state: touch
+    owner: root
+    group: root
+    mode: "0444"
+  when: not provisioned.stat.exists
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name: "{{ common_packages }}"
+    state: present
+
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ timezone }}"
+
+- name: Create app group with fixed GID
+  ansible.builtin.group:
+    name: "{{ app_group }}"
+    gid: "{{ app_gid }}"
+    state: present
+
+- name: Create app user with fixed UID
+  ansible.builtin.user:
+    name: "{{ app_user }}"
+    group: "{{ app_group }}"
+    uid: "{{ app_uid }}"
+    shell: /usr/sbin/nologin
+    home: "/home/{{ app_user }}"
+    create_home: true
+    state: present
+
+- name: Create docker group
+  ansible.builtin.group:
+    name: docker
+    state: present
+
+- name: Create deploy group
+  ansible.builtin.group:
+    name: "{{ deploy_group }}"
+    state: present
+
+- name: Create deploy user (SSH + deploy operations)
+  ansible.builtin.user:
+    name: "{{ deploy_user }}"
+    group: "{{ deploy_group }}"
+    groups: docker
+    append: true
+    shell: /bin/bash
+    home: "/home/{{ deploy_user }}"
+    create_home: true
+    state: present
+
+- name: Grant deploy user passwordless sudo
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/{{ deploy_user }}"
+    content: "{{ deploy_user }} ALL=(ALL) NOPASSWD: ALL\n"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: visudo -cf %s
+
+- name: Add SSH authorized key for deploy user
+  ansible.posix.authorized_key:
+    user: "{{ deploy_user }}"
+    key: "{{ deploy_ssh_public_key }}"
+    state: present
+  when: deploy_ssh_public_key | length > 0
+
+- name: Configure swap file
+  when: ansible_virtualization_type not in ['docker', 'container', 'podman', 'lxc']
+  block:
+    - name: Check whether swap is already active
+      ansible.builtin.command: swapon --show=NAME --noheadings
+      register: common_active_swap
+      changed_when: false
+
+    - name: Allocate swap file
+      ansible.builtin.command: "fallocate -l {{ common_swap_file_size_mb }}M {{ common_swap_file_path }}"
+      args:
+        creates: "{{ common_swap_file_path }}"
+
+    - name: Restrict swap file permissions
+      ansible.builtin.file:
+        path: "{{ common_swap_file_path }}"
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Format swap file
+      ansible.builtin.command: "mkswap {{ common_swap_file_path }}"
+      when: common_swap_file_path not in common_active_swap.stdout
+      register: common_mkswap_result
+      changed_when: "'Setting up swapspace' in common_mkswap_result.stdout"
+
+    - name: Enable swap file
+      ansible.builtin.command: "swapon {{ common_swap_file_path }}"
+      when: common_swap_file_path not in common_active_swap.stdout
+      changed_when: true
+
+    - name: Persist swap entry in fstab
+      ansible.posix.mount:
+        name: none
+        src: "{{ common_swap_file_path }}"
+        fstype: swap
+        opts: sw
+        dump: "0"
+        passno: "0"
+        state: present
+
+    - name: Tune vm.swappiness
+      ansible.posix.sysctl:
+        name: vm.swappiness
+        value: "{{ common_swap_swappiness }}"
+        state: present
+        sysctl_set: true
+        reload: true

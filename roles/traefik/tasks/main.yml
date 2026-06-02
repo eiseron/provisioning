@@ -1,0 +1,84 @@
+- name: Assert ACME root domain and email are configured
+  ansible.builtin.assert:
+    that:
+      - traefik_acme_root_domain | length > 0
+      - traefik_acme_email | length > 0
+    fail_msg: >-
+      traefik_acme_root_domain and traefik_acme_email must be set by the
+      consumer (group_vars or --extra-vars). They are required for
+      Let's Encrypt wildcard certificate issuance.
+
+- name: Ensure traefik install directory exists
+  ansible.builtin.file:
+    path: "{{ traefik_install_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Ensure traefik log directory exists
+  ansible.builtin.file:
+    path: "{{ traefik_log_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Create traefik external docker network
+  community.docker.docker_network:
+    name: "{{ traefik_network_external }}"
+    state: present
+
+- name: Create postgres external docker network
+  community.docker.docker_network:
+    name: "{{ postgres_network_external }}"
+    state: present
+
+- name: Fail when CF DNS API token is empty
+  ansible.builtin.assert:
+    that: traefik_acme_cf_dns_api_token | length > 0
+    fail_msg: >-
+      traefik_acme_cf_dns_api_token is empty. The Cloudflare DNS API
+      token must be supplied so lego can solve the DNS-01 challenge.
+      Without it traefik refuses to start.
+
+- name: Ensure ACME storage directory exists
+  ansible.builtin.file:
+    path: "{{ traefik_install_dir }}/acme"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Render traefik static config
+  ansible.builtin.template:
+    src: traefik.yml.j2
+    dest: "{{ traefik_install_dir }}/traefik.yml"
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Restart traefik
+
+- name: Render traefik compose env file (CF DNS API token)
+  ansible.builtin.copy:
+    dest: "{{ traefik_install_dir }}/traefik.env"
+    content: "CF_DNS_API_TOKEN={{ traefik_acme_cf_dns_api_token }}\n"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Restart traefik
+  no_log: true
+
+- name: Render traefik compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ traefik_install_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Restart traefik
+
+- name: Bring up traefik via docker compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ traefik_install_dir }}"
+    state: present

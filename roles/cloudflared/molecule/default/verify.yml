@@ -1,0 +1,35 @@
+- name: Verify cloudflared role
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Check cloudflared binary is installed
+      ansible.builtin.stat:
+        path: /usr/bin/cloudflared
+      register: cloudflared_bin
+
+    - name: Assert cloudflared binary exists
+      ansible.builtin.assert:
+        that: cloudflared_bin.stat.exists
+        fail_msg: "/usr/bin/cloudflared not installed"
+
+    - name: Check cloudflared apt keyring exists
+      ansible.builtin.stat:
+        path: /etc/apt/keyrings/cloudflare-main.gpg
+      register: cf_key
+
+    - name: Assert cloudflared apt keyring exists
+      ansible.builtin.assert:
+        that: cf_key.stat.exists
+        fail_msg: "Cloudflare apt keyring not found"
+
+    - name: Check cloudflared apt repo file exists
+      ansible.builtin.stat:
+        path: /etc/apt/sources.list.d/cloudflared.list
+      register: cf_repo
+
+    - name: Assert cloudflared apt repo file exists
+      ansible.builtin.assert:
+        that: cf_repo.stat.exists
+        fail_msg: "Cloudflared apt repo file not found"

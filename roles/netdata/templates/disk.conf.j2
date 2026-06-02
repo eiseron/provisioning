@@ -1,0 +1,14 @@
+alarm: disk_space_usage
+   on: disk.space
+class: Utilization
+ type: System
+component: Disk
+   os: linux
+hosts: *
+lookup: average -1m percentage of used
+ units: %
+ every: 1m
+  warn: $this > {{ netdata_disk_warning_threshold }}
+  crit: $this > {{ netdata_disk_critical_threshold }}
+  info: disk space utilization
+    to: sysadmin

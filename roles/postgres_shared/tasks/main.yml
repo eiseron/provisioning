@@ -1,0 +1,50 @@
+- name: Assert pg_shared_user is provided
+  ansible.builtin.assert:
+    that:
+      - pg_shared_user is defined
+      - pg_shared_user | length > 0
+    fail_msg: "pg_shared_user must be supplied (group_vars or --extra-vars)"
+
+- name: Assert pg_shared_password is provided
+  ansible.builtin.assert:
+    that:
+      - pg_shared_password is defined
+      - pg_shared_password | length > 0
+    fail_msg: "pg_shared_password must be supplied (group_vars or --extra-vars)"
+
+- name: Ensure postgres-shared install directory exists
+  ansible.builtin.file:
+    path: "{{ postgres_shared_install_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Ensure postgres-shared data directory exists
+  ansible.builtin.file:
+    path: "{{ postgres_shared_data_dir }}"
+    state: directory
+    mode: "0700"
+
+- name: Render postgres-shared compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ postgres_shared_install_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Restart postgres-shared
+
+- name: Bring up postgres-shared via docker compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ postgres_shared_install_dir }}"
+    state: present
+
+- name: Wait for shared-pg to accept connections
+  ansible.builtin.command:
+    cmd: "docker exec {{ postgres_shared_container_name }} pg_isready -U {{ pg_shared_user }}"
+  register: postgres_shared_isready
+  retries: 20
+  delay: 3
+  until: postgres_shared_isready.rc == 0
+  changed_when: false

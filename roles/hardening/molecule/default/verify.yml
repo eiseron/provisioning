@@ -1,0 +1,85 @@
+- name: Verify hardening role
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Check unattended-upgrades is installed
+      ansible.builtin.command: dpkg-query -W -f='${Status}' unattended-upgrades
+      changed_when: false
+      register: dpkg_result
+
+    - name: Assert unattended-upgrades is installed
+      ansible.builtin.assert:
+        that: "'install ok installed' in dpkg_result.stdout"
+        fail_msg: "unattended-upgrades is not installed"
+
+    - name: Read auto-upgrades schedule config
+      ansible.builtin.slurp:
+        src: /etc/apt/apt.conf.d/20auto-upgrades
+      register: auto_upgrades_content
+
+    - name: Assert automatic upgrade is enabled
+      ansible.builtin.assert:
+        that: "'Unattended-Upgrade \"1\"' in (auto_upgrades_content.content | b64decode)"
+        fail_msg: "Unattended-Upgrade is not set to 1 in 20auto-upgrades"
+
+    - name: Read unattended-upgrades origins config
+      ansible.builtin.slurp:
+        src: /etc/apt/apt.conf.d/50unattended-upgrades
+      register: uu_config_content
+
+    - name: Assert only security origin is configured
+      ansible.builtin.assert:
+        that: "'distro_codename}-security' in (uu_config_content.content | b64decode)"
+        fail_msg: "Security origin not found in unattended-upgrades config"
+
+    - name: Check sysctl hardening config exists
+      ansible.builtin.stat:
+        path: /etc/sysctl.d/99-hardening.conf
+      register: sysctl_stat
+
+    - name: Assert sysctl config file exists
+      ansible.builtin.assert:
+        that: sysctl_stat.stat.exists
+        fail_msg: "/etc/sysctl.d/99-hardening.conf not found"
+
+    - name: Read sysctl hardening config
+      ansible.builtin.slurp:
+        src: /etc/sysctl.d/99-hardening.conf
+      register: sysctl_content
+
+    - name: Assert SYN cookie protection is set
+      ansible.builtin.assert:
+        that: "'net.ipv4.tcp_syncookies = 1' in (sysctl_content.content | b64decode)"
+        fail_msg: "net.ipv4.tcp_syncookies = 1 not found in sysctl config"
+
+    - name: Assert IP spoofing protection is set
+      ansible.builtin.assert:
+        that: "'net.ipv4.conf.all.rp_filter = 1' in (sysctl_content.content | b64decode)"
+        fail_msg: "net.ipv4.conf.all.rp_filter = 1 not found in sysctl config"
+
+    - name: Assert ICMP redirect acceptance is disabled
+      ansible.builtin.assert:
+        that: "'net.ipv4.conf.all.accept_redirects = 0' in (sysctl_content.content | b64decode)"
+        fail_msg: "net.ipv4.conf.all.accept_redirects = 0 not found in sysctl config"
+
+    - name: Assert kernel log restriction is set
+      ansible.builtin.assert:
+        that: "'kernel.dmesg_restrict = 1' in (sysctl_content.content | b64decode)"
+        fail_msg: "kernel.dmesg_restrict = 1 not found in sysctl config"
+
+    - name: Assert IP forwarding is enabled
+      ansible.builtin.assert:
+        that: "'net.ipv4.ip_forward = 1' in (sysctl_content.content | b64decode)"
+        fail_msg: "net.ipv4.ip_forward = 1 not found in sysctl config (Docker requires forwarding for container routing)"
+
+    - name: Read AllowUsers SSH config
+      ansible.builtin.slurp:
+        src: /etc/ssh/sshd_config.d/allowusers.conf
+      register: allowusers_content
+
+    - name: Assert AllowUsers restricts SSH to deploy user only
+      ansible.builtin.assert:
+        that: "'AllowUsers deploy' in (allowusers_content.content | b64decode)"
+        fail_msg: "AllowUsers deploy not found in allowusers.conf"

@@ -1,0 +1,20 @@
+- name: Converge
+  hosts: all
+  become: true
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  pre_tasks:
+    - name: Install apt-utils to avoid dpkg warnings
+      ansible.builtin.apt:
+        name: apt-utils
+        state: present
+        update_cache: true
+    - name: Create sshd_config.d directory
+      ansible.builtin.file:
+        path: /etc/ssh/sshd_config.d
+        state: directory
+        mode: "0755"
+  roles:
+    - role: hardening
+      vars:
+        deploy_user: deploy

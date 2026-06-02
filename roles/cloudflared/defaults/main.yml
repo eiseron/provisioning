@@ -1,0 +1,2 @@
+cloudflared_apt_keyring_url: "https://pkg.cloudflare.com/cloudflare-main.gpg"
+cloudflared_apt_repo_url: "https://pkg.cloudflare.com/cloudflared {{ ansible_distribution_release }} main"

@@ -1,0 +1,2 @@
+netdata_disk_warning_threshold: 80
+netdata_disk_critical_threshold: 90

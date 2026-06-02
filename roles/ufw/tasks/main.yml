@@ -1,0 +1,60 @@
+- name: Install ufw
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+    update_cache: true
+
+- name: Set default incoming policy to deny
+  community.general.ufw:
+    direction: incoming
+    policy: deny
+
+- name: Set default outgoing policy to allow
+  community.general.ufw:
+    direction: outgoing
+    policy: allow
+
+- name: Allow SSH from anywhere
+  community.general.ufw:
+    rule: allow
+    port: "{{ ufw_ssh_port }}"
+    proto: tcp
+    comment: SSH
+  when: ufw_allow_public_ssh
+
+- name: Fetch Cloudflare IPv4 ranges
+  ansible.builtin.uri:
+    url: "{{ ufw_cloudflare_ipv4_url }}"
+    return_content: true
+  register: cf_ipv4
+  when: ufw_allow_cloudflare_web
+
+- name: Fetch Cloudflare IPv6 ranges
+  ansible.builtin.uri:
+    url: "{{ ufw_cloudflare_ipv6_url }}"
+    return_content: true
+  register: cf_ipv6
+  when: ufw_allow_cloudflare_web
+
+- name: Parse Cloudflare IP ranges
+  ansible.builtin.set_fact:
+    cf_ips: "{{ (cf_ipv4.content.splitlines() + cf_ipv6.content.splitlines()) | select('truthy') | list }}"
+  when: ufw_allow_cloudflare_web
+
+- name: Allow HTTP and HTTPS from Cloudflare ranges only
+  community.general.ufw:
+    rule: allow
+    port: "{{ item[0] }}"
+    proto: tcp
+    src: "{{ item[1] }}"
+    comment: "Cloudflare"
+  loop: "{{ ufw_cloudflare_ports | product(cf_ips) | list }}"
+  when: ufw_allow_cloudflare_web
+
+- name: Apply per-host extra rules
+  community.general.ufw: "{{ item }}"
+  loop: "{{ ufw_extra_rules }}"
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled

@@ -1,0 +1,23 @@
+services:
+  traefik:
+    image: {{ traefik_image }}
+    container_name: {{ traefik_container_name }}
+    restart: unless-stopped
+    command:
+      - --configfile=/etc/traefik/traefik.yml
+    ports:
+      - "80:{{ traefik_tunnel_entrypoint_port }}"
+      - "443:{{ traefik_websecure_entrypoint_port }}"
+    env_file:
+      - traefik.env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - {{ traefik_install_dir }}/traefik.yml:/etc/traefik/traefik.yml:ro
+      - {{ traefik_install_dir }}/acme:/etc/traefik/acme
+      - {{ traefik_log_dir }}:/var/log/traefik
+    networks:
+      - {{ traefik_network_external }}
+
+networks:
+  {{ traefik_network_external }}:
+    external: true

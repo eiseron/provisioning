@@ -1,0 +1,36 @@
+- name: Provision preview host
+  hosts: preview_host
+  become: true
+  gather_facts: false
+
+  vars:
+    deploy_user: deploy
+    ssh_permit_root_login: prohibit-password
+    hardening_allowed_users:
+      - root
+      - "{{ deploy_user }}"
+    deploy_ssh_public_key: "{{ lookup('env', 'DEPLOY_SSH_PUBLIC_KEY') }}"
+    traefik_acme_root_domain: "{{ lookup('env', 'PREVIEW_ACME_ROOT_DOMAIN') }}"
+    traefik_acme_email: "{{ lookup('env', 'PREVIEW_ACME_EMAIL') }}"
+    traefik_acme_cf_dns_api_token: "{{ lookup('env', 'CF_DNS_API_TOKEN') }}"
+    fail2ban_ignoreip: >-
+      {{ ['127.0.0.1/8', '::1'] +
+         ([lookup('env', 'CI_RUNNER_IP')] | reject('equalto', '') | list) }}
+
+  pre_tasks:
+    - name: Wait for SSH to become reachable
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        sleep: 10
+    - name: Gather facts after host is reachable
+      ansible.builtin.setup:
+
+  roles:
+    - eiseron.provisioning.common
+    - eiseron.provisioning.ssh
+    - eiseron.provisioning.hardening
+    - eiseron.provisioning.ufw
+    - eiseron.provisioning.fail2ban
+    - eiseron.provisioning.docker
+    - eiseron.provisioning.traefik
+    - eiseron.provisioning.postgres_shared
