@@ -10,7 +10,7 @@
       - root
       - "{{ deploy_user }}"
     deploy_ssh_public_key: "{{ lookup('env', 'DEPLOY_SSH_PUBLIC_KEY') }}"
-    traefik_acme_root_domain: "{{ lookup('env', 'PREVIEW_ACME_ROOT_DOMAIN') }}"
+    traefik_acme_domains: "{{ (lookup('env', 'PREVIEW_ACME_DOMAINS') or '').split(',') | map('trim') | reject('equalto', '') | list }}"
     traefik_acme_email: "{{ lookup('env', 'PREVIEW_ACME_EMAIL') }}"
     traefik_acme_cf_dns_api_token: "{{ lookup('env', 'CF_DNS_API_TOKEN') }}"
     fail2ban_ignoreip: >-

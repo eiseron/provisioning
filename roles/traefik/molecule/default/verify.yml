@@ -51,6 +51,13 @@
           - "'dnsChallenge:' in (traefik_static_body.content | b64decode)"
         fail_msg: "traefik.yml missing dnsChallenge with cloudflare provider"
 
+    - name: Assert every configured zone emits a wildcard cert entry
+      ansible.builtin.assert:
+        that:
+          - "'*.example.com' in (traefik_static_body.content | b64decode)"
+          - "'*.example.org' in (traefik_static_body.content | b64decode)"
+        fail_msg: "traefik.yml missing a wildcard entry for one of the configured ACME zones"
+
     - name: Assert ACME storage targets the mounted acme dir
       ansible.builtin.assert:
         that: "'storage: /etc/traefik/acme/acme.json' in (traefik_static_body.content | b64decode)"

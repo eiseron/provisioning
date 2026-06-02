@@ -5,7 +5,9 @@
     DEBIAN_FRONTEND: noninteractive
   vars:
     traefik_acme_cf_dns_api_token: "molecule-placeholder-token"
-    traefik_acme_root_domain: "example.com"
+    traefik_acme_domains:
+      - "example.com"
+      - "example.org"
     traefik_acme_email: "ops@example.com"
   pre_tasks:
     - name: Install apt-utils to avoid dpkg warnings

@@ -18,9 +18,11 @@ entryPoints:
       tls:
         certResolver: cf
         domains:
-          - main: {{ traefik_acme_root_domain }}
+{% for domain in traefik_acme_domains %}
+          - main: "{{ domain }}"
             sans:
-              - "*.{{ traefik_acme_root_domain }}"
+              - "*.{{ domain }}"
+{% endfor %}
 
 certificatesResolvers:
   cf:

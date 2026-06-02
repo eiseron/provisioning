@@ -67,8 +67,11 @@ module "preview_host" {
 - **Application database roles** (e.g. per-tenant RLS roles) are the consumer's
   responsibility. `postgres_shared` provisions only the shared server; the
   consumer's deploy/seed step creates app-specific roles and databases.
-- `traefik_acme_root_domain` and `traefik_acme_email` have no defaults and are
-  asserted at run time — set them for your zone.
+- `traefik_acme_domains` (a non-empty list of apex domains, e.g.
+  `["example.com", "example.net"]`) and `traefik_acme_email` have no defaults and
+  are asserted at run time. One host can serve several zones; a single
+  `traefik_acme_cf_dns_api_token` scoped to all of them issues a wildcard cert
+  per zone.
 
 ## Design and security rationale
 
@@ -86,10 +89,11 @@ Rationale that previously lived as source comments is consolidated here.
   of every subsequent run.
 
 ### TLS / ACME
-- Traefik issues a wildcard `*.<root_domain>` Let's Encrypt cert via the
-  **DNS-01** challenge. HTTP-01 / TLS-ALPN-01 cannot validate here because
-  inbound is restricted to Cloudflare ranges and the proxy mediates requests; a
-  single wildcard emission covers every preview slug.
+- Traefik issues a wildcard `*.<domain>` Let's Encrypt cert per entry in
+  `traefik_acme_domains` via the **DNS-01** challenge. HTTP-01 / TLS-ALPN-01
+  cannot validate here because inbound is restricted to Cloudflare ranges and the
+  proxy mediates requests; one wildcard emission per zone covers every preview
+  slug, so a single host can serve multiple product zones.
 - The `websecure` entrypoint pre-populates the cert `domains` so the cert is
   issued at startup (warm) rather than on first request. `acme.json` lives in a
   `0700` dir (lego refuses insecure ACME storage). A staging toggle
