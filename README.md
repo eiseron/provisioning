@@ -11,7 +11,8 @@ credentials you can stand up a preview host identical to the one Eiseron runs.
 galaxy.yml                  Ansible collection metadata (eiseron.provisioning)
 roles/                      Ansible roles (consumed as eiseron.provisioning.<role>)
 playbooks/preview-host.yml  Reference composition for a preview host
-modules/preview_host/       Terraform module for the Hetzner Cloud host + Cloudflare wiring
+modules/preview_host/       Terraform module for the Hetzner Cloud host (domain-agnostic)
+modules/preview_cloudflare/ Optional Cloudflare Zero Trust wiring (tunnel + Access service token)
 ```
 
 The Ansible roles ship as the collection **`eiseron.provisioning`**. The Terraform
@@ -25,7 +26,7 @@ Add to a consumer's `requirements.yml`, pinned to an immutable tag:
 collections:
   - name: git+https://gitlab.com/eiseron/stack/provisioning.git
     type: git
-    version: v0.1.0
+    version: v0.3.0
 ```
 
 ```sh
@@ -39,7 +40,7 @@ See `playbooks/preview-host.yml` for a full composition.
 
 ```hcl
 module "preview_host" {
-  source = "git::https://gitlab.com/eiseron/stack/provisioning.git//modules/preview_host?ref=v0.1.0"
+  source = "git::https://gitlab.com/eiseron/stack/provisioning.git//modules/preview_host?ref=v0.3.0"
   # ...
 }
 ```
@@ -130,5 +131,11 @@ Rationale that previously lived as source comments is consolidated here.
   IPv4 changes and the consumer must update their inventory.
 - The bootstrap `hcloud_ssh_key` deliberately does not ignore `public_key`
   changes, so rotating the key propagates end-to-end instead of desyncing.
-- The Cloudflare tunnel SSH hostname rule must precede the `*.<domain>` wildcard
-  rule so SSH reaches `sshd` instead of Traefik. Order is load-bearing.
+- `preview_host` is domain-agnostic: it provisions only the Hetzner host. DNS,
+  Cloudflare Access, and the per-zone wildcard cert are wired by the consumer
+  (the eiseron-ops host owner aggregates `traefik_acme_domains`; each product's
+  ops repo points its `*-preview.<zone>` record at the host IP).
+- The optional `preview_cloudflare` module keeps the Cloudflare Zero Trust path
+  available decoupled from the host: a cloudflared tunnel (SSH + `*.<base>` →
+  traefik) and a CI Access service token. Consume it where that edge path is
+  wanted; it is not required for the direct-DNS routing the host uses by default.

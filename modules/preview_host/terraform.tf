@@ -6,10 +6,5 @@ terraform {
       source  = "hetznercloud/hcloud"
       version = "~> 1.0"
     }
-
-    cloudflare = {
-      source  = "cloudflare/cloudflare"
-      version = "~> 5.0"
-    }
   }
 }
