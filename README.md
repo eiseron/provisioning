@@ -14,6 +14,7 @@ roles/preview_server/       Bundle role that composes the full preview host
 playbooks/preview_host.yml  Reference composition for a preview host
 playbooks/preview_tenant.yml Reference play to provision a tenant (seat)
 playbooks/preview_app.yml    Reference play to deploy/tear down an MR app
+modules/product/            Terraform module for a whole product's foundation (GitLab subgroup+repos, Cloudflare zone/DNS, R2 state, tokens, GitHub mirror, preview handoff)
 modules/preview_host/       Terraform module for the Hetzner Cloud host (domain-agnostic)
 modules/preview_cloudflare/ Optional Cloudflare Zero Trust wiring (tunnel + Access service token)
 modules/gitlab_repository/             Terraform module for a GitLab project (branch/tag protection)

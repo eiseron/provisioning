@@ -1,0 +1,91 @@
+variable "slug" {
+  description = "Product slug (the subgroup path, the app repo name, the tenant name)."
+  type        = string
+}
+
+variable "description" {
+  description = "Human description of the product."
+  type        = string
+  default     = ""
+}
+
+variable "parent_group_id" {
+  description = "ID of the top-level GitLab group that owns the subgroup and the service account."
+  type        = string
+}
+
+variable "visibility" {
+  description = "Default visibility for the product subgroup and app repo. Private by default; public is opt-in."
+  type        = string
+  default     = "private"
+
+  validation {
+    condition     = contains(["private", "public"], var.visibility)
+    error_message = "visibility must be private or public."
+  }
+}
+
+variable "domain" {
+  description = "Apex domain for the product's Cloudflare zone (e.g. example.com)."
+  type        = string
+}
+
+variable "cloudflare_account_id" {
+  description = "Cloudflare account ID that owns the zone, R2 bucket and tokens."
+  type        = string
+}
+
+variable "apex_target" {
+  description = "Optional IPv4 for an A record on the apex (proxied). Null skips it."
+  type        = string
+  default     = null
+}
+
+variable "preview_host_ip" {
+  description = "Optional IPv4 of the shared preview host. When set, the module wires the *-preview wildcard and the preview handoff into the ops repo. Null skips preview."
+  type        = string
+  default     = null
+}
+
+variable "repositories" {
+  description = "Extra repos beyond the app and the ops repo, keyed by repo name."
+  type = map(object({
+    description = optional(string, "")
+    public      = optional(bool, false)
+    mirror      = optional(bool)
+    topics      = optional(list(string), [])
+    is_ops      = optional(bool, false)
+  }))
+  default = {}
+}
+
+variable "topics" {
+  description = "Topics for the app repo."
+  type        = list(string)
+  default     = []
+}
+
+variable "avatar_path" {
+  description = "Optional avatar image path passed to the repository module."
+  type        = string
+  default     = null
+}
+
+variable "r2_location" {
+  description = "Cloudflare R2 location hint for the state bucket."
+  type        = string
+  default     = "ENAM"
+}
+
+variable "github_owner" {
+  description = "GitHub owner for the push mirror of public repos."
+  type        = string
+  default     = "eiseron"
+}
+
+variable "github_mirror_token" {
+  description = "GitHub token embedded in the push-mirror URL. Required only when a repo is mirrored."
+  type        = string
+  default     = null
+  sensitive   = true
+}
