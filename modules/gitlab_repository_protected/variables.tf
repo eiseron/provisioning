@@ -42,7 +42,7 @@ variable "topics" {
 }
 
 variable "avatar_path" {
-  description = "Optional path to a project avatar image (e.g. \"${path.root}/assets/avatar.png\"). Null sets no avatar."
+  description = "Optional path to a project avatar image (for example a PNG under the consumer's assets directory). Null sets no avatar."
   type        = string
   default     = null
   nullable    = true
@@ -113,4 +113,47 @@ variable "ci_separated_caches" {
   description = "When true, GitLab uses separate runner caches for protected and unprotected refs. Prevents compile-time artifacts from a protected pipeline being pulled by an unprotected MR pipeline."
   type        = bool
   default     = true
+}
+
+variable "initialize_with_readme" {
+  description = "Whether to create an initial README commit on project creation. Paired with an ignore_changes lifecycle so toggling it after creation is a no-op."
+  type        = bool
+  default     = true
+}
+
+variable "ci_pipeline_variables_minimum_override_role" {
+  description = "Minimum role allowed to override CI/CD variables at pipeline run time. Defaults to 'maintainer'. Set to null to leave it unmanaged at the GitLab default."
+  type        = string
+  default     = "maintainer"
+  nullable    = true
+}
+
+variable "shared_runners_enabled" {
+  description = "Whether instance shared runners may run jobs for this project. Set false to route everything to group/project runners. Null leaves it unmanaged at the GitLab default."
+  type        = bool
+  default     = null
+  nullable    = true
+}
+
+variable "container_registry_access_level" {
+  description = "Container Registry visibility: 'enabled' inherits project visibility, 'private' restricts to members, 'disabled' turns it off. Null leaves it unmanaged at the GitLab default."
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.container_registry_access_level == null ? true : contains(["enabled", "private", "disabled"], var.container_registry_access_level)
+    error_message = "container_registry_access_level must be 'enabled', 'private', 'disabled', or null."
+  }
+}
+
+variable "container_expiration_policy" {
+  description = "Optional registry tag cleanup policy. Null disables it. cadence values: 1d 7d 14d 1month 3month. older_than values: 7d 14d 30d 90d."
+  type = object({
+    cadence           = string
+    keep_n            = optional(number)
+    older_than        = string
+    name_regex_delete = string
+  })
+  default = null
 }
