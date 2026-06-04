@@ -1,0 +1,80 @@
+- name: Assert the tenant name is provided
+  ansible.builtin.assert:
+    that:
+      - preview_tenant_name is defined
+      - preview_tenant_name | length > 0
+    fail_msg: "preview_tenant_name must be supplied (the product slug, e.g. holter)"
+
+- name: Assert the tenant password is provided
+  ansible.builtin.assert:
+    that:
+      - preview_tenant_password is defined
+      - preview_tenant_password | length > 0
+    fail_msg: "preview_tenant_password must be supplied"
+
+- name: Assert the shared Postgres admin user is provided
+  ansible.builtin.assert:
+    that:
+      - pg_shared_user is defined
+      - pg_shared_user | length > 0
+    fail_msg: "pg_shared_user (the shared instance superuser) must be supplied"
+
+- name: Check whether the tenant role already exists
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -i
+      - "{{ postgres_shared_container_name }}"
+      - psql
+      - -U
+      - "{{ pg_shared_user }}"
+      - -v
+      - "tname={{ preview_tenant_name }}"
+      - -tA
+    stdin: "SELECT 1 FROM pg_roles WHERE rolname = :'tname';"
+  register: preview_tenant_role_check
+  changed_when: false
+
+- name: Create the tenant login role
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -i
+      - "{{ postgres_shared_container_name }}"
+      - psql
+      - -U
+      - "{{ pg_shared_user }}"
+      - -v
+      - "ON_ERROR_STOP=1"
+      - -v
+      - "tname={{ preview_tenant_name }}"
+      - -v
+      - "tpw={{ preview_tenant_password }}"
+    stdin: 'CREATE ROLE :"tname" LOGIN PASSWORD :''tpw'';'
+  when: preview_tenant_role_check.stdout | trim != "1"
+  changed_when: true
+  no_log: true
+
+- name: Enforce the tenant role privileges and password
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -i
+      - "{{ postgres_shared_container_name }}"
+      - psql
+      - -U
+      - "{{ pg_shared_user }}"
+      - -v
+      - "ON_ERROR_STOP=1"
+      - -v
+      - "tname={{ preview_tenant_name }}"
+      - -v
+      - "tpw={{ preview_tenant_password }}"
+      - -v
+      - "climit={{ preview_tenant_connection_limit | int }}"
+    stdin: 'ALTER ROLE :"tname" WITH LOGIN CREATEDB NOSUPERUSER NOCREATEROLE CONNECTION LIMIT :climit PASSWORD :''tpw'';'
+  changed_when: false
+  no_log: true

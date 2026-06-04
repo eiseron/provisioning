@@ -4,3 +4,5 @@ postgres_shared_volume: postgres-shared-data
 postgres_shared_container_name: shared-pg
 
 postgres_shared_network: postgres
+
+postgres_shared_max_connections: 200

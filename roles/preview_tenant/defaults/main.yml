@@ -1,0 +1,4 @@
+postgres_shared_container_name: shared-pg
+
+preview_tenant_connection_limit: 50
+preview_tenant_db_prefix: "{{ preview_tenant_name }}"

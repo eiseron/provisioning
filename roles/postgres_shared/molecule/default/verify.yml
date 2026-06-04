@@ -64,3 +64,14 @@
       ansible.builtin.assert:
         that: "'ports:' not in (pg_compose_body.content | b64decode)"
         fail_msg: "postgres-shared must not publish host ports"
+
+    - name: Query the running server's max_connections
+      ansible.builtin.command:
+        cmd: docker exec shared-pg psql -U molecule_test -tAc "SHOW max_connections"
+      register: pg_max_conn
+      changed_when: false
+
+    - name: Assert the configured max_connections is applied
+      ansible.builtin.assert:
+        that: pg_max_conn.stdout | trim | int == 200
+        fail_msg: "shared-pg max_connections is {{ pg_max_conn.stdout | trim }}, expected 200"

@@ -3,6 +3,7 @@ services:
     image: {{ postgres_shared_image }}
     container_name: {{ postgres_shared_container_name }}
     restart: unless-stopped
+    command: ["postgres", "-c", "max_connections={{ postgres_shared_max_connections }}"]
     environment:
       POSTGRES_USER: {{ pg_shared_user }}
       POSTGRES_PASSWORD: {{ pg_shared_password }}

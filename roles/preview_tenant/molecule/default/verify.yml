@@ -1,0 +1,74 @@
+- name: Verify preview_tenant role
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Read the tenant role attributes
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - -i
+          - shared-pg
+          - psql
+          - -U
+          - molecule_admin
+          - -tAc
+          - >-
+            SELECT rolcanlogin, rolcreatedb, rolsuper, rolconnlimit
+            FROM pg_roles WHERE rolname = 'molecule_tenant'
+      register: tenant_attrs
+      changed_when: false
+
+    - name: Assert the tenant role can log in and create databases but is not a superuser
+      ansible.builtin.assert:
+        that:
+          - tenant_attrs.stdout | trim == "t|t|f|25"
+        fail_msg: >-
+          molecule_tenant attributes are '{{ tenant_attrs.stdout | trim }}',
+          expected 't|t|f|25' (login, createdb, not super, conn limit 25)
+
+    - name: Create a per-MR database as the tenant
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - -i
+          - shared-pg
+          - psql
+          - -U
+          - molecule_tenant
+          - -d
+          - postgres
+          - -v
+          - "ON_ERROR_STOP=1"
+          - -c
+          - "CREATE DATABASE molecule_tenant_mr1"
+      register: tenant_createdb
+      changed_when: true
+
+    - name: Confirm the per-MR database is owned by the tenant
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - -i
+          - shared-pg
+          - psql
+          - -U
+          - molecule_admin
+          - -tAc
+          - >-
+            SELECT pg_catalog.pg_get_userbyid(datdba)
+            FROM pg_database WHERE datname = 'molecule_tenant_mr1'
+      register: tenant_db_owner
+      changed_when: false
+
+    - name: Assert the per-MR database is owned by the tenant role
+      ansible.builtin.assert:
+        that:
+          - tenant_db_owner.stdout | trim == "molecule_tenant"
+        fail_msg: >-
+          molecule_tenant_mr1 owner is '{{ tenant_db_owner.stdout | trim }}',
+          expected 'molecule_tenant'

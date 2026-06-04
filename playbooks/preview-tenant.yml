@@ -1,0 +1,12 @@
+- name: Provision a preview tenant (seat) on the shared Postgres
+  hosts: all
+  remote_user: root
+  become: true
+  gather_facts: false
+  vars:
+    pg_shared_user: "{{ lookup('env', 'SHARED_PG_USER') }}"
+    preview_tenant_name: "{{ lookup('env', 'PREVIEW_TENANT_NAME') }}"
+    preview_tenant_password: "{{ lookup('env', 'PREVIEW_TENANT_PASSWORD') }}"
+
+  roles:
+    - eiseron.provisioning.preview_tenant
