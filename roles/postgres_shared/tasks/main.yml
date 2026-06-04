@@ -35,6 +35,11 @@
     mode: "0640"
   notify: Restart postgres-shared
 
+- name: Ensure the shared postgres docker network exists
+  community.docker.docker_network:
+    name: "{{ postgres_shared_network }}"
+    state: present
+
 - name: Bring up postgres-shared via docker compose
   community.docker.docker_compose_v2:
     project_src: "{{ postgres_shared_install_dir }}"

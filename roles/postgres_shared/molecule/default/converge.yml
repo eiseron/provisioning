@@ -9,6 +9,8 @@
         name: apt-utils
         state: present
         update_cache: true
+  vars:
+    traefik_acme_domains: []
   roles:
     - role: docker
     - role: traefik

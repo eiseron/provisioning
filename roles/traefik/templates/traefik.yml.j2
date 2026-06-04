@@ -14,6 +14,7 @@ entryPoints:
     address: ":{{ traefik_tunnel_entrypoint_port }}"
   websecure:
     address: ":{{ traefik_websecure_entrypoint_port }}"
+{% if traefik_acme_domains | length > 0 %}
     http:
       tls:
         certResolver: cf
@@ -23,6 +24,8 @@ entryPoints:
             sans:
               - "*.{{ domain }}"
 {% endfor %}
+{% endif %}
+{% if traefik_acme_domains | length > 0 %}
 
 certificatesResolvers:
   cf:
@@ -37,6 +40,7 @@ certificatesResolvers:
         resolvers:
           - "1.1.1.1:53"
           - "8.8.8.8:53"
+{% endif %}
 
 providers:
   docker:

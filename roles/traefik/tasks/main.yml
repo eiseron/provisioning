@@ -1,13 +1,13 @@
-- name: Assert ACME domains and email are configured
+- name: Assert ACME email and token when domains are configured
   ansible.builtin.assert:
     that:
-      - traefik_acme_domains | length > 0
       - traefik_acme_email | length > 0
+      - traefik_acme_cf_dns_api_token | length > 0
     fail_msg: >-
-      traefik_acme_domains (a non-empty list of apex domains) and
-      traefik_acme_email must be set by the consumer (group_vars or
-      --extra-vars). They are required for Let's Encrypt wildcard
+      traefik_acme_domains is non-empty, so traefik_acme_email and
+      traefik_acme_cf_dns_api_token are required for Let's Encrypt wildcard
       certificate issuance.
+  when: traefik_acme_domains | length > 0
 
 - name: Ensure traefik install directory exists
   ansible.builtin.file:
@@ -34,14 +34,6 @@
   community.docker.docker_network:
     name: "{{ postgres_network_external }}"
     state: present
-
-- name: Fail when CF DNS API token is empty
-  ansible.builtin.assert:
-    that: traefik_acme_cf_dns_api_token | length > 0
-    fail_msg: >-
-      traefik_acme_cf_dns_api_token is empty. The Cloudflare DNS API
-      token must be supplied so lego can solve the DNS-01 challenge.
-      Without it traefik refuses to start.
 
 - name: Ensure ACME storage directory exists
   ansible.builtin.file:
