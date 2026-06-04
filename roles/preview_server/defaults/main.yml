@@ -1,0 +1,6 @@
+deploy_user: deploy
+ssh_permit_root_login: prohibit-password
+hardening_allowed_users:
+  - root
+  - "{{ deploy_user }}"
+traefik_acme_domains: []

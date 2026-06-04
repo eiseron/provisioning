@@ -1,6 +1,6 @@
 namespace: eiseron
 name: provisioning
-version: 0.4.1
+version: 0.5.0
 readme: README.md
 authors:
   - Eiseron <ops@eiseron.com>

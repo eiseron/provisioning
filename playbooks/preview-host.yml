@@ -26,11 +26,4 @@
       ansible.builtin.setup:
 
   roles:
-    - eiseron.provisioning.common
-    - eiseron.provisioning.ssh
-    - eiseron.provisioning.hardening
-    - eiseron.provisioning.ufw
-    - eiseron.provisioning.fail2ban
-    - eiseron.provisioning.docker
-    - eiseron.provisioning.traefik
-    - eiseron.provisioning.postgres_shared
+    - eiseron.provisioning.preview_server

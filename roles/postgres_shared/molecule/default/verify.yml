@@ -14,15 +14,16 @@
         that: pg_install.stat.isdir is defined and pg_install.stat.isdir
         fail_msg: "/opt/postgres-shared directory missing"
 
-    - name: Check postgres-shared data directory exists
-      ansible.builtin.stat:
-        path: /var/lib/postgres-shared
-      register: pg_data
+    - name: List docker volumes
+      ansible.builtin.command:
+        cmd: docker volume ls --format '{{ "{{" }} .Name {{ "}}" }}'
+      register: pg_volumes
+      changed_when: false
 
-    - name: Assert postgres-shared data directory exists
+    - name: Assert postgres-shared named volume exists
       ansible.builtin.assert:
-        that: pg_data.stat.isdir is defined and pg_data.stat.isdir
-        fail_msg: "/var/lib/postgres-shared directory missing"
+        that: "'postgres-shared-data' in pg_volumes.stdout_lines"
+        fail_msg: "postgres-shared-data named volume missing"
 
     - name: Check postgres-shared compose file rendered
       ansible.builtin.stat:
@@ -48,6 +49,11 @@
       ansible.builtin.assert:
         that: "'pg_isready' in (pg_compose_body.content | b64decode)"
         fail_msg: "postgres-shared compose.yml missing pg_isready healthcheck"
+
+    - name: Assert postgres-shared compose mounts the named data volume
+      ansible.builtin.assert:
+        that: "'postgres-shared-data:/var/lib/postgresql' in (pg_compose_body.content | b64decode)"
+        fail_msg: "postgres-shared compose.yml must mount the named data volume at /var/lib/postgresql"
 
     - name: Assert postgres-shared compose joins external postgres network
       ansible.builtin.assert:

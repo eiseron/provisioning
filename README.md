@@ -10,6 +10,7 @@ credentials you can stand up a preview host identical to the one Eiseron runs.
 ```
 galaxy.yml                  Ansible collection metadata (eiseron.provisioning)
 roles/                      Ansible roles (consumed as eiseron.provisioning.<role>)
+roles/preview_server/       Bundle role that composes the full preview host
 playbooks/preview-host.yml  Reference composition for a preview host
 modules/preview_host/       Terraform module for the Hetzner Cloud host (domain-agnostic)
 modules/preview_cloudflare/ Optional Cloudflare Zero Trust wiring (tunnel + Access service token)
@@ -37,8 +38,23 @@ collections:
 ansible-galaxy collection install -r requirements.yml
 ```
 
-Reference roles by their fully-qualified name, e.g. `eiseron.provisioning.docker`.
-See `playbooks/preview-host.yml` for a full composition.
+The fastest path is the **`preview_server`** bundle role, which stands up an
+entire preview host in one include (base hardening, firewall, Docker, Traefik,
+and the shared Postgres). A consumer playbook reduces to:
+
+```yaml
+- hosts: all
+  become: true
+  vars:
+    pg_shared_user: "{{ lookup('env', 'SHARED_PG_USER') }}"
+    pg_shared_password: "{{ lookup('env', 'SHARED_PG_PASSWORD') }}"
+  roles:
+    - eiseron.provisioning.preview_server
+```
+
+For finer control, reference the individual roles by their fully-qualified name,
+e.g. `eiseron.provisioning.docker`. See `playbooks/preview-host.yml` for the full
+composition that `preview_server` wraps.
 
 ## Consuming the Terraform module
 
@@ -53,6 +69,7 @@ module "preview_host" {
 
 | Role | Purpose |
 |------|---------|
+| `preview_server` | Bundle role: composes every role below (hardening → Docker → Traefik → Postgres) to stand up a complete preview host in one include. |
 | `common` | Baseline OS config; creates the unprivileged app runtime user; writes a first-boot marker. |
 | `ssh` | Hardened `sshd`: key-only auth, root login disabled, restricted ciphers. |
 | `hardening` | sysctl hardening, `AllowUsers`, unattended security upgrades, optional swap. |
@@ -123,9 +140,12 @@ Rationale that previously lived as source comments is consolidated here.
   disk is the tightest bound on the default `cx23`.
 - sysctl: SYN cookies, `rp_filter`, no ICMP redirects, `kernel.dmesg_restrict`.
   `net.ipv4.ip_forward=1` is intentional (Docker requires it).
-- The Postgres data dir is created `0700` with unmanaged owner/group: the
-  postgres image entrypoint chowns it on first start, and re-asserting ownership
-  on every run would break the server.
+- Postgres data lives on a Docker-managed named volume (`postgres-shared-data`),
+  not a host bind mount. The `postgres:18` image declares `VOLUME
+  /var/lib/postgresql` and its entrypoint owns the data dir; a root-owned host
+  bind mount makes the postgres user fail to write its data dir at startup
+  (crash loop). A named volume inherits the image's ownership, so the entrypoint
+  initialises it correctly with no host-permission assumptions.
 
 ### Terraform module notes
 - Shrinking `server_type` to a smaller-disk type cannot be done in place

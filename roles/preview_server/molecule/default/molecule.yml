@@ -1,0 +1,27 @@
+dependency:
+  name: shell
+  command: >-
+    bash -c 'cd "$MOLECULE_PROJECT_DIRECTORY/../.." &&
+    ansible-galaxy collection build --force --output-path "$MOLECULE_EPHEMERAL_DIRECTORY" &&
+    ansible-galaxy collection install "$MOLECULE_EPHEMERAL_DIRECTORY"/eiseron-provisioning-*.tar.gz --force'
+driver:
+  name: docker
+platforms:
+  - name: instance
+    image: geerlingguy/docker-debian12-ansible:latest
+    pre_build_image: true
+    privileged: true
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    command: /lib/systemd/systemd
+provisioner:
+  name: ansible
+  inventory:
+    host_vars:
+      instance:
+        pg_shared_user: "molecule_test"
+        pg_shared_password: "molecule_test_pw"
+        traefik_acme_domains: []
+verifier:
+  name: ansible

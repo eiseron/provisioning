@@ -1,0 +1,31 @@
+- name: Provision base system
+  ansible.builtin.include_role:
+    name: eiseron.provisioning.common
+
+- name: Harden the SSH daemon
+  ansible.builtin.include_role:
+    name: eiseron.provisioning.ssh
+
+- name: Apply host hardening
+  ansible.builtin.include_role:
+    name: eiseron.provisioning.hardening
+
+- name: Configure the host firewall
+  ansible.builtin.include_role:
+    name: eiseron.provisioning.ufw
+
+- name: Configure intrusion prevention
+  ansible.builtin.include_role:
+    name: eiseron.provisioning.fail2ban
+
+- name: Install the container runtime
+  ansible.builtin.include_role:
+    name: eiseron.provisioning.docker
+
+- name: Deploy the Traefik edge router
+  ansible.builtin.include_role:
+    name: eiseron.provisioning.traefik
+
+- name: Deploy the shared PostgreSQL instance
+  ansible.builtin.include_role:
+    name: eiseron.provisioning.postgres_shared

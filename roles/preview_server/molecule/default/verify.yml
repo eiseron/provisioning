@@ -1,0 +1,65 @@
+- name: Verify preview_server bundle
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Check the deploy user exists
+      ansible.builtin.command:
+        cmd: id deploy
+      register: deploy_id
+      changed_when: false
+
+    - name: Assert the deploy user was created by common
+      ansible.builtin.assert:
+        that: deploy_id.rc == 0
+        fail_msg: "common role did not create the deploy user"
+
+    - name: List running containers
+      ansible.builtin.command:
+        cmd: docker ps --format '{{ "{{" }} .Names {{ "}}" }}'
+      register: running_containers
+      changed_when: false
+
+    - name: Assert the Traefik container is running
+      ansible.builtin.assert:
+        that: "'traefik' in running_containers.stdout_lines"
+        fail_msg: "traefik role did not leave a running traefik container"
+
+    - name: Assert the shared Postgres container is running
+      ansible.builtin.assert:
+        that: "'shared-pg' in running_containers.stdout_lines"
+        fail_msg: "postgres_shared role did not leave a running shared-pg container"
+
+    - name: List docker networks
+      ansible.builtin.command:
+        cmd: docker network ls --format '{{ "{{" }} .Name {{ "}}" }}'
+      register: docker_networks
+      changed_when: false
+
+    - name: Assert the postgres network exists
+      ansible.builtin.assert:
+        that: "'postgres' in docker_networks.stdout_lines"
+        fail_msg: "postgres docker network missing"
+
+    - name: List docker volumes
+      ansible.builtin.command:
+        cmd: docker volume ls --format '{{ "{{" }} .Name {{ "}}" }}'
+      register: docker_volumes
+      changed_when: false
+
+    - name: Assert the shared Postgres named volume exists
+      ansible.builtin.assert:
+        that: "'postgres-shared-data' in docker_volumes.stdout_lines"
+        fail_msg: "postgres-shared-data named volume missing"
+
+    - name: Confirm shared Postgres accepts connections
+      ansible.builtin.command:
+        cmd: docker exec shared-pg pg_isready -U molecule_test
+      register: pg_ready
+      changed_when: false
+
+    - name: Assert shared Postgres is ready
+      ansible.builtin.assert:
+        that: pg_ready.rc == 0
+        fail_msg: "shared-pg is not accepting connections"
