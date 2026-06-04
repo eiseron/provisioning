@@ -13,6 +13,10 @@ roles/                      Ansible roles (consumed as eiseron.provisioning.<rol
 playbooks/preview-host.yml  Reference composition for a preview host
 modules/preview_host/       Terraform module for the Hetzner Cloud host (domain-agnostic)
 modules/preview_cloudflare/ Optional Cloudflare Zero Trust wiring (tunnel + Access service token)
+modules/gitlab_repository/             Terraform module for a GitLab project (branch/tag protection)
+modules/gitlab_repository_protected/   Same, with prevent_destroy on the project
+modules/github_repository/             Terraform module for a GitHub repository (optional branch protection)
+modules/github_repository_protected/   Same, with prevent_destroy on the repository
 ```
 
 The Ansible roles ship as the collection **`eiseron.provisioning`**. The Terraform
