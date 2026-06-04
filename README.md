@@ -11,8 +11,9 @@ credentials you can stand up a preview host identical to the one Eiseron runs.
 galaxy.yml                  Ansible collection metadata (eiseron.provisioning)
 roles/                      Ansible roles (consumed as eiseron.provisioning.<role>)
 roles/preview_server/       Bundle role that composes the full preview host
-playbooks/preview-host.yml  Reference composition for a preview host
-playbooks/preview-tenant.yml Reference play to provision a tenant (seat)
+playbooks/preview_host.yml  Reference composition for a preview host
+playbooks/preview_tenant.yml Reference play to provision a tenant (seat)
+playbooks/preview_app.yml    Reference play to deploy/tear down an MR app
 modules/preview_host/       Terraform module for the Hetzner Cloud host (domain-agnostic)
 modules/preview_cloudflare/ Optional Cloudflare Zero Trust wiring (tunnel + Access service token)
 modules/gitlab_repository/             Terraform module for a GitLab project (branch/tag protection)
@@ -54,7 +55,7 @@ and the shared Postgres). A consumer playbook reduces to:
 ```
 
 For finer control, reference the individual roles by their fully-qualified name,
-e.g. `eiseron.provisioning.docker`. See `playbooks/preview-host.yml` for the full
+e.g. `eiseron.provisioning.docker`. See `playbooks/preview_host.yml` for the full
 composition that `preview_server` wraps.
 
 ## Consuming the Terraform module
@@ -80,6 +81,7 @@ module "preview_host" {
 | `traefik` | Reverse proxy with a wildcard Let's Encrypt cert via Cloudflare DNS-01. |
 | `postgres_shared` | A shared Postgres container on an internal docker network. |
 | `preview_tenant` | Mints a least-privilege Postgres login role (a "seat") per product so it can self-serve its per-MR databases on the shared instance. |
+| `preview_app` | Deploys (or tears down) one merge request's app: per-MR database, env + compose with Traefik labels, on the `traefik` and `postgres` networks. |
 | `cloudflared` | Cloudflare tunnel agent (optional ingress path). |
 | `netdata` | Host metrics agent. |
 
@@ -100,7 +102,7 @@ module "preview_host" {
 ## Tenants and per-MR databases
 
 The shared instance is multi-tenant: one Postgres server holds every product's
-preview databases. The model has two layers.
+preview databases. The model has three layers.
 
 1. **Seat** (`preview_tenant`, run once per product by the host owner). Given
    `preview_tenant_name` (the product slug) and `preview_tenant_password`, it
@@ -108,18 +110,18 @@ preview databases. The model has two layers.
    NOCREATEROLE` with a `CONNECTION LIMIT` (default 50). It connects as the
    shared instance superuser (`pg_shared_user`) over the container's local
    socket, so no admin password crosses the wire.
-2. **Per-MR database** (the product's deploy step, one per merge request).
-   The product connects as its own tenant role and runs `CREATE DATABASE
-   <preview_tenant_db_prefix>_mr<N>` — it owns the databases it creates and
-   cannot touch another tenant's. `preview_tenant_db_prefix` defaults to the
-   tenant name. To isolate preview data fully, the deploy step should
-   `REVOKE CONNECT ON DATABASE <db> FROM PUBLIC` on creation, since Postgres
-   grants `CONNECT` to `PUBLIC` by default.
-
-`postgres_shared_max_connections` (default 200) sizes the server for many
-concurrent per-MR databases; each app keeps a small pool (e.g. `POOL_SIZE=2`) so
-the shared ceiling is not exhausted, and the per-tenant `CONNECTION LIMIT` stops
-one product from starving the others.
+2. **Branch deploy** (`preview_app`, run by the product CI once per merge
+   request). It creates the per-MR database as the tenant role (`CREATE DATABASE
+   <db>`, owned by the tenant, with `CONNECT` revoked from `PUBLIC` so other
+   tenants cannot reach it), renders an env file plus a compose file with the
+   Traefik docker-provider labels (`Host(...)` on the `websecure` entrypoint),
+   joins the app to the `traefik` and `postgres` networks, and brings it up. The
+   same role with `preview_app_state: absent` tears the deploy down: compose
+   down, `DROP DATABASE ... WITH (FORCE)`, and remove the install directory.
+3. **Capacity**. `postgres_shared_max_connections` (default 200) sizes the
+   server for many concurrent per-MR databases; the per-tenant `CONNECTION
+   LIMIT` stops one product from starving the others. Each app keeps a small
+   pool (e.g. `POOL_SIZE=2`) so the shared ceiling absorbs the fan-out.
 
 ## Design and security rationale
 

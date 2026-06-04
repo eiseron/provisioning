@@ -1,0 +1,17 @@
+- name: Deploy or tear down a preview app for a merge request
+  hosts: all
+  remote_user: deploy
+  become: true
+  gather_facts: false
+  vars:
+    preview_app_state: "{{ lookup('env', 'PREVIEW_APP_STATE') | default('present', true) }}"
+    preview_app_name: "{{ lookup('env', 'PREVIEW_APP_NAME') }}"
+    preview_app_host: "{{ lookup('env', 'PREVIEW_APP_HOST') }}"
+    preview_app_image: "{{ lookup('env', 'PREVIEW_APP_IMAGE') }}"
+    preview_app_port: "{{ lookup('env', 'PREVIEW_APP_PORT') | default('4000', true) }}"
+    preview_app_tenant: "{{ lookup('env', 'PREVIEW_TENANT_NAME') }}"
+    preview_app_db_name: "{{ lookup('env', 'PREVIEW_APP_DB_NAME') }}"
+    preview_app_env: "{{ (lookup('env', 'PREVIEW_APP_ENV') or '{}') | from_json }}"
+
+  roles:
+    - eiseron.provisioning.preview_app

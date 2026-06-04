@@ -1,0 +1,33 @@
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: instance
+    image: geerlingguy/docker-debian12-ansible:latest
+    pre_build_image: true
+    privileged: true
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    command: /lib/systemd/systemd
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: ${MOLECULE_PROJECT_DIRECTORY}/../
+  inventory:
+    host_vars:
+      instance:
+        pg_shared_user: "molecule_admin"
+        pg_shared_password: "molecule_admin_pw"
+        preview_tenant_name: "molecule_tenant"
+        preview_tenant_password: "molecule_tenant_pw"
+        traefik_acme_domains: []
+        preview_app_name: "molecule-app"
+        preview_app_image: "traefik/whoami:latest"
+        preview_app_host: "app.example.test"
+        preview_app_port: 80
+        preview_app_db_name: "molecule_tenant_mr1"
+        preview_app_tenant: "molecule_tenant"
+verifier:
+  name: ansible

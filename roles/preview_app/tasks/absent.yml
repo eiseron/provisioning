@@ -1,0 +1,35 @@
+- name: Check whether the app install directory exists
+  ansible.builtin.stat:
+    path: "{{ preview_app_install_root }}/{{ preview_app_name }}"
+  register: preview_app_dir
+
+- name: Tear down the app via docker compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ preview_app_install_root }}/{{ preview_app_name }}"
+    state: absent
+    remove_orphans: true
+  when: preview_app_dir.stat.exists
+
+- name: Drop the per-MR database
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - -i
+      - "{{ postgres_shared_container_name }}"
+      - psql
+      - -U
+      - "{{ preview_app_tenant }}"
+      - -d
+      - postgres
+      - -v
+      - "ON_ERROR_STOP=1"
+      - -v
+      - "db={{ preview_app_db_name }}"
+    stdin: 'DROP DATABASE IF EXISTS :"db" WITH (FORCE);'
+  changed_when: true
+
+- name: Remove the app install directory
+  ansible.builtin.file:
+    path: "{{ preview_app_install_root }}/{{ preview_app_name }}"
+    state: absent

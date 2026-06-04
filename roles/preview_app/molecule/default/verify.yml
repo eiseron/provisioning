@@ -1,0 +1,82 @@
+- name: Verify preview_app role
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Confirm the per-MR database is owned by the tenant
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - -i
+          - shared-pg
+          - psql
+          - -U
+          - molecule_admin
+          - -tAc
+          - >-
+            SELECT pg_catalog.pg_get_userbyid(datdba)
+            FROM pg_database WHERE datname = 'molecule_tenant_mr1'
+      register: app_db_owner
+      changed_when: false
+
+    - name: Assert the per-MR database is owned by the tenant
+      ansible.builtin.assert:
+        that:
+          - app_db_owner.stdout | trim == "molecule_tenant"
+        fail_msg: "molecule_tenant_mr1 owner is '{{ app_db_owner.stdout | trim }}', expected 'molecule_tenant'"
+
+    - name: Check PUBLIC connect privilege on the per-MR database
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - -i
+          - shared-pg
+          - psql
+          - -U
+          - molecule_admin
+          - -tAc
+          - "SELECT has_database_privilege('public', 'molecule_tenant_mr1', 'CONNECT')"
+      register: app_db_public
+      changed_when: false
+
+    - name: Assert PUBLIC cannot connect to the per-MR database
+      ansible.builtin.assert:
+        that:
+          - app_db_public.stdout | trim == "f"
+        fail_msg: "PUBLIC still has CONNECT on molecule_tenant_mr1 (tenant isolation broken)"
+
+    - name: List running containers
+      ansible.builtin.command:
+        cmd: docker ps --format '{{ "{{" }} .Names {{ "}}" }}'
+      register: running
+      changed_when: false
+
+    - name: Assert the app container is running
+      ansible.builtin.assert:
+        that: "'molecule-app' in running.stdout_lines"
+        fail_msg: "molecule-app container is not running"
+
+    - name: Route to the app through Traefik
+      ansible.builtin.command:
+        argv:
+          - docker
+          - run
+          - --rm
+          - --network
+          - traefik
+          - curlimages/curl:latest
+          - -sk
+          - --connect-to
+          - "app.example.test:443:traefik:443"
+          - https://app.example.test/
+      register: app_route
+      changed_when: false
+
+    - name: Assert Traefik routes the host rule to the app
+      ansible.builtin.assert:
+        that:
+          - "'Hostname:' in app_route.stdout"
+        fail_msg: "Traefik did not route app.example.test to the whoami app"

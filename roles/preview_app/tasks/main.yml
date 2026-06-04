@@ -1,0 +1,18 @@
+- name: Assert the app name is provided
+  ansible.builtin.assert:
+    that:
+      - preview_app_name is defined
+      - preview_app_name | length > 0
+    fail_msg: "preview_app_name must be supplied (unique per MR, e.g. holter-mr-123)"
+
+- name: Assert the database name and owning tenant are provided
+  ansible.builtin.assert:
+    that:
+      - preview_app_db_name is defined
+      - preview_app_db_name | length > 0
+      - preview_app_tenant is defined
+      - preview_app_tenant | length > 0
+    fail_msg: "preview_app_db_name and preview_app_tenant must be supplied"
+
+- name: Run the requested lifecycle action
+  ansible.builtin.include_tasks: "{{ preview_app_state }}.yml"

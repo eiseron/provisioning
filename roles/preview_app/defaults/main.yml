@@ -1,0 +1,12 @@
+preview_app_state: present
+
+preview_app_install_root: /opt/preview
+preview_app_traefik_network: traefik
+preview_app_postgres_network: postgres
+preview_app_entrypoint: websecure
+preview_app_port: 4000
+preview_app_env: {}
+preview_app_healthcheck_path: ""
+preview_app_post_commands: []
+
+postgres_shared_container_name: shared-pg

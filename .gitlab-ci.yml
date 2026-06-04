@@ -8,7 +8,7 @@ include:
     file: /templates/ansible-collection.yml
     ref: v0.1.3
     inputs:
-      playbook: playbooks/preview-host.yml
+      playbook: playbooks/preview_host.yml
   - project: eiseron/stack/ci
     file: /templates/release.yml
     ref: v0.1.3
