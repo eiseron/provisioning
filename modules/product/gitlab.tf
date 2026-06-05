@@ -109,4 +109,8 @@ resource "gitlab_project_push_mirror" "github" {
   project = module.repository[each.key].id
   url     = "https://${var.github_owner}:${var.github_mirror_token}@github.com/${module.github_mirror[each.key].full_name}.git"
   enabled = true
+
+  lifecycle {
+    ignore_changes = [url]
+  }
 }
