@@ -12,6 +12,28 @@
     preview_app_tenant: "{{ lookup('env', 'PREVIEW_TENANT_NAME') }}"
     preview_app_db_name: "{{ lookup('env', 'PREVIEW_APP_DB_NAME') }}"
     preview_app_env: "{{ (lookup('env', 'PREVIEW_APP_ENV') or '{}') | from_json }}"
+    preview_app_registry: "{{ lookup('env', 'PREVIEW_REGISTRY_HOST') | default('registry.gitlab.com', true) }}"
+    preview_app_registry_user: "{{ lookup('env', 'PREVIEW_IMAGE_PULL_USER') }}"
+    preview_app_registry_token: "{{ lookup('env', 'PREVIEW_IMAGE_PULL_TOKEN') }}"
+
+  pre_tasks:
+    - name: Authenticate to the image registry for pulls
+      when:
+        - preview_app_state == "present"
+        - preview_app_registry_token | length > 0
+      block:
+        - name: Ensure the docker config directory exists
+          ansible.builtin.file:
+            path: /root/.docker
+            state: directory
+            mode: "0700"
+
+        - name: Write the registry auth config for image pulls
+          ansible.builtin.copy:
+            dest: /root/.docker/config.json
+            mode: "0600"
+            content: "{{ {'auths': {preview_app_registry: {'auth': (preview_app_registry_user ~ ':' ~ preview_app_registry_token) | b64encode}}} | to_json }}"
+          no_log: true
 
   roles:
     - eiseron.provisioning.preview_app
