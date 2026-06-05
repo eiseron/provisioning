@@ -78,3 +78,10 @@
     stdin: 'ALTER ROLE :"tname" WITH LOGIN CREATEDB NOSUPERUSER NOCREATEROLE CONNECTION LIMIT :climit PASSWORD :''tpw'';'
   changed_when: false
   no_log: true
+
+- name: Authorize the tenant deploy SSH key
+  ansible.posix.authorized_key:
+    user: "{{ deploy_user }}"
+    key: "{{ preview_tenant_authorized_key }}"
+    state: present
+  when: preview_tenant_authorized_key | length > 0

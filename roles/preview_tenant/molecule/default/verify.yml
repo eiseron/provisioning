@@ -72,3 +72,16 @@
         fail_msg: >-
           molecule_tenant_mr1 owner is '{{ tenant_db_owner.stdout | trim }}',
           expected 'molecule_tenant'
+
+    - name: Read the deploy user authorized_keys
+      ansible.builtin.slurp:
+        src: /home/deploy/.ssh/authorized_keys
+      register: deploy_authorized_keys
+
+    - name: Assert the tenant SSH key is authorized for the deploy user
+      ansible.builtin.assert:
+        that:
+          - "'molecule@tenant-test' in (deploy_authorized_keys.content | b64decode)"
+        fail_msg: >-
+          the tenant SSH key was not authorized for the deploy user;
+          authorized_keys content: {{ deploy_authorized_keys.content | b64decode }}

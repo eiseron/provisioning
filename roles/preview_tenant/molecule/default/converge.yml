@@ -9,6 +9,11 @@
         name: apt-utils
         state: present
         update_cache: true
+    - name: Create the deploy user (provided by common/preview_server in production)
+      ansible.builtin.user:
+        name: deploy
+        create_home: true
+        shell: /bin/bash
   roles:
     - role: docker
     - role: postgres_shared

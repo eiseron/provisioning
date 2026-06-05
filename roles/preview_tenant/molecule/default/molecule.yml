@@ -23,5 +23,6 @@ provisioner:
         preview_tenant_name: "molecule_tenant"
         preview_tenant_password: "molecule_tenant_pw"
         preview_tenant_connection_limit: 25
+        preview_tenant_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFlGtJm+A7zY61/nn6hHk9L8u95LRTVAeNBV3/XLFYXV molecule@tenant-test"
 verifier:
   name: ansible

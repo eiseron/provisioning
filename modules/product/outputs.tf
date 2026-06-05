@@ -40,6 +40,16 @@ output "preview_authorized_key" {
   value       = local.preview_enabled ? tls_private_key.preview[0].public_key_openssh : null
 }
 
+output "preview_tenant" {
+  description = "Everything the shared preview host needs to provision this product's tenant (name, PG password, authorized SSH key). Null when preview is disabled."
+  sensitive   = true
+  value = local.preview_enabled ? {
+    name           = var.slug
+    password       = random_password.tenant[0].result
+    authorized_key = tls_private_key.preview[0].public_key_openssh
+  } : null
+}
+
 output "setup_package" {
   description = "Everything the product ops repo needs to bootstrap its own Terraform."
   sensitive   = true
