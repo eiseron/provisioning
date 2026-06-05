@@ -5,4 +5,6 @@ module "github_mirror" {
   name        = each.key
   description = each.value.description
   topics      = each.value.topics
+
+  enable_branch_protection = false
 }
