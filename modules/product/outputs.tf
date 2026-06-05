@@ -51,3 +51,19 @@ output "setup_package" {
     state_r2_write = cloudflare_api_token.state_write.value
   }
 }
+
+output "ops_credentials" {
+  description = "Credentials the product ops repo's CI needs to run its own Terraform (write = apply, readonly = plan)."
+  sensitive   = true
+  value = {
+    ops_project_id            = module.repository["${var.slug}-ops"].id
+    cloudflare_token          = cloudflare_account_token.ops_write.value
+    cloudflare_token_readonly = cloudflare_account_token.ops_readonly.value
+    gitlab_token              = gitlab_group_service_account_access_token.robot_write.token
+    gitlab_token_readonly     = gitlab_group_service_account_access_token.robot_readonly.token
+    r2_access_key             = cloudflare_api_token.state_write.id
+    r2_secret_key             = cloudflare_api_token.state_write.value
+    r2_access_key_readonly    = cloudflare_api_token.state_readonly.id
+    r2_secret_key_readonly    = cloudflare_api_token.state_readonly.value
+  }
+}
