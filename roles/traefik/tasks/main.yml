@@ -79,19 +79,33 @@
 - name: Apply pending traefik restarts before verifying certificates
   ansible.builtin.meta: flush_handlers
 
-- name: Wait for a valid Let's Encrypt certificate on each ACME domain
-  ansible.builtin.shell:
-    cmd: >-
-      curl -sk -v --max-time 10
-      --resolve "acme-probe.{{ item }}:443:127.0.0.1"
-      "https://acme-probe.{{ item }}/" 2>&1
-      | grep -qi "issuer:.*Let's Encrypt"
-  loop: "{{ traefik_acme_domains }}"
-  register: traefik_cert_check
-  retries: 20
-  delay: 15
-  until: traefik_cert_check.rc == 0
-  changed_when: false
+- name: Verify ACME certificates are issued
   when:
     - traefik_acme_wait | bool
     - traefik_acme_domains | length > 0
+  block:
+    - name: Wait for a valid Let's Encrypt certificate on each ACME domain
+      ansible.builtin.shell:
+        cmd: >-
+          curl -sk -v --max-time 10
+          --resolve "acme-probe.{{ item }}:443:127.0.0.1"
+          "https://acme-probe.{{ item }}/" 2>&1
+          | grep -qi "issuer:.*Let's Encrypt"
+      loop: "{{ traefik_acme_domains }}"
+      register: traefik_cert_check
+      retries: 20
+      delay: 15
+      until: traefik_cert_check.rc == 0
+      changed_when: false
+  rescue:
+    - name: Capture traefik ACME logs for diagnosis
+      ansible.builtin.command: "docker logs --tail 120 {{ traefik_container_name }}"
+      register: traefik_acme_logs
+      changed_when: false
+      failed_when: false
+    - name: Show traefik ACME diagnostics
+      ansible.builtin.debug:
+        msg: "{{ ((traefik_acme_logs.stdout | default('')) ~ (traefik_acme_logs.stderr | default(''))).split('\n') | select('search', '(?i)acme|certificate|cloudflare|error|unable|rate|domain') | list }}"
+    - name: Fail after dumping ACME diagnostics
+      ansible.builtin.fail:
+        msg: "ACME certificate not obtained for one of {{ traefik_acme_domains }}. See the traefik ACME log lines above."
