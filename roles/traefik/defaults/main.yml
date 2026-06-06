@@ -14,5 +14,6 @@ traefik_websecure_entrypoint_port: 443
 traefik_acme_domains: []
 traefik_acme_email: ""
 traefik_acme_use_staging: false
+traefik_acme_wait: true
 
 traefik_acme_cf_dns_api_token: ""

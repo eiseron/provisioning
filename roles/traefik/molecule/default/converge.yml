@@ -9,6 +9,7 @@
       - "example.com"
       - "example.org"
     traefik_acme_email: "ops@example.com"
+    traefik_acme_wait: false
   pre_tasks:
     - name: Install apt-utils to avoid dpkg warnings
       ansible.builtin.apt:

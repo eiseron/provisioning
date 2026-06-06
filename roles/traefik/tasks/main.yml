@@ -75,3 +75,23 @@
   community.docker.docker_compose_v2:
     project_src: "{{ traefik_install_dir }}"
     state: present
+
+- name: Apply pending traefik restarts before verifying certificates
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for a valid Let's Encrypt certificate on each ACME domain
+  ansible.builtin.shell:
+    cmd: >-
+      curl -sk -v --max-time 10
+      --resolve "acme-probe.{{ item }}:443:127.0.0.1"
+      "https://acme-probe.{{ item }}/" 2>&1
+      | grep -qi "issuer:.*Let's Encrypt"
+  loop: "{{ traefik_acme_domains }}"
+  register: traefik_cert_check
+  retries: 20
+  delay: 15
+  until: traefik_cert_check.rc == 0
+  changed_when: false
+  when:
+    - traefik_acme_wait | bool
+    - traefik_acme_domains | length > 0
