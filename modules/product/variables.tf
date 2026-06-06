@@ -53,6 +53,12 @@ variable "preview_mix_env" {
   default     = "preview"
 }
 
+variable "preview_access_email_domains" {
+  description = "Email domains allowed through Cloudflare Access on every preview; gates *-preview.<domain> so dev routes and the app are not public. Required (non-empty) when preview is enabled; the consumer supplies its own domains."
+  type        = list(string)
+  default     = []
+}
+
 variable "repositories" {
   description = "Extra repos beyond the app and the ops repo, keyed by repo name."
   type = map(object({
