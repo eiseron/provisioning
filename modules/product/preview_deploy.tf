@@ -1,21 +1,17 @@
 locals {
-  preview_image_repo  = "registry.gitlab.com/${gitlab_group.this.full_path}/${var.slug}"
-  preview_domain_base = "preview.${var.domain}"
-
   preview_app_deploy_vars = local.preview_enabled ? {
     PREVIEW_REGISTRY_USER          = { value = gitlab_project_deploy_token.preview_registry[0].username, masked = false }
     PREVIEW_REGISTRY_PASSWORD      = { value = gitlab_project_deploy_token.preview_registry[0].token, masked = true }
     PREVIEW_DEPLOYER_PROJECT       = { value = "${gitlab_group.this.full_path}/${local.ops_repo_key}", masked = false }
     PREVIEW_DEPLOYER_TRIGGER_TOKEN = { value = gitlab_pipeline_trigger.preview_deployer[0].token, masked = true }
-    PREVIEW_DOMAIN_BASE            = { value = local.preview_domain_base, masked = false }
   } : {}
 
   preview_ops_deploy_vars = local.preview_enabled ? {
     PREVIEW_IMAGE_PULL_USER  = { value = gitlab_project_deploy_token.preview_registry[0].username, masked = false }
     PREVIEW_IMAGE_PULL_TOKEN = { value = gitlab_project_deploy_token.preview_registry[0].token, masked = true }
-    PREVIEW_MR_IMAGE_REPO    = { value = "${local.preview_image_repo}/preview", masked = false }
-    PREVIEW_DOMAIN_BASE      = { value = local.preview_domain_base, masked = false }
+    PREVIEW_SWEEP_TOKEN      = { value = gitlab_group_service_account_access_token.robot_readonly.token, masked = true }
     PREVIEW_SECRET_KEY_BASE  = { value = random_password.preview_secret_key_base[0].result, masked = true }
+    PREVIEW_MIX_ENV          = { value = var.preview_mix_env, masked = false }
   } : {}
 }
 

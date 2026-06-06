@@ -162,7 +162,7 @@ resource "cloudflare_dns_record" "preview_wildcard" {
   count = var.preview_host_ip == null ? 0 : 1
 
   zone_id = cloudflare_zone.this.id
-  name    = "*-preview"
+  name    = "*"
   type    = "A"
   content = var.preview_host_ip
   proxied = true

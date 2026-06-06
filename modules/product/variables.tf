@@ -42,9 +42,15 @@ variable "apex_target" {
 }
 
 variable "preview_host_ip" {
-  description = "Optional IPv4 of the shared preview host. When set, the module wires the *-preview wildcard and the preview handoff into the ops repo. Null skips preview."
+  description = "Optional IPv4 of the shared preview host. When set, the module wires the wildcard DNS and the preview handoff into the ops repo. Null skips preview."
   type        = string
   default     = null
+}
+
+variable "preview_mix_env" {
+  description = "MIX_ENV the preview image is built and run with; a dedicated :preview env, standardized across products."
+  type        = string
+  default     = "preview"
 }
 
 variable "repositories" {
