@@ -25,13 +25,15 @@ module "prod_platform" {
   ops_project_id = module.ops.id
   enable         = var.enable_prod_host
 
-  hostinger_token = var.hostinger_token
-  plan            = var.prod_plan
-  region          = var.prod_region
-  # template_id is optional — defaults to the newest Debian template
+  plan = var.prod_plan
+  # region resolves the data center by name; pin data_center_id (+ template_id)
+  # in code once known so read-only plans don't call the Hostinger API.
+  region                = var.prod_region
   key_server_thumbprint = var.prod_luks_tang_thp
 }
 ```
+
+The Hostinger provider is configured by the caller (`provider "hostinger" { api_token = ... }`); the module does not take the token.
 
 Per-product seat resources (app DNS, CDN bucket, deploy key handoff) consume the
 outputs (`vps_ipv4`, `deploy_private_key`) and live with the product, not here.
@@ -40,8 +42,10 @@ outputs (`vps_ipv4`, `deploy_private_key`) and live with the product, not here.
 
 - **Dormant until ready** (`enable = false`): nothing hits Hostinger; a
   cross-variable `validation` on `enable` fails the *plan* (not a half-applied
-  apply) if `enable` is flipped without `hostinger_token` / `plan` /
-  `region` (`template_id` defaults to the newest Debian template).
+  apply) if `enable` is flipped without `plan` and `region`/`data_center_id`
+  (`template_id` defaults to the newest Debian template). The token is not
+  checked (null on read-only plans by design; the provider fails clearly at
+  apply if it is truly missing).
 - **`PROD_HOST_IP` scope `*`**: the IP is not secret (protection is
   `protected = true`); a job without `environment: production` (e.g. the runner's
   Tang provisioner consuming it as the allowlist) must still see it.

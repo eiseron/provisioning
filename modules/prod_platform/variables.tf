@@ -1,15 +1,14 @@
 variable "enable" {
-  description = "Provision the production host. Keep false until the Hostinger token and plan/data_center IDs are available, so the consuming apply stays green meanwhile."
+  description = "Provision the production host. Keep false until plan and region/data_center are set (and the Hostinger token is in the apply SOPS). The token is NOT checked here: it is null on read-only plans by design, and the provider fails clearly at apply if it is truly missing."
   type        = bool
   default     = false
 
   validation {
     condition = !var.enable || (
-      var.hostinger_token != null &&
       var.plan != null &&
       (var.region != null || var.data_center_id != null)
     )
-    error_message = "enable requires hostinger_token, plan and region (or data_center_id) to be set first (template_id defaults to Debian)."
+    error_message = "enable requires plan and region (or data_center_id) to be set first (template_id defaults to Debian)."
   }
 }
 
@@ -48,14 +47,6 @@ variable "data_center_id" {
 variable "template_id" {
   description = "Hostinger OS template ID (Debian)"
   type        = number
-  default     = null
-  nullable    = true
-}
-
-variable "hostinger_token" {
-  description = "Hostinger API token, used only to assert it is present before enabling. The provider itself is configured by the caller."
-  type        = string
-  sensitive   = true
   default     = null
   nullable    = true
 }
