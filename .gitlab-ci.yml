@@ -18,6 +18,12 @@ include:
       name: "-product"
       chdir: modules/product
   - project: eiseron/stack/ci
+    file: /templates/terraform-validate.yml
+    ref: v0.1.8
+    inputs:
+      name: "-prod-host"
+      chdir: modules/prod_host
+  - project: eiseron/stack/ci
     file: /templates/ansible-collection.yml
     ref: v0.1.3
     inputs:
