@@ -9,6 +9,7 @@
     hardening_allowed_users:
       - root
       - "{{ deploy_user }}"
+    encrypt_at_rest: "{{ lookup('env', 'ENCRYPT_AT_REST') | default('false', true) | bool }}"
     deploy_ssh_public_key: "{{ lookup('env', 'DEPLOY_SSH_PUBLIC_KEY') }}"
     pg_luks_tang_url: "{{ lookup('env', 'PROD_LUKS_TANG_URL') }}"
     pg_luks_tang_thumbprint: "{{ lookup('env', 'PROD_LUKS_TANG_THP') }}"
@@ -24,6 +25,27 @@
         sleep: 10
     - name: Gather facts after host is reachable
       ansible.builtin.setup:
+    # Tripwire: disabling encryption on a host that is already encrypted bricks
+    # boot (the Tang host is gone, but crypttab/_netdev/RequiresMountsFor stay,
+    # so the next reboot hangs in remote-fs / emergency). Refuse loudly and
+    # point at the decommission procedure instead of letting reboot discover it.
+    - name: Detect an existing LUKS mapper in crypttab
+      ansible.builtin.command:
+        cmd: "grep -qE '^{{ pg_luks_mapper | default('crypt') }}[[:space:]]' /etc/crypttab"
+      register: prod_crypttab_check
+      failed_when: false
+      changed_when: false
+      when: not (encrypt_at_rest | bool)
+    - name: Refuse to disable encryption on an already-encrypted host
+      ansible.builtin.fail:
+        msg: >-
+          ENCRYPT_AT_REST is false but /etc/crypttab still has the LUKS mapper.
+          Disabling encryption on an encrypted host bricks boot once the Tang
+          host is gone. Follow the decommission procedure (eiseron-planning#45)
+          before turning encryption off.
+      when:
+        - not (encrypt_at_rest | bool)
+        - prod_crypttab_check.rc == 0
 
   roles:
     - eiseron.provisioning.common
@@ -32,5 +54,6 @@
     - eiseron.provisioning.ufw
     - eiseron.provisioning.fail2ban
     - eiseron.provisioning.docker
-    - eiseron.provisioning.pg_luks
+    - role: eiseron.provisioning.pg_luks
+      when: encrypt_at_rest | bool
     - eiseron.provisioning.netdata

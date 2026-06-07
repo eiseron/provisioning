@@ -29,7 +29,7 @@ module "prod_platform" {
   plan            = var.prod_plan
   data_center_id  = var.prod_data_center_id
   template_id     = var.prod_template_id
-  tang_thumbprint = var.prod_luks_tang_thp
+  key_server_thumbprint = var.prod_luks_tang_thp
 }
 ```
 
@@ -50,4 +50,33 @@ outputs (`vps_ipv4`, `deploy_private_key`) and live with the product, not here.
   and removes it after (a TF-generated value would persist in the state backend,
   defeating a break-glass key meant to survive an online compromise).
 - **Tang thumbprint** is a runtime artifact (not secret); supply it via
-  `tang_thumbprint` once the Tang server is up.
+  `key_server_thumbprint` once the Tang server is up.
+
+## At-rest encryption (Tang host)
+
+Encryption is opt-in per seat. The consumer collects a per-seat `encrypt`
+flag, aggregates it (`encrypt_at_rest = anytrue(seats)`), and passes the result
+to both `encrypt_db` (this module) and the `ENCRYPT_AT_REST` env of the
+`prod-host` playbook — they turn on together:
+
+- `encrypt_db = true` composes [`tang_host`](../tang_host) (a cheap, dedicated
+  Hetzner box, stable unlike the CI runner) and publishes `TANG_HOST_IP` +
+  `TANG_ANSIBLE_SSH_PRIVATE_KEY`;
+- `ENCRYPT_AT_REST = true` makes the playbook run `pg_luks` (LUKS data root,
+  Clevis-bound to that Tang host).
+
+The key server host is created only when there is a prod host to unlock
+(`enable = true`) **and** encryption is on (`encrypt_db = true`) — so the
+dormant default (`enable = false`) never leaves an orphan key server, and no
+seat encrypting ⇒ no key server (no cost), no LUKS.
+
+**The caller must configure the `hcloud` provider even when `encrypt_db =
+false`** (the module declares it as a requirement).
+
+**Disabling is one-way once a host is encrypted.** Setting `encrypt_db = false`
+destroys the Tang host (its keys die with it), but the prod host keeps its
+`crypttab` / `_netdev` mount / docker `RequiresMountsFor` / LUKS volume — so the
+next reboot hangs unlocking against a Tang that no longer exists. Only disable
+**before any host is encrypted**; afterwards follow the decommission procedure
+(eiseron-planning#45). The `prod-host` playbook has a tripwire that fails the
+provision if `ENCRYPT_AT_REST=false` while the crypttab still has the mapper.

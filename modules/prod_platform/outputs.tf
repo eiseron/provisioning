@@ -8,6 +8,11 @@ output "vps_ipv6" {
   value       = var.enable ? module.host[0].vps_ipv6 : null
 }
 
+output "tang_host_ipv4" {
+  description = "Public IPv4 of the key server (Tang) host (null unless enable && encrypt_db)"
+  value       = var.enable && var.encrypt_db ? module.tang[0].vps_ipv4 : null
+}
+
 output "deploy_public_key" {
   description = "Public key of the deploy user (authorized on the host; Kamal authenticates with the matching private key)"
   value       = tls_private_key.deploy.public_key_openssh

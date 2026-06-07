@@ -7,6 +7,11 @@ terraform {
       version = "~> 0.1.0"
     }
 
+    hcloud = {
+      source  = "hetznercloud/hcloud"
+      version = "~> 1.0"
+    }
+
     gitlab = {
       source  = "gitlabhq/gitlab"
       version = "~> 18.0"
