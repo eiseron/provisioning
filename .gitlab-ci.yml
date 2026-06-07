@@ -23,12 +23,14 @@ include:
     inputs:
       name: "-prod-host"
       chdir: modules/prod_host
+  # prod_platform needs injected provider configs (configuration_aliases), so it
+  # is validated via a dummy-provider fixture root rather than the module dir.
   - project: eiseron/stack/ci
     file: /templates/terraform-validate.yml
     ref: v0.1.8
     inputs:
       name: "-prod-platform"
-      chdir: modules/prod_platform
+      chdir: modules/prod_platform/examples/validate
   - project: eiseron/stack/ci
     file: /templates/terraform-validate.yml
     ref: v0.1.8

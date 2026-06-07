@@ -1,6 +1,6 @@
 # prod_platform
 
-Facade for an organization's **production platform**: one shared Hostinger host
+Facade for an organization's **production platform**: one shared Hetzner host
 plus the org-level CI variables a `*-ops` pipeline needs to provision and deploy
 onto it. Wraps [`prod_host`](../prod_host) and pairs with the `pg_luks` / `tang`
 Ansible roles (network-bound LUKS unlock) and the `prod-host` playbook.
@@ -8,44 +8,58 @@ Ansible roles (network-bound LUKS unlock) and the `prod-host` playbook.
 It creates:
 - a bootstrap SSH keypair (direct root SSH for the provision job),
 - a deploy SSH keypair (Kamal authenticates as the deploy user),
-- the Hostinger host (behind `enable`, so the wiring lands dormant),
+- the Hetzner host (behind `enable`, so the wiring lands dormant),
 - the org CI variables on `ops_project_id`: `PROD_HOST_IP`, `PROD_ANSIBLE_SSH_PRIVATE_KEY`, `DEPLOY_SSH_PUBLIC_KEY`, `PROD_LUKS_BREAKGLASS` (placeholder), `PROD_LUKS_TANG_THP`.
 
 ## Usage
 
 ```hcl
-provider "hostinger" {
-  api_token = var.hostinger_token
+provider "hcloud" {
+  token = var.hcloud_token # production project
+}
+
+provider "hcloud" {
+  alias = "keyserver"
+  token = var.hcloud_keyserver_token # SEPARATE Hetzner project (e.g. "Eiseron Keys")
 }
 
 module "prod_platform" {
-  source = "git::https://gitlab.com/eiseron/stack/provisioning.git//modules/prod_platform?ref=v0.24.0"
+  source = "git::https://gitlab.com/eiseron/stack/provisioning.git//modules/prod_platform?ref=v0.29.0"
+
+  providers = {
+    hcloud           = hcloud
+    hcloud.keyserver = hcloud.keyserver
+  }
 
   name           = "example-prod"
   ops_project_id = module.ops.id
   enable         = var.enable_prod_host
 
-  plan = var.prod_plan
-  # region resolves the data center by name; pin data_center_id (+ template_id)
-  # in code once known so read-only plans don't call the Hostinger API.
-  region                = var.prod_region
-  key_server_thumbprint = var.prod_luks_tang_thp
+  location              = var.prod_location # e.g. ash, fsn1
+  server_type           = var.prod_server_type
+  key_server_thumbprint = var.prod_key_server_thumbprint
 }
 ```
 
-The Hostinger provider is configured by the caller (`provider "hostinger" { api_token = ... }`); the module does not take the token.
+The caller configures TWO Hetzner providers: the default (production project)
+and `hcloud.keyserver` (a **separate Hetzner project/token** for the key server).
+This keeps the two-credential property of at-rest encryption: a leak of the
+production token can snapshot the LUKS disk but cannot reach the key server, so
+it cannot release the unlock key. The module takes no tokens.
+
+Because it requires injected provider configurations (`configuration_aliases`),
+this module is not standalone-`terraform validate`-able; it is validated through
+the consumer's plan.
 
 Per-product seat resources (app DNS, CDN bucket, deploy key handoff) consume the
 outputs (`vps_ipv4`, `deploy_private_key`) and live with the product, not here.
 
 ## Design notes
 
-- **Dormant until ready** (`enable = false`): nothing hits Hostinger; a
-  cross-variable `validation` on `enable` fails the *plan* (not a half-applied
-  apply) if `enable` is flipped without `plan` and `region`/`data_center_id`
-  (`template_id` defaults to the newest Debian template). The token is not
-  checked (null on read-only plans by design; the provider fails clearly at
-  apply if it is truly missing).
+- **Dormant until ready** (`enable = false`): nothing is provisioned; a
+  `validation` on `enable` fails the *plan* if `enable` is flipped without
+  `location`. `server_type`/`image` default (cpx21 / debian-13). Read-only
+  plans work because the `hcloud` token has a read-only variant.
 - **`PROD_HOST_IP` scope `*`**: the IP is not secret (protection is
   `protected = true`); a job without `environment: production` (e.g. the runner's
   Tang provisioner consuming it as the allowlist) must still see it.

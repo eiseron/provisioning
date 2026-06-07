@@ -15,22 +15,29 @@ module "host" {
 
   count = var.enable ? 1 : 0
 
+  providers = {
+    hcloud = hcloud
+  }
+
   name           = var.name
   ssh_public_key = tls_private_key.bootstrap.public_key_openssh
-  plan           = var.plan
-  region         = var.region
-  data_center_id = var.data_center_id
-  template_id    = var.template_id
+  server_type    = var.server_type
+  location       = var.location
+  image          = var.image
 }
 
-# Dedicated key server (Tang) host (Hetzner), provisioned only when there is a
-# prod host to unlock (enable) AND encryption is on (encrypt_db). A different
-# provider/network than the prod host, and stable (unlike the CI runner, which
-# gets rescaled/recreated).
+# Dedicated key server (Tang) host, provisioned only when there is a prod host
+# to unlock (enable) AND encryption is on (encrypt_db). Runs under the SEPARATE
+# hcloud.keyserver provider (its own Hetzner project/token), so the prod token
+# cannot reach it — preserves the two-credential property of at-rest encryption.
 module "tang" {
   source = "../tang_host"
 
   count = var.enable && var.encrypt_db ? 1 : 0
+
+  providers = {
+    hcloud = hcloud.keyserver
+  }
 
   name           = "${var.name}-tang"
   server_type    = var.key_server_type
