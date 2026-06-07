@@ -20,6 +20,12 @@ output "robot_readonly_token" {
   sensitive   = true
 }
 
+output "ci_token" {
+  description = "API token for the product CI service account (Developer in the product group). The product ops repo exposes it as a RELEASE_TOKEN group variable on the product group for release tagging and other product pipeline operations."
+  value       = gitlab_group_service_account_access_token.ci.token
+  sensitive   = true
+}
+
 output "zone_id" {
   description = "Cloudflare zone ID."
   value       = cloudflare_zone.this.id

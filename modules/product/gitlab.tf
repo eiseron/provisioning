@@ -103,6 +103,34 @@ resource "gitlab_group_service_account_access_token" "robot_readonly" {
   }
 }
 
+resource "gitlab_group_service_account" "ci" {
+  group    = var.parent_group_id
+  name     = "${title(var.slug)} CI"
+  username = "${var.slug}_ci"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "gitlab_group_membership" "ci" {
+  group_id     = gitlab_group.this.id
+  user_id      = gitlab_group_service_account.ci.service_account_id
+  access_level = "developer"
+}
+
+resource "gitlab_group_service_account_access_token" "ci" {
+  group   = var.parent_group_id
+  user_id = gitlab_group_service_account.ci.service_account_id
+  name    = "${var.slug}-ci"
+  scopes  = ["api"]
+
+  rotation_configuration = {
+    expiration_days    = 365
+    rotate_before_days = 7
+  }
+}
+
 resource "gitlab_project_push_mirror" "github" {
   for_each = local.mirror_repositories
 
