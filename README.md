@@ -192,3 +192,8 @@ Rationale that previously lived as source comments is consolidated here.
   available decoupled from the host: a cloudflared tunnel (SSH + `*.<base>` →
   traefik) and a CI Access service token. Consume it where that edge path is
   wanted; it is not required for the direct-DNS routing the host uses by default.
+- `sops_drift_schedule` creates a weekly pipeline schedule carrying
+  `DRIFT_CHECK=1` for repos whose secrets live in SOPS-encrypted env files.
+  Pair it with the `terraform-drift.yml` template from `eiseron/stack/ci`,
+  which runs `terraform plan -detailed-exitcode` and fails when a SOPS edit
+  was merged without its apply.

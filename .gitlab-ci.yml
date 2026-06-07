@@ -38,6 +38,12 @@ include:
       name: "-tang-host"
       chdir: modules/tang_host
   - project: eiseron/stack/ci
+    file: /templates/terraform-validate.yml
+    ref: v0.1.8
+    inputs:
+      name: "-sops-drift-schedule"
+      chdir: modules/sops_drift_schedule
+  - project: eiseron/stack/ci
     file: /templates/ansible-collection.yml
     ref: v0.1.3
     inputs:
