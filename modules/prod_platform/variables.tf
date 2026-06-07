@@ -1,5 +1,5 @@
 variable "enable" {
-  description = "Provision the production host. Keep false until the Hostinger token and plan/data_center/template IDs are available, so the consuming apply stays green meanwhile."
+  description = "Provision the production host. Keep false until the Hostinger token and plan/data_center IDs are available, so the consuming apply stays green meanwhile."
   type        = bool
   default     = false
 
@@ -7,10 +7,9 @@ variable "enable" {
     condition = !var.enable || (
       var.hostinger_token != null &&
       var.plan != null &&
-      var.data_center_id != null &&
-      var.template_id != null
+      var.data_center_id != null
     )
-    error_message = "enable requires hostinger_token, plan, data_center_id and template_id to be set first."
+    error_message = "enable requires hostinger_token, plan and data_center_id to be set first (template_id defaults to Debian)."
   }
 }
 

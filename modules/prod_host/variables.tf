@@ -14,8 +14,10 @@ variable "data_center_id" {
 }
 
 variable "template_id" {
-  description = "Hostinger OS template ID (Debian)"
+  description = "Hostinger OS template ID. Defaults to the newest Debian template (resolved by name via the hostinger_vps_templates data source) when null."
   type        = number
+  default     = null
+  nullable    = true
 }
 
 variable "ssh_public_key" {

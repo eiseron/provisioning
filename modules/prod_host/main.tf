@@ -1,3 +1,25 @@
+# When template_id is not given, default to the newest Debian template Hostinger
+# offers (resolved by name, so there is no fragile hardcoded catalog id). The
+# data source runs only when this module is instantiated (the caller gates it
+# behind `enable`), so a dormant plan never calls the Hostinger API.
+data "hostinger_vps_templates" "available" {
+  count = var.template_id == null ? 1 : 0
+}
+
+locals {
+  # Map version-number => template id for PLAIN Debian OS templates only. The
+  # name is start/end-anchored ("Debian 12", not "… on Debian" app/panel
+  # templates), and the newest is chosen by parsed version, not by catalog id
+  # (newest id tends to be the latest app template, not the OS).
+  debian_os = var.template_id == null ? {
+    for t in data.hostinger_vps_templates.available[0].templates :
+    regex("^[Dd]ebian (\\d+)$", trimspace(t.name))[0] => t.id
+    if can(regex("^[Dd]ebian \\d+$", trimspace(t.name)))
+  } : {}
+  debian_latest_id = length(local.debian_os) > 0 ? local.debian_os[tostring(max([for v in keys(local.debian_os) : tonumber(v)]...))] : null
+  template_id      = var.template_id != null ? var.template_id : local.debian_latest_id
+}
+
 resource "hostinger_vps_ssh_key" "admin" {
   name = "${var.name}-admin"
   key  = var.ssh_public_key
@@ -7,11 +29,16 @@ resource "hostinger_vps" "this" {
   hostname       = var.name
   plan           = var.plan
   data_center_id = var.data_center_id
-  template_id    = var.template_id
+  template_id    = local.template_id
   ssh_key_ids    = [tonumber(hostinger_vps_ssh_key.admin.id)]
 
   lifecycle {
     prevent_destroy = true
     ignore_changes  = [template_id, ssh_key_ids]
+
+    precondition {
+      condition     = local.template_id != null
+      error_message = "no plain Debian template found in the Hostinger catalog; set template_id explicitly."
+    }
   }
 }

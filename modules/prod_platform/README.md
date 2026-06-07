@@ -28,7 +28,7 @@ module "prod_platform" {
   hostinger_token = var.hostinger_token
   plan            = var.prod_plan
   data_center_id  = var.prod_data_center_id
-  template_id     = var.prod_template_id
+  # template_id is optional — defaults to the newest Debian template
   key_server_thumbprint = var.prod_luks_tang_thp
 }
 ```
@@ -41,7 +41,7 @@ outputs (`vps_ipv4`, `deploy_private_key`) and live with the product, not here.
 - **Dormant until ready** (`enable = false`): nothing hits Hostinger; a
   cross-variable `validation` on `enable` fails the *plan* (not a half-applied
   apply) if `enable` is flipped without `hostinger_token` / `plan` /
-  `data_center_id` / `template_id`.
+  `data_center_id` (`template_id` defaults to the newest Debian template).
 - **`PROD_HOST_IP` scope `*`**: the IP is not secret (protection is
   `protected = true`); a job without `environment: production` (e.g. the runner's
   Tang provisioner consuming it as the allowlist) must still see it.
