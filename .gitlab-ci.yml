@@ -29,6 +29,12 @@ include:
     inputs:
       playbook: playbooks/preview_host.yml
   - project: eiseron/stack/ci
+    file: /templates/ansible-collection.yml
+    ref: v0.1.18
+    inputs:
+      name: "-prod-host"
+      playbook: playbooks/prod-host.yml
+  - project: eiseron/stack/ci
     file: /templates/release.yml
     ref: v0.1.3
   - project: eiseron/stack/ci

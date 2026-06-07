@@ -1,0 +1,47 @@
+- name: Provision production host
+  hosts: prod_host
+  become: true
+  gather_facts: false
+
+  vars:
+    deploy_user: deploy
+    ssh_permit_root_login: prohibit-password
+    hardening_allowed_users:
+      - root
+      - "{{ deploy_user }}"
+    deploy_ssh_public_key: "{{ lookup('env', 'DEPLOY_SSH_PUBLIC_KEY') }}"
+    pg_shared_user: "{{ lookup('env', 'SHARED_PG_USER') }}"
+    pg_shared_password: "{{ lookup('env', 'SHARED_PG_PASSWORD') }}"
+    prod_tenants: "{{ (lookup('env', 'PROD_TENANTS') | default('[]', true)) | from_json }}"
+    fail2ban_ignoreip: >-
+      {{ ['127.0.0.1/8', '::1'] +
+         ([lookup('env', 'CI_RUNNER_IP')] | reject('equalto', '') | list) }}
+
+  pre_tasks:
+    - name: Wait for SSH to become reachable
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        sleep: 10
+    - name: Gather facts after host is reachable
+      ansible.builtin.setup:
+
+  roles:
+    - eiseron.provisioning.common
+    - eiseron.provisioning.ssh
+    - eiseron.provisioning.hardening
+    - eiseron.provisioning.ufw
+    - eiseron.provisioning.fail2ban
+    - eiseron.provisioning.docker
+    - eiseron.provisioning.postgres_shared
+    - eiseron.provisioning.netdata
+
+  tasks:
+    - name: Provision per-product database tenants
+      ansible.builtin.include_role:
+        name: eiseron.provisioning.prod_tenant
+      vars:
+        prod_tenant_name: "{{ item.name }}"
+        prod_tenant_password: "{{ item.password }}"
+      loop: "{{ prod_tenants }}"
+      loop_control:
+        label: "{{ item.name }}"

@@ -1,0 +1,69 @@
+- name: Verify prod_tenant
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Query the test tenant role
+      ansible.builtin.command:
+        cmd: >-
+          docker exec -e PGPASSWORD shared-pg
+          psql -U molecule_test -d postgres -tAc
+          "SELECT 1 FROM pg_roles WHERE rolname = 'molecule_tenant'"
+      environment:
+        PGPASSWORD: molecule_test_pw
+      register: tenant_role
+      changed_when: false
+
+    - name: Assert the tenant role exists
+      ansible.builtin.assert:
+        that: tenant_role.stdout == "1"
+        fail_msg: "tenant role molecule_tenant was not created"
+
+    - name: Query the test tenant database
+      ansible.builtin.command:
+        cmd: >-
+          docker exec -e PGPASSWORD shared-pg
+          psql -U molecule_test -d postgres -tAc
+          "SELECT 1 FROM pg_database WHERE datname = 'molecule_tenant'"
+      environment:
+        PGPASSWORD: molecule_test_pw
+      register: tenant_db
+      changed_when: false
+
+    - name: Assert the tenant database exists
+      ansible.builtin.assert:
+        that: tenant_db.stdout == "1"
+        fail_msg: "tenant database molecule_tenant was not created"
+
+    - name: Query the tenant database owner
+      ansible.builtin.command:
+        cmd: >-
+          docker exec -e PGPASSWORD shared-pg
+          psql -U molecule_test -d postgres -tAc
+          "SELECT pg_catalog.pg_get_userbyid(datdba) FROM pg_database WHERE datname = 'molecule_tenant'"
+      environment:
+        PGPASSWORD: molecule_test_pw
+      register: tenant_owner
+      changed_when: false
+
+    - name: Assert the tenant database is owned by the tenant role
+      ansible.builtin.assert:
+        that: tenant_owner.stdout == "molecule_tenant"
+        fail_msg: "tenant database is not owned by the tenant role"
+
+    - name: Query PUBLIC connect privilege on the tenant database
+      ansible.builtin.command:
+        cmd: >-
+          docker exec -e PGPASSWORD shared-pg
+          psql -U molecule_test -d postgres -tAc
+          "SELECT has_database_privilege('public', 'molecule_tenant', 'CONNECT')"
+      environment:
+        PGPASSWORD: molecule_test_pw
+      register: tenant_public_connect
+      changed_when: false
+
+    - name: Assert PUBLIC cannot connect to the tenant database
+      ansible.builtin.assert:
+        that: tenant_public_connect.stdout == "f"
+        fail_msg: "PUBLIC still has CONNECT on the tenant database (REVOKE missing)"
