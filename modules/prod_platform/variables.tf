@@ -7,9 +7,9 @@ variable "enable" {
     condition = !var.enable || (
       var.hostinger_token != null &&
       var.plan != null &&
-      var.data_center_id != null
+      (var.region != null || var.data_center_id != null)
     )
-    error_message = "enable requires hostinger_token, plan and data_center_id to be set first (template_id defaults to Debian)."
+    error_message = "enable requires hostinger_token, plan and region (or data_center_id) to be set first (template_id defaults to Debian)."
   }
 }
 
@@ -31,8 +31,15 @@ variable "plan" {
   nullable    = true
 }
 
+variable "region" {
+  description = "Human region string (e.g. \"Brazil\") resolved to the Hostinger data center; configurable per residency requirement"
+  type        = string
+  default     = null
+  nullable    = true
+}
+
 variable "data_center_id" {
-  description = "Hostinger data center (region) ID; configurable per residency requirement"
+  description = "Hostinger data center ID. Optional override; when null it is resolved from var.region."
   type        = number
   default     = null
   nullable    = true

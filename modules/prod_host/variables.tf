@@ -8,9 +8,18 @@ variable "plan" {
   type        = string
 }
 
+variable "region" {
+  description = "Human region string matched against the Hostinger data center name/city/location/continent (e.g. \"Brazil\") to resolve data_center_id. Used only when data_center_id is null."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
 variable "data_center_id" {
-  description = "Hostinger data center (region) ID; configurable per deployment"
+  description = "Hostinger data center ID. Optional override; when null it is resolved from var.region."
   type        = number
+  default     = null
+  nullable    = true
 }
 
 variable "template_id" {

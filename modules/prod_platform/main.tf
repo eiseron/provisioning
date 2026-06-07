@@ -18,6 +18,7 @@ module "host" {
   name           = var.name
   ssh_public_key = tls_private_key.bootstrap.public_key_openssh
   plan           = var.plan
+  region         = var.region
   data_center_id = var.data_center_id
   template_id    = var.template_id
 }

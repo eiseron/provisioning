@@ -6,6 +6,22 @@ data "hostinger_vps_templates" "available" {
   count = var.template_id == null ? 1 : 0
 }
 
+# When data_center_id is not given, resolve it from a human region string
+# (matched against the data center name/city/location/continent) so callers
+# pick "Brazil" / "São Paulo" instead of a magic catalog id. Gated like the
+# template lookup, so a dormant plan never calls the Hostinger API.
+data "hostinger_vps_data_centers" "available" {
+  count = var.data_center_id == null ? 1 : 0
+}
+
+locals {
+  region_match_ids = var.data_center_id == null ? [
+    for d in data.hostinger_vps_data_centers.available[0].data_centers : d.id
+    if var.region != null && strcontains(lower("${d.name} ${d.city} ${d.location} ${d.continent}"), lower(coalesce(var.region, "")))
+  ] : []
+  data_center_id = var.data_center_id != null ? var.data_center_id : (length(local.region_match_ids) == 1 ? local.region_match_ids[0] : null)
+}
+
 locals {
   # Map version-number => template id for PLAIN Debian OS templates only. The
   # name is start/end-anchored ("Debian 12", not "… on Debian" app/panel
@@ -28,7 +44,7 @@ resource "hostinger_vps_ssh_key" "admin" {
 resource "hostinger_vps" "this" {
   hostname       = var.name
   plan           = var.plan
-  data_center_id = var.data_center_id
+  data_center_id = local.data_center_id
   template_id    = local.template_id
   ssh_key_ids    = [tonumber(hostinger_vps_ssh_key.admin.id)]
 
@@ -39,6 +55,11 @@ resource "hostinger_vps" "this" {
     precondition {
       condition     = local.template_id != null
       error_message = "no plain Debian template found in the Hostinger catalog; set template_id explicitly."
+    }
+
+    precondition {
+      condition     = local.data_center_id != null
+      error_message = "region '${coalesce(var.region, "<unset>")}' did not match exactly one Hostinger data center; refine region or set data_center_id explicitly."
     }
   }
 }
