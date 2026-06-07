@@ -116,7 +116,7 @@ resource "gitlab_group_service_account" "ci" {
 resource "gitlab_group_membership" "ci" {
   group_id     = gitlab_group.this.id
   user_id      = gitlab_group_service_account.ci.service_account_id
-  access_level = "developer"
+  access_level = "maintainer"
 }
 
 resource "gitlab_group_service_account_access_token" "ci" {
