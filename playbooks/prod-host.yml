@@ -10,9 +10,9 @@
       - root
       - "{{ deploy_user }}"
     deploy_ssh_public_key: "{{ lookup('env', 'DEPLOY_SSH_PUBLIC_KEY') }}"
-    pg_shared_user: "{{ lookup('env', 'SHARED_PG_USER') }}"
-    pg_shared_password: "{{ lookup('env', 'SHARED_PG_PASSWORD') }}"
-    prod_tenants: "{{ (lookup('env', 'PROD_TENANTS') | default('[]', true)) | from_json }}"
+    pg_luks_tang_url: "{{ lookup('env', 'PROD_LUKS_TANG_URL') }}"
+    pg_luks_tang_thumbprint: "{{ lookup('env', 'PROD_LUKS_TANG_THP') }}"
+    pg_luks_breakglass_passphrase: "{{ lookup('env', 'PROD_LUKS_BREAKGLASS') }}"
     fail2ban_ignoreip: >-
       {{ ['127.0.0.1/8', '::1'] +
          ([lookup('env', 'CI_RUNNER_IP')] | reject('equalto', '') | list) }}
@@ -32,16 +32,5 @@
     - eiseron.provisioning.ufw
     - eiseron.provisioning.fail2ban
     - eiseron.provisioning.docker
-    - eiseron.provisioning.postgres_shared
+    - eiseron.provisioning.pg_luks
     - eiseron.provisioning.netdata
-
-  tasks:
-    - name: Provision per-product database tenants
-      ansible.builtin.include_role:
-        name: eiseron.provisioning.prod_tenant
-      vars:
-        prod_tenant_name: "{{ item.name }}"
-        prod_tenant_password: "{{ item.password }}"
-      loop: "{{ prod_tenants }}"
-      loop_control:
-        label: "{{ item.name }}"

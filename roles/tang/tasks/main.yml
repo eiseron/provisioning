@@ -1,0 +1,44 @@
+- name: Assert the Tang allowlist is provided
+  ansible.builtin.assert:
+    that:
+      - tang_allowed_ips | length > 0
+    fail_msg: "tang requires tang_allowed_ips (production host IPs); an empty list would expose tangd to the internet"
+
+- name: Install tang
+  ansible.builtin.apt:
+    name: tang
+    state: present
+    update_cache: true
+
+- name: Ensure the tangd.socket override directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/system/tangd.socket.d
+    state: directory
+    mode: "0755"
+
+- name: Bind tangd to the configured port
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/tangd.socket.d/override.conf
+    content: |
+      [Socket]
+      ListenStream=
+      ListenStream={{ tang_port }}
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd and restart tang
+
+- name: Enable and start the tang socket
+  ansible.builtin.systemd:
+    name: tangd.socket
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Allow Tang only from the production host IPs
+  community.general.ufw:
+    rule: allow
+    port: "{{ tang_port }}"
+    proto: tcp
+    from_ip: "{{ item }}"
+  loop: "{{ tang_allowed_ips }}"

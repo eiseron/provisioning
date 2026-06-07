@@ -1,0 +1,113 @@
+- name: Assert Tang inputs are provided
+  ansible.builtin.assert:
+    that:
+      - pg_luks_tang_url | length > 0
+      - pg_luks_tang_thumbprint | length > 0
+    fail_msg: "pg_luks requires tang_url and tang_thumbprint"
+
+- name: Install cryptsetup and clevis
+  ansible.builtin.apt:
+    name:
+      - cryptsetup
+      - clevis
+      - clevis-luks
+      - clevis-systemd
+    state: present
+    update_cache: true
+
+- name: Create the LUKS backing file
+  ansible.builtin.command:
+    cmd: "fallocate -l {{ pg_luks_size }} {{ pg_luks_backing_file }}"
+    creates: "{{ pg_luks_backing_file }}"
+
+- name: Restrict the LUKS backing file to root
+  ansible.builtin.file:
+    path: "{{ pg_luks_backing_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Detect whether the backing file is already a LUKS container
+  ansible.builtin.command:
+    cmd: "cryptsetup isLuks {{ pg_luks_backing_file }}"
+  register: pg_luks_is_luks
+  failed_when: false
+  changed_when: false
+
+- name: Check whether a Clevis (Tang) binding already exists
+  ansible.builtin.command:
+    cmd: "clevis luks list -d {{ pg_luks_backing_file }}"
+  register: pg_luks_clevis
+  failed_when: false
+  changed_when: false
+
+- name: Assert the break-glass passphrase is provided for bootstrap
+  ansible.builtin.assert:
+    that:
+      - pg_luks_breakglass_passphrase | length > 0
+    fail_msg: "pg_luks_breakglass_passphrase is required to format and bind; keep it offline after bootstrap"
+  when: pg_luks_is_luks.rc != 0 or 'tang' not in pg_luks_clevis.stdout
+
+- name: Format the backing file as LUKS with the break-glass passphrase
+  ansible.builtin.shell:
+    cmd: "printf '%s' \"$LUKS_PASSPHRASE\" | cryptsetup luksFormat --batch-mode --key-file - {{ pg_luks_backing_file }}"
+  environment:
+    LUKS_PASSPHRASE: "{{ pg_luks_breakglass_passphrase }}"
+  when: pg_luks_is_luks.rc != 0
+  no_log: true
+  changed_when: true
+
+- name: Bind the LUKS container to Tang via Clevis
+  ansible.builtin.shell:
+    cmd: >-
+      printf '%s' "$LUKS_PASSPHRASE" | clevis luks bind -y -k - -d {{ pg_luks_backing_file }}
+      tang '{"url":"{{ pg_luks_tang_url }}","thp":"{{ pg_luks_tang_thumbprint }}"}'
+  environment:
+    LUKS_PASSPHRASE: "{{ pg_luks_breakglass_passphrase }}"
+  when: "'tang' not in pg_luks_clevis.stdout"
+  no_log: true
+  changed_when: true
+
+- name: Open the LUKS container via Clevis (Tang)
+  ansible.builtin.command:
+    cmd: "clevis luks unlock -d {{ pg_luks_backing_file }} -n {{ pg_luks_mapper }}"
+    creates: "/dev/mapper/{{ pg_luks_mapper }}"
+
+- name: Create the filesystem on the LUKS device
+  community.general.filesystem:
+    fstype: "{{ pg_luks_fstype }}"
+    dev: "/dev/mapper/{{ pg_luks_mapper }}"
+
+- name: Register the LUKS container in crypttab for network-bound boot unlock
+  ansible.builtin.lineinfile:
+    path: /etc/crypttab
+    create: true
+    owner: root
+    group: root
+    mode: "0600"
+    regexp: "^{{ pg_luks_mapper }}\\s"
+    line: "{{ pg_luks_mapper }} {{ pg_luks_backing_file }} none _netdev"
+
+- name: Enable the Clevis boot-unlock unit
+  ansible.builtin.systemd:
+    name: clevis-luks-askpass.path
+    enabled: true
+
+- name: Order Docker after the encrypted mount so accessories never write under it in clear
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/docker.service.d/wait-crypt.conf
+    content: |
+      [Unit]
+      RequiresMountsFor={{ pg_luks_mount }}
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd for docker ordering
+
+- name: Mount the LUKS filesystem at the encrypted data root
+  ansible.posix.mount:
+    path: "{{ pg_luks_mount }}"
+    src: "/dev/mapper/{{ pg_luks_mapper }}"
+    fstype: "{{ pg_luks_fstype }}"
+    opts: defaults,_netdev
+    state: mounted

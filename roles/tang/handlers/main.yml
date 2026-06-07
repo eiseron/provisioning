@@ -1,0 +1,5 @@
+- name: Reload systemd and restart tang
+  ansible.builtin.systemd:
+    name: tangd.socket
+    state: restarted
+    daemon_reload: true

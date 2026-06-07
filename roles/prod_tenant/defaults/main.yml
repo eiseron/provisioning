@@ -1,4 +1,0 @@
-postgres_shared_container_name: shared-pg
-prod_tenant_name: ""
-prod_tenant_password: ""
-prod_tenant_db: "{{ prod_tenant_name }}"
