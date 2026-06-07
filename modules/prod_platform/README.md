@@ -15,19 +15,20 @@ It creates:
 
 ```hcl
 provider "hcloud" {
-  token = var.hcloud_token # production project
+  alias = "production"
+  token = var.hcloud_prod_token # SEPARATE Hetzner project for the prod host
 }
 
 provider "hcloud" {
   alias = "keyserver"
-  token = var.hcloud_keyserver_token # SEPARATE Hetzner project (e.g. "Eiseron Keys")
+  token = var.hcloud_keyserver_token # SEPARATE Hetzner project for the key server
 }
 
 module "prod_platform" {
-  source = "git::https://gitlab.com/eiseron/stack/provisioning.git//modules/prod_platform?ref=v0.29.0"
+  source = "git::https://gitlab.com/eiseron/stack/provisioning.git//modules/prod_platform?ref=v0.30.0"
 
   providers = {
-    hcloud           = hcloud
+    hcloud.production = hcloud.production
     hcloud.keyserver = hcloud.keyserver
   }
 
@@ -41,8 +42,10 @@ module "prod_platform" {
 }
 ```
 
-The caller configures TWO Hetzner providers: the default (production project)
-and `hcloud.keyserver` (a **separate Hetzner project/token** for the key server).
+The caller configures TWO aliased Hetzner providers, each a **separate Hetzner
+project/token**: `hcloud.production` (the prod host, isolated from the default
+token that runs the runner/preview pipelines) and `hcloud.keyserver` (the key
+server).
 This keeps the two-credential property of at-rest encryption: a leak of the
 production token can snapshot the LUKS disk but cannot reach the key server, so
 it cannot release the unlock key. The module takes no tokens.

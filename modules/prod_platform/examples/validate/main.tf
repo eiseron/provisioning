@@ -22,6 +22,7 @@ terraform {
 }
 
 provider "hcloud" {
+  alias = "production"
   token = "0000000000000000000000000000000000000000000000000000000000000000"
 }
 
@@ -38,8 +39,8 @@ module "prod_platform" {
   source = "../.."
 
   providers = {
-    hcloud           = hcloud
-    hcloud.keyserver = hcloud.keyserver
+    hcloud.production = hcloud.production
+    hcloud.keyserver  = hcloud.keyserver
   }
 
   ops_project_id = "0"

@@ -16,7 +16,7 @@ module "host" {
   count = var.enable ? 1 : 0
 
   providers = {
-    hcloud = hcloud
+    hcloud = hcloud.production
   }
 
   name           = var.name
