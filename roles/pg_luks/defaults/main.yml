@@ -2,6 +2,7 @@ pg_luks_backing_file: /var/lib/crypt.luks.img
 pg_luks_size: "20G"
 pg_luks_mapper: crypt
 pg_luks_mount: /var/lib/crypt
+pg_luks_owner: deploy
 pg_luks_fstype: ext4
 pg_luks_tang_url: ""
 pg_luks_tang_thumbprint: ""

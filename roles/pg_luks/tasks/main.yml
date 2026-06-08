@@ -168,3 +168,11 @@
     fstype: "{{ pg_luks_fstype }}"
     opts: defaults,_netdev
     state: mounted
+
+- name: Let the deploy user create accessory data dirs under the encrypted root
+  ansible.builtin.file:
+    path: "{{ pg_luks_mount }}"
+    state: directory
+    owner: "{{ pg_luks_owner }}"
+    group: "{{ pg_luks_owner }}"
+    mode: "0755"
