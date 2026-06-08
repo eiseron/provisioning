@@ -142,6 +142,14 @@
     name: clevis-luks-askpass.path
     enabled: true
 
+- name: Ensure the Docker systemd drop-in directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/system/docker.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
 - name: Order Docker after the encrypted mount so accessories never write under it in clear
   ansible.builtin.copy:
     dest: /etc/systemd/system/docker.service.d/wait-crypt.conf
