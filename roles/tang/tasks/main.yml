@@ -6,7 +6,9 @@
 
 - name: Install tang
   ansible.builtin.apt:
-    name: tang
+    name:
+      - tang
+      - curl
     state: present
     update_cache: true
 
@@ -42,3 +44,16 @@
     proto: tcp
     from_ip: "{{ item }}"
   loop: "{{ tang_allowed_ips }}"
+
+- name: Read the Tang advertisement thumbprint
+  ansible.builtin.command:
+    cmd: "tang-show-keys {{ tang_port }}"
+  register: tang_advertised_thumbprint
+  changed_when: false
+  retries: 5
+  delay: 3
+  until: tang_advertised_thumbprint.stdout | length > 0
+
+- name: Surface the Tang thumbprint to pin in the consumer
+  ansible.builtin.debug:
+    msg: "Tang advertisement thumbprint (pin as key_server_thumbprint): {{ tang_advertised_thumbprint.stdout }}"

@@ -26,6 +26,23 @@ unencrypted data.
 Run the Tang server on a host in a **different provider/network** than this
 host (e.g. the CI runner), so a disk leak here does not also expose the key.
 
+## Bootstrap recovery: `pg_luks_force_reformat`
+
+`pg_luks_force_reformat` (default `false`) recovers an **interrupted bootstrap**:
+a backing file that was `luksFormat`ted but failed at `clevis luks bind` (e.g.
+formatted with a placeholder break-glass, then a thumbprint mismatch). It deletes
+the backing file so the next run reformats it with the current break-glass.
+
+It is **not** a universal safety net, and it is destructive by design. It only
+removes a file that is LUKS, **has no Tang binding**, and whose mapper is
+**closed**; if the mapper is open it fails loud rather than corrupting a live
+volume. But a LUKS volume that holds data and merely lost its Tang binding (a
+mid-rotation unbind, a manual `clevis luks unbind`) also matches "LUKS, no Tang
+binding" — so enabling this flag on such a host **will delete that data**.
+
+Therefore: enable it only for a known failed-bootstrap remnant you are sure holds
+no data, run once, then **turn it off**. Do not leave it enabled.
+
 ## Kamal accessories must bind a host path under this mount
 
 For the encryption to cover the data, a Kamal Postgres/backup accessory must

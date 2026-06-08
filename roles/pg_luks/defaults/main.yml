@@ -6,3 +6,4 @@ pg_luks_fstype: ext4
 pg_luks_tang_url: ""
 pg_luks_tang_thumbprint: ""
 pg_luks_breakglass_passphrase: ""
+pg_luks_force_reformat: false

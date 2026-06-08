@@ -15,6 +15,55 @@
     state: present
     update_cache: true
 
+- name: Inspect the backing file before an opt-in reformat
+  when: pg_luks_force_reformat | bool
+  block:
+    - name: Stat the existing backing file
+      ansible.builtin.stat:
+        path: "{{ pg_luks_backing_file }}"
+      register: pg_luks_reformat_stat
+    - name: Stat the device-mapper node for the LUKS volume
+      ansible.builtin.stat:
+        path: "/dev/mapper/{{ pg_luks_mapper }}"
+      register: pg_luks_reformat_mapper
+    - name: Check whether the existing backing file is LUKS
+      ansible.builtin.command:
+        cmd: "cryptsetup isLuks {{ pg_luks_backing_file }}"
+      register: pg_luks_reformat_isluks
+      failed_when: false
+      changed_when: false
+      when: pg_luks_reformat_stat.stat.exists
+    - name: List Clevis bindings on the existing backing file
+      ansible.builtin.command:
+        cmd: "clevis luks list -d {{ pg_luks_backing_file }}"
+      register: pg_luks_reformat_clevis
+      failed_when: false
+      changed_when: false
+      when:
+        - pg_luks_reformat_stat.stat.exists
+        - (pg_luks_reformat_isluks.rc | default(1)) == 0
+
+- name: Refuse to reformat while the LUKS volume is open
+  ansible.builtin.fail:
+    msg: >-
+      pg_luks_force_reformat is set but /dev/mapper/{{ pg_luks_mapper }} is open;
+      removing the backing file under a live volume corrupts it. Close the volume
+      (and confirm it holds no data) before reformatting.
+  when:
+    - pg_luks_force_reformat | bool
+    - pg_luks_reformat_mapper.stat.exists
+
+- name: Remove an unbound, closed LUKS backing file so it can be reformatted
+  ansible.builtin.file:
+    path: "{{ pg_luks_backing_file }}"
+    state: absent
+  when:
+    - pg_luks_force_reformat | bool
+    - pg_luks_reformat_stat.stat.exists | default(false)
+    - not pg_luks_reformat_mapper.stat.exists
+    - (pg_luks_reformat_isluks.rc | default(1)) == 0
+    - "'tang' not in (pg_luks_reformat_clevis.stdout | default(''))"
+
 - name: Create the LUKS backing file
   ansible.builtin.command:
     cmd: "fallocate -l {{ pg_luks_size }} {{ pg_luks_backing_file }}"
