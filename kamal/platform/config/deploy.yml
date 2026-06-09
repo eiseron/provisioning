@@ -1,0 +1,35 @@
+service: platform
+image: <%= ENV.fetch("PLATFORM_NOOP_IMAGE", "#{ENV["KAMAL_REGISTRY_SERVER"]}/platform/noop") %>
+
+servers:
+  web:
+    hosts:
+      - <%= ENV.fetch("PROD_HOST") %>
+
+registry:
+  server: <%= ENV.fetch("KAMAL_REGISTRY_SERVER", "registry.gitlab.com") %>
+  username:
+    - KAMAL_REGISTRY_USERNAME
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+ssh:
+  user: <%= ENV.fetch("DEPLOY_SSH_USER", "deploy") %>
+
+builder:
+  arch: amd64
+
+accessories:
+  db:
+    image: postgres:18
+    host: <%= ENV.fetch("PROD_HOST") %>
+    network: kamal
+    env:
+      clear:
+        POSTGRES_DB: postgres
+        POSTGRES_USER: <%= ENV.fetch("PG_ADMIN_USER", "eiseron") %>
+        PGDATA: /var/lib/postgresql/data/pgdata
+      secret:
+        - POSTGRES_PASSWORD
+    directories:
+      - /var/lib/crypt/postgres:/var/lib/postgresql/data

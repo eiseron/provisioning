@@ -1,0 +1,35 @@
+service: <%= ENV.fetch("APP_SERVICE") %>
+image: <%= ENV.fetch("APP_IMAGE") %>
+
+servers:
+  web:
+    hosts:
+      - <%= ENV.fetch("PROD_HOST") %>
+
+proxy:
+  ssl: <%= ENV.fetch("PROXY_SSL", "true") %>
+  host: <%= ENV.fetch("APP_HOST") %>
+  app_port: <%= ENV.fetch("APP_PORT", "4000") %>
+
+registry:
+  server: <%= ENV.fetch("KAMAL_REGISTRY_SERVER", "registry.gitlab.com") %>
+  username:
+    - KAMAL_REGISTRY_USERNAME
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+ssh:
+  user: <%= ENV.fetch("DEPLOY_SSH_USER", "deploy") %>
+
+builder:
+  arch: amd64
+
+env:
+  clear:
+    PHX_HOST: <%= ENV.fetch("APP_HOST") %>
+    PORT: <%= ENV.fetch("APP_PORT", "4000") %>
+    PHX_SERVER: "true"
+    POOL_SIZE: "10"
+  secret:
+    - SECRET_KEY_BASE
+    - DATABASE_URL
