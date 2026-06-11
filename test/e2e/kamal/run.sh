@@ -82,6 +82,8 @@ status=$(docker run --rm --network "$NET" curlimages/curl -s -o /dev/null -w '%{
 [ "$status" = "200" ] && echo "PASS  /up via shared kamal-proxy = 200" || { echo "FAIL  /up = $status"; fail=1; }
 migs=$(docker exec "$HOST" docker exec -e PGPASSWORD="$ADMIN_PW" platform-db psql -U eiseron -d "$TENANT_DB" -tAc "select count(*) from schema_migrations")
 [ "${migs:-0}" -ge 1 ] && echo "PASS  migrations applied in shared DB ($migs in schema_migrations)" || { echo "FAIL  no migrations"; fail=1; }
+needles=$(docker exec "$HOST" docker exec -e PGPASSWORD="$ADMIN_PW" platform-db psql -U eiseron -d "$TENANT_DB" -tAc "select count(*) from needles")
+[ "${needles:-0}" -ge 1 ] && echo "PASS  post-deploy seed ran in shared DB ($needles needles)" || { echo "FAIL  seed did not run"; fail=1; }
 
 [ "$fail" = 0 ] && echo "== E2E PASSED ==" || echo "== E2E FAILED =="
 exit $fail
