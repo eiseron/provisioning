@@ -101,3 +101,15 @@ variable "github_mirror_token" {
   default     = null
   sensitive   = true
 }
+
+variable "app_subdomain" {
+  description = "Subdomain of the VPS-served app under the product domain; the rate limit targets <app_subdomain>.<domain>. Empty disables it (static/CDN-only products). No default subdomain is assumed."
+  type        = string
+  default     = ""
+}
+
+variable "app_rate_limit_requests_per_minute" {
+  description = "Per-IP request budget per minute on the app host before Cloudflare blocks the source."
+  type        = number
+  default     = 300
+}
