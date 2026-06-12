@@ -87,7 +87,7 @@ resource "gitlab_group_service_account_access_token" "robot_write" {
 
   rotation_configuration = {
     expiration_days    = 365
-    rotate_before_days = 7
+    rotate_before_days = 90
   }
 }
 
@@ -99,7 +99,7 @@ resource "gitlab_group_service_account_access_token" "robot_readonly" {
 
   rotation_configuration = {
     expiration_days    = 365
-    rotate_before_days = 7
+    rotate_before_days = 90
   }
 }
 
@@ -127,7 +127,7 @@ resource "gitlab_group_service_account_access_token" "ci" {
 
   rotation_configuration = {
     expiration_days    = 365
-    rotate_before_days = 7
+    rotate_before_days = 90
   }
 }
 
