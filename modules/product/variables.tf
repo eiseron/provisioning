@@ -102,14 +102,10 @@ variable "github_mirror_token" {
   sensitive   = true
 }
 
-variable "app_subdomain" {
-  description = "Subdomain of the VPS-served app under the product domain; the rate limit targets <app_subdomain>.<domain>. Empty disables it (static/CDN-only products). No default subdomain is assumed."
-  type        = string
-  default     = ""
-}
 
-variable "app_rate_limit_requests_per_minute" {
-  description = "Per-IP request budget per minute on the app host before Cloudflare blocks the source."
-  type        = number
-  default     = 300
+
+variable "bot_fight_mode_enabled" {
+  description = "Enable Cloudflare Bot Fight Mode (free) on the product zone. Challenges automated traffic; verified bots (search crawlers) stay allowed."
+  type        = bool
+  default     = true
 }
