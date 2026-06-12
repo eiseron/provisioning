@@ -104,8 +104,3 @@ variable "github_mirror_token" {
 
 
 
-variable "bot_fight_mode_enabled" {
-  description = "Enable Cloudflare Bot Fight Mode (free) on the product zone. Challenges automated traffic; verified bots (search crawlers) stay allowed."
-  type        = bool
-  default     = true
-}
