@@ -24,3 +24,9 @@ variable "ssh_public_key" {
   description = "Bootstrap SSH public key registered with Hetzner; used by the provision job for direct root SSH"
   type        = string
 }
+
+variable "ssh_source_ips" {
+  description = "CIDRs allowed to reach SSH (22) through the Hetzner Cloud Firewall. Open by default; tightened separately via a Terraform-managed allowlist."
+  type        = list(string)
+  default     = ["0.0.0.0/0", "::/0"]
+}

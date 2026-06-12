@@ -6,5 +6,9 @@ terraform {
       source  = "hetznercloud/hcloud"
       version = "~> 1.0"
     }
+    http = {
+      source  = "hashicorp/http"
+      version = "~> 3.0"
+    }
   }
 }
