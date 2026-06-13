@@ -9,7 +9,7 @@ resource "gitlab_project" "this" {
   issues_access_level                   = var.issues_access_level
   wiki_access_level                     = var.wiki_access_level
   remove_source_branch_after_merge      = true
-  squash_option                         = "always"
+  squash_option                         = var.squash_option
   merge_method                          = "ff"
   initialize_with_readme                = var.initialize_with_readme
   only_allow_merge_if_pipeline_succeeds = var.only_allow_merge_if_pipeline_succeeds

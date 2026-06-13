@@ -61,6 +61,7 @@ module "repository" {
   avatar_path         = var.avatar_path
   issues_access_level = "enabled"
   wiki_access_level   = "disabled"
+  squash_option       = each.value.is_ops ? "never" : "always"
 }
 
 resource "gitlab_group_service_account" "robot" {

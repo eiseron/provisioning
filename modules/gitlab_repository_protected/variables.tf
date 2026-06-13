@@ -98,6 +98,17 @@ variable "only_allow_merge_if_pipeline_succeeds" {
   default     = true
 }
 
+variable "squash_option" {
+  description = "Commit squashing policy for merge requests. Set to never for deploy-promotion ops repos so the production branch fast-forwards to real main commits (shared history)."
+  type        = string
+  default     = "always"
+
+  validation {
+    condition     = contains(["never", "always", "default_on", "default_off"], var.squash_option)
+    error_message = "squash_option must be one of never, always, default_on, default_off."
+  }
+}
+
 variable "build_timeout" {
   description = "Maximum job duration in seconds before GitLab cancels a job. Defaults to 3600 (1 hour)."
   type        = number
