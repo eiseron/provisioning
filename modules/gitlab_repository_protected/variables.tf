@@ -168,3 +168,9 @@ variable "container_expiration_policy" {
   })
   default = null
 }
+
+variable "deploy_promotion" {
+  description = "When true, protect a production branch (push: no one, merge: maintainer) for the deploy-by-promotion flow. The branch itself is created at bootstrap, and the apply runs on its push."
+  type        = bool
+  default     = false
+}

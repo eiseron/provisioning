@@ -62,6 +62,7 @@ module "repository" {
   issues_access_level = "enabled"
   wiki_access_level   = "disabled"
   squash_option       = each.value.is_ops ? "never" : "always"
+  deploy_promotion    = each.value.is_ops
 }
 
 resource "gitlab_group_service_account" "robot" {
