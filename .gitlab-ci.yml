@@ -44,6 +44,12 @@ include:
       name: "-sops-drift-schedule"
       chdir: modules/sops_drift_schedule
   - project: eiseron/stack/ci
+    file: /templates/terraform-validate.yml
+    ref: v0.1.8
+    inputs:
+      name: "-db-backup-r2"
+      chdir: modules/db_backup_r2
+  - project: eiseron/stack/ci
     file: /templates/ansible-collection.yml
     ref: v0.1.3
     inputs:

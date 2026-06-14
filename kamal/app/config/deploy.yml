@@ -33,3 +33,32 @@ env:
   secret:
     - SECRET_KEY_BASE
     - DATABASE_URL
+<% if ENV["PROD_BACKUP_BUCKET"].to_s != "" %>
+accessories:
+  backup:
+    image: registry.gitlab.com/eiseron/stack/public-image-bases/gem-runtime:<%= ENV.fetch("BACKUP_IMAGE_TAG", "v0.1.20") %>
+    host: <%= ENV.fetch("PROD_HOST") %>
+    network: kamal
+    cmd: eiseron db backup schedule
+    env:
+      clear:
+        PGHOST: <%= ENV.fetch("PG_CONTAINER", "platform-db") %>
+        PGUSER: <%= ENV.fetch("PROD_TENANT_SLUG") %>
+        PROD_BACKUP_NAME: <%= ENV.fetch("PROD_TENANT_SLUG") %>
+        PROD_BACKUP_DATABASE: <%= ENV.fetch("PROD_TENANT_SLUG") %>_prod
+        PROD_BACKUP_BUCKET: <%= ENV.fetch("PROD_BACKUP_BUCKET") %>
+        PROD_BACKUP_DIR: /backups
+        CLOUDFLARE_ACCOUNT_ID: <%= ENV.fetch("CLOUDFLARE_ACCOUNT_ID") %>
+        PROD_BACKUP_AGE_RECIPIENTS: <%= ENV.fetch("PROD_BACKUP_AGE_RECIPIENTS") %>
+        BACKUP_CRON: <%= ENV.fetch("BACKUP_CRON", "0 4 * * *") %>
+      secret:
+        - PGPASSWORD
+        - AWS_ACCESS_KEY_ID
+        - AWS_SECRET_ACCESS_KEY
+    directories:
+      - <%= ENV.fetch("PROD_BACKUP_STAGING", "/var/lib/crypt/#{ENV.fetch("PROD_TENANT_SLUG")}/backups") %>:/backups
+    options:
+      restart: unless-stopped
+      health-cmd: "eiseron db backup healthcheck"
+      health-interval: 30s
+<% end %>
