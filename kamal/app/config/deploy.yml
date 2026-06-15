@@ -36,7 +36,7 @@ env:
 <% if ENV["PROD_BACKUP_BUCKET"].to_s != "" %>
 accessories:
   backup:
-    image: registry.gitlab.com/eiseron/stack/public-image-bases/gem-runtime:<%= ENV.fetch("BACKUP_IMAGE_TAG", "v0.1.20") %>
+    image: registry.gitlab.com/eiseron/stack/public-image-bases/gem-runtime:<%= ENV.fetch("BACKUP_IMAGE_TAG", "v0.1.21") %>
     host: <%= ENV.fetch("PROD_HOST") %>
     network: kamal
     cmd: eiseron db backup schedule
