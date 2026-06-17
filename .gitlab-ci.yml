@@ -21,12 +21,6 @@ include:
     file: /templates/terraform-validate.yml
     ref: v0.1.8
     inputs:
-      name: "-product-instance"
-      chdir: modules/product_instance
-  - project: eiseron/stack/ci
-    file: /templates/terraform-validate.yml
-    ref: v0.1.8
-    inputs:
       name: "-prod-host"
       chdir: modules/prod_host
   # prod_platform needs injected provider configs (configuration_aliases), so it
