@@ -61,15 +61,6 @@ resource "cloudflare_account_token" "ops_write" {
     {
       effect = "allow"
       permission_groups = [
-        for id in sort([for name, gid in local.cfl_zone_perm : gid]) : { id = id }
-      ]
-      resources = jsonencode({
-        "com.cloudflare.api.account.zone.${cloudflare_zone.this.id}" = "*"
-      })
-    },
-    {
-      effect = "allow"
-      permission_groups = [
         for id in sort([
           local.cfl_account_perm["Workers R2 Storage Write"],
           local.cfl_account_perm["Pages Write"],
@@ -79,6 +70,15 @@ resource "cloudflare_account_token" "ops_write" {
       ]
       resources = jsonencode({
         "com.cloudflare.api.account.${var.cloudflare_account_id}" = "*"
+      })
+    },
+    {
+      effect = "allow"
+      permission_groups = [
+        for id in sort([for name, gid in local.cfl_zone_perm : gid]) : { id = id }
+      ]
+      resources = jsonencode({
+        "com.cloudflare.api.account.zone.${cloudflare_zone.this.id}" = "*"
       })
     }
   ]
@@ -92,15 +92,6 @@ resource "cloudflare_account_token" "ops_readonly" {
     {
       effect = "allow"
       permission_groups = [
-        for id in sort([for name, gid in local.cfl_zone_perm : gid if endswith(name, " Read")]) : { id = id }
-      ]
-      resources = jsonencode({
-        "com.cloudflare.api.account.zone.${cloudflare_zone.this.id}" = "*"
-      })
-    },
-    {
-      effect = "allow"
-      permission_groups = [
         for id in sort([
           local.cfl_account_perm["Workers R2 Storage Read"],
           local.cfl_account_perm["Pages Read"],
@@ -110,6 +101,15 @@ resource "cloudflare_account_token" "ops_readonly" {
       ]
       resources = jsonencode({
         "com.cloudflare.api.account.${var.cloudflare_account_id}" = "*"
+      })
+    },
+    {
+      effect = "allow"
+      permission_groups = [
+        for id in sort([for name, gid in local.cfl_zone_perm : gid if endswith(name, " Read")]) : { id = id }
+      ]
+      resources = jsonencode({
+        "com.cloudflare.api.account.zone.${cloudflare_zone.this.id}" = "*"
       })
     }
   ]
