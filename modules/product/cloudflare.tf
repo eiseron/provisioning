@@ -76,6 +76,8 @@ resource "cloudflare_account_token" "ops_write" {
       permission_groups = [
         { id = local.cfl_account_perm["Workers R2 Storage Write"] },
         { id = local.cfl_account_perm["Pages Write"] },
+        { id = local.cfl_account_perm["Workers Scripts Write"] },
+        { id = local.cfl_account_perm["Workers KV Storage Write"] },
       ]
       resources = jsonencode({
         "com.cloudflare.api.account.${var.cloudflare_account_id}" = "*"
@@ -107,6 +109,8 @@ resource "cloudflare_account_token" "ops_readonly" {
       permission_groups = [
         { id = local.cfl_account_perm["Workers R2 Storage Read"] },
         { id = local.cfl_account_perm["Pages Read"] },
+        { id = local.cfl_account_perm["Workers Scripts Read"] },
+        { id = local.cfl_account_perm["Workers KV Storage Read"] },
       ]
       resources = jsonencode({
         "com.cloudflare.api.account.${var.cloudflare_account_id}" = "*"
