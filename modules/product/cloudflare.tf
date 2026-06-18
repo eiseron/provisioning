@@ -57,15 +57,11 @@ resource "cloudflare_account_token" "ops_write" {
   account_id = var.cloudflare_account_id
   name       = "Service Token - ${title(var.slug)} Ops (Terraform)"
 
-  lifecycle {
-    ignore_changes = [policies]
-  }
-
   policies = [
     {
       effect = "allow"
       permission_groups = [
-        for name, id in local.cfl_zone_perm : { id = id }
+        for id in sort([for name, gid in local.cfl_zone_perm : gid]) : { id = id }
       ]
       resources = jsonencode({
         "com.cloudflare.api.account.zone.${cloudflare_zone.this.id}" = "*"
@@ -74,10 +70,12 @@ resource "cloudflare_account_token" "ops_write" {
     {
       effect = "allow"
       permission_groups = [
-        { id = local.cfl_account_perm["Workers R2 Storage Write"] },
-        { id = local.cfl_account_perm["Pages Write"] },
-        { id = local.cfl_account_perm["Workers Scripts Write"] },
-        { id = local.cfl_account_perm["Workers KV Storage Write"] },
+        for id in sort([
+          local.cfl_account_perm["Workers R2 Storage Write"],
+          local.cfl_account_perm["Pages Write"],
+          local.cfl_account_perm["Workers Scripts Write"],
+          local.cfl_account_perm["Workers KV Storage Write"],
+        ]) : { id = id }
       ]
       resources = jsonencode({
         "com.cloudflare.api.account.${var.cloudflare_account_id}" = "*"
@@ -90,15 +88,11 @@ resource "cloudflare_account_token" "ops_readonly" {
   account_id = var.cloudflare_account_id
   name       = "Service Token - ${title(var.slug)} Ops Readonly (Terraform)"
 
-  lifecycle {
-    ignore_changes = [policies]
-  }
-
   policies = [
     {
       effect = "allow"
       permission_groups = [
-        for name, id in local.cfl_zone_perm : { id = id } if endswith(name, " Read")
+        for id in sort([for name, gid in local.cfl_zone_perm : gid if endswith(name, " Read")]) : { id = id }
       ]
       resources = jsonencode({
         "com.cloudflare.api.account.zone.${cloudflare_zone.this.id}" = "*"
@@ -107,10 +101,12 @@ resource "cloudflare_account_token" "ops_readonly" {
     {
       effect = "allow"
       permission_groups = [
-        { id = local.cfl_account_perm["Workers R2 Storage Read"] },
-        { id = local.cfl_account_perm["Pages Read"] },
-        { id = local.cfl_account_perm["Workers Scripts Read"] },
-        { id = local.cfl_account_perm["Workers KV Storage Read"] },
+        for id in sort([
+          local.cfl_account_perm["Workers R2 Storage Read"],
+          local.cfl_account_perm["Pages Read"],
+          local.cfl_account_perm["Workers Scripts Read"],
+          local.cfl_account_perm["Workers KV Storage Read"],
+        ]) : { id = id }
       ]
       resources = jsonencode({
         "com.cloudflare.api.account.${var.cloudflare_account_id}" = "*"
