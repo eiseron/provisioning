@@ -57,6 +57,13 @@ resource "gitlab_branch_protection" "main" {
   push_access_level  = var.push_access_level
   merge_access_level = "maintainer"
   allow_force_push   = false
+
+  dynamic "allowed_to_push" {
+    for_each = toset(var.allowed_to_push_user_ids)
+    content {
+      user_id = allowed_to_push.value
+    }
+  }
 }
 
 resource "gitlab_tag_protection" "version" {
@@ -73,4 +80,11 @@ resource "gitlab_branch_protection" "release" {
   push_access_level  = var.push_access_level
   merge_access_level = "maintainer"
   allow_force_push   = false
+
+  dynamic "allowed_to_push" {
+    for_each = toset(var.allowed_to_push_user_ids)
+    content {
+      user_id = allowed_to_push.value
+    }
+  }
 }

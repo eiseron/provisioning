@@ -81,6 +81,13 @@ variable "push_access_level" {
   }
 }
 
+variable "allowed_to_push_user_ids" {
+  description = "Extra user IDs allowed to push directly to protected branches (main and release/*), bypassing push_access_level. Useful for granting a CI service account write access without escalating its group role. Defaults to empty (no overrides)."
+  type        = list(number)
+  default     = []
+  nullable    = false
+}
+
 variable "only_allow_merge_if_pipeline_succeeds" {
   description = "Require a successful pipeline before MRs can be merged. Set to false for repos with no CI (e.g. planning/docs)."
   type        = bool
