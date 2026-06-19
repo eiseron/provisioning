@@ -26,6 +26,16 @@ output "ci_token" {
   sensitive   = true
 }
 
+output "ci_user_id" {
+  description = "Numeric user ID of the CI service account. Useful for granting it explicit per-repo overrides (e.g. allowed_to_push on a protected branch) without escalating its group role."
+  value       = gitlab_group_service_account.ci.service_account_id
+}
+
+output "robot_user_id" {
+  description = "Numeric user ID of the ops/robot service account. Useful for the same scenario as ci_user_id but for the write-token robot."
+  value       = gitlab_group_service_account.robot.service_account_id
+}
+
 output "zone_id" {
   description = "Cloudflare zone ID."
   value       = cloudflare_zone.this.id
