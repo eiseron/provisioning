@@ -82,7 +82,7 @@ variable "push_access_level" {
 }
 
 variable "allowed_to_push_user_ids" {
-  description = "Extra user IDs allowed to push directly to protected branches (main and release/*), bypassing push_access_level. Useful for granting a CI service account write access without escalating its group role. Defaults to empty (no overrides)."
+  description = "Extra user IDs allowed to push directly to protected branches (main and release/*). GitLab makes user allowlists and push_access_level mutually exclusive, so passing a non-empty list silently disables push_access_level (the broader rule is replaced by the per-user allowlist). Useful for granting a CI service account write access without opening the branch to its whole role. Defaults to empty (use push_access_level alone)."
   type        = list(number)
   default     = []
   nullable    = false
