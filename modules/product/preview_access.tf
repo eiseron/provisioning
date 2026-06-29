@@ -25,7 +25,8 @@ resource "cloudflare_zero_trust_access_application" "preview" {
   destinations = [
     { type = "public", uri = "*-preview.${var.domain}" },
   ]
-  policies = [
-    { id = cloudflare_zero_trust_access_policy.preview[0].id },
-  ]
+  policies = concat(
+    [{ id = cloudflare_zero_trust_access_policy.preview[0].id }],
+    [for policy_id in var.additional_preview_access_policies : { id = policy_id }]
+  )
 }

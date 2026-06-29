@@ -59,6 +59,12 @@ variable "preview_access_email_domains" {
   default     = []
 }
 
+variable "additional_preview_access_policies" {
+  description = "Extra Cloudflare Zero Trust Access policies to attach to the preview application alongside the email-domain policy this module creates. Each entry is the id of a policy declared by the caller (typically a non_identity service-token policy for the deploy healthcheck)."
+  type        = list(string)
+  default     = []
+}
+
 variable "repositories" {
   description = "Extra repos beyond the app and the ops repo, keyed by repo name."
   type = map(object({
