@@ -93,4 +93,4 @@ kamal-render:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
-    - ruby test/kamal/render_deploy_test.rb
+    - ruby test/kamal/render_app_deploy_test.rb
