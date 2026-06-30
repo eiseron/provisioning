@@ -19,8 +19,9 @@ resource "cloudflare_r2_bucket" "this" {
   }
 }
 
-resource "cloudflare_api_token" "write" {
-  name = "Service Token - ${title(var.slug)} DB backup (R2 write)"
+resource "cloudflare_account_token" "write" {
+  account_id = var.cloudflare_account_id
+  name       = "Service Token - ${title(var.slug)} DB backup (R2 write)"
 
   policies = [
     {
@@ -35,8 +36,9 @@ resource "cloudflare_api_token" "write" {
   ]
 }
 
-resource "cloudflare_api_token" "read" {
-  name = "Service Token - ${title(var.slug)} DB backup (R2 read)"
+resource "cloudflare_account_token" "read" {
+  account_id = var.cloudflare_account_id
+  name       = "Service Token - ${title(var.slug)} DB backup (R2 read)"
 
   policies = [
     {
