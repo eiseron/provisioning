@@ -6,11 +6,6 @@ locals {
     if contains(group.scopes, "com.cloudflare.api.account")
   }
 
-  bucket_perm = {
-    for group in data.cloudflare_api_token_permission_groups_list.all.result : group.name => group.id
-    if anytrue([for scope in group.scopes : strcontains(scope, "edge.r2.bucket")])
-  }
-
   bucket_resource = "com.cloudflare.edge.r2.bucket.${var.cloudflare_account_id}_default_${cloudflare_r2_bucket.this.name}"
 }
 
@@ -49,7 +44,7 @@ resource "cloudflare_account_token" "read" {
     {
       effect = "allow"
       permission_groups = [
-        { id = local.bucket_perm["Workers R2 Storage Bucket Item Read"] },
+        { id = local.account_perm["Workers R2 Storage Read"] },
       ]
       resources = jsonencode({
         (local.bucket_resource) = "*"
