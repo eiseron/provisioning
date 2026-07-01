@@ -41,8 +41,8 @@ include:
     file: /templates/terraform-validate.yml
     ref: v0.1.8
     inputs:
-      name: "-glitchtip"
-      chdir: modules/glitchtip
+      name: "-error-monitoring"
+      chdir: modules/error_monitoring
   - project: eiseron/stack/ci
     file: /templates/terraform-validate.yml
     ref: v0.1.8
@@ -100,3 +100,4 @@ kamal-render:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
     - ruby test/kamal/render_app_deploy_test.rb
+    - ruby test/kamal/render_error_monitoring_deploy_test.rb

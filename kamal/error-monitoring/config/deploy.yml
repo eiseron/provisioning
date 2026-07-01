@@ -1,5 +1,5 @@
-service: glitchtip
-image: <%= ENV.fetch("GLITCHTIP_IMAGE", "glitchtip/glitchtip:6.2.0") %>
+service: error-monitoring
+image: <%= ENV.fetch("KAMAL_REGISTRY_SERVER", "registry.gitlab.com") %>/platform/error-monitoring
 
 servers:
   web:
@@ -12,7 +12,7 @@ servers:
 
 proxy:
   ssl: <%= ENV.fetch("PROXY_SSL", "true") %>
-  host: <%= ENV.fetch("GLITCHTIP_HOST", "errors.eiseron.com") %>
+  host: <%= ENV.fetch("ERROR_MONITORING_HOST", "errors.eiseron.com") %>
   app_port: 8080
   healthcheck:
     path: /_health/
@@ -33,14 +33,14 @@ builder:
 env:
   clear:
     PORT: "8080"
-    GLITCHTIP_DOMAIN: <%= "https://#{ENV.fetch("GLITCHTIP_HOST", "errors.eiseron.com")}" %>
-    DEFAULT_FROM_EMAIL: <%= ENV.fetch("GLITCHTIP_FROM_EMAIL", "errors@eiseron.com") %>
-    EMAIL_URL: <%= ENV.fetch("GLITCHTIP_EMAIL_URL", "consolemail://") %>
+    GLITCHTIP_DOMAIN: <%= "https://#{ENV.fetch("ERROR_MONITORING_HOST", "errors.eiseron.com")}" %>
+    DEFAULT_FROM_EMAIL: <%= ENV.fetch("ERROR_MONITORING_FROM_EMAIL", "errors@eiseron.com") %>
+    EMAIL_URL: <%= ENV.fetch("ERROR_MONITORING_EMAIL_URL", "consolemail://") %>
     ENABLE_USER_REGISTRATION: "false"
     ENABLE_ORGANIZATION_CREATION: "false"
     CELERY_WORKER_AUTOSCALE: "1,3"
     GLITCHTIP_MAX_EVENT_LIFE_DAYS: "90"
-    REDIS_URL: redis://glitchtip-redis:6379/0
+    REDIS_URL: redis://error-monitoring-redis:6379/0
   secret:
     - SECRET_KEY
     - DATABASE_URL
@@ -51,4 +51,4 @@ accessories:
     host: <%= ENV.fetch("PROD_HOST") %>
     network: kamal
     directories:
-      - /var/lib/crypt/glitchtip/redis:/data
+      - /var/lib/crypt/error-monitoring/redis:/data

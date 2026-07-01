@@ -63,20 +63,20 @@ variable "key_server_location" {
   default     = "nbg1"
 }
 
-variable "glitchtip_enable" {
-  description = "Provision the co-located GlitchTip error-monitoring service (DNS record + deploy variables) on the prod host. Requires enable."
+variable "error_monitoring_enable" {
+  description = "Provision the co-located error monitoring service (DNS record + deploy variables) on the prod host. Requires enable."
   type        = bool
   default     = false
 }
 
 variable "zone_id" {
-  description = "Cloudflare zone id that hosts the GlitchTip dashboard subdomain. Only consumed when glitchtip_enable."
+  description = "Cloudflare zone id that hosts the error monitoring dashboard subdomain. Only consumed when error_monitoring_enable."
   type        = string
   default     = ""
 }
 
 variable "zone_domain" {
-  description = "Apex domain of the Cloudflare zone; the GlitchTip dashboard is errors.<zone_domain>. Only consumed when glitchtip_enable."
+  description = "Apex domain of the Cloudflare zone; the error monitoring dashboard is errors.<zone_domain>. Only consumed when error_monitoring_enable."
   type        = string
   default     = ""
 }

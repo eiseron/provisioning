@@ -45,10 +45,10 @@ module "tang" {
   ssh_public_key = tls_private_key.tang_bootstrap.public_key_openssh
 }
 
-module "glitchtip" {
-  source = "../glitchtip"
+module "error_monitoring" {
+  source = "../error_monitoring"
 
-  count = var.enable && var.glitchtip_enable ? 1 : 0
+  count = var.enable && var.error_monitoring_enable ? 1 : 0
 
   enable         = true
   zone_id        = var.zone_id
