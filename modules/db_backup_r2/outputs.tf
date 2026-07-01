@@ -14,15 +14,3 @@ output "write_secret_access_key" {
   value       = sha256(cloudflare_account_token.write.value)
   sensitive   = true
 }
-
-output "read_access_key_id" {
-  description = "R2 S3 access key id for the restore drill (read scope)."
-  value       = cloudflare_account_token.read.id
-  sensitive   = true
-}
-
-output "read_secret_access_key" {
-  description = "R2 S3 secret access key (sha256 of the token value) for the restore drill (read scope)."
-  value       = sha256(cloudflare_account_token.read.value)
-  sensitive   = true
-}

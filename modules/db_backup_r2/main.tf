@@ -35,20 +35,3 @@ resource "cloudflare_account_token" "write" {
     }
   ]
 }
-
-resource "cloudflare_account_token" "read" {
-  account_id = var.cloudflare_account_id
-  name       = "Service Token - ${title(var.slug)} DB backup (R2 drill/verify, write-capable — R2 has no read-only GetObject)"
-
-  policies = [
-    {
-      effect = "allow"
-      permission_groups = [
-        { id = local.account_perm["Workers R2 Storage Write"] },
-      ]
-      resources = jsonencode({
-        (local.bucket_resource) = "*"
-      })
-    }
-  ]
-}
