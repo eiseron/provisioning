@@ -1,0 +1,54 @@
+service: glitchtip
+image: <%= ENV.fetch("GLITCHTIP_IMAGE", "glitchtip/glitchtip:6.2.0") %>
+
+servers:
+  web:
+    hosts:
+      - <%= ENV.fetch("PROD_HOST") %>
+  worker:
+    hosts:
+      - <%= ENV.fetch("PROD_HOST") %>
+    cmd: ./bin/run-celery-with-beat.sh
+
+proxy:
+  ssl: <%= ENV.fetch("PROXY_SSL", "true") %>
+  host: <%= ENV.fetch("GLITCHTIP_HOST", "errors.eiseron.com") %>
+  app_port: 8080
+  healthcheck:
+    path: /_health/
+
+registry:
+  server: <%= ENV.fetch("KAMAL_REGISTRY_SERVER", "registry.gitlab.com") %>
+  username:
+    - KAMAL_REGISTRY_USERNAME
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+ssh:
+  user: <%= ENV.fetch("DEPLOY_SSH_USER", "deploy") %>
+
+builder:
+  arch: amd64
+
+env:
+  clear:
+    PORT: "8080"
+    GLITCHTIP_DOMAIN: <%= "https://#{ENV.fetch("GLITCHTIP_HOST", "errors.eiseron.com")}" %>
+    DEFAULT_FROM_EMAIL: <%= ENV.fetch("GLITCHTIP_FROM_EMAIL", "errors@eiseron.com") %>
+    EMAIL_URL: <%= ENV.fetch("GLITCHTIP_EMAIL_URL", "consolemail://") %>
+    ENABLE_USER_REGISTRATION: "false"
+    ENABLE_ORGANIZATION_CREATION: "false"
+    CELERY_WORKER_AUTOSCALE: "1,3"
+    GLITCHTIP_MAX_EVENT_LIFE_DAYS: "90"
+    REDIS_URL: redis://glitchtip-redis:6379/0
+  secret:
+    - SECRET_KEY
+    - DATABASE_URL
+
+accessories:
+  redis:
+    image: valkey/valkey:8-alpine
+    host: <%= ENV.fetch("PROD_HOST") %>
+    network: kamal
+    directories:
+      - /var/lib/crypt/glitchtip/redis:/data

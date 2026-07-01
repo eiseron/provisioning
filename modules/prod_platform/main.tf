@@ -45,6 +45,18 @@ module "tang" {
   ssh_public_key = tls_private_key.tang_bootstrap.public_key_openssh
 }
 
+module "glitchtip" {
+  source = "../glitchtip"
+
+  count = var.enable && var.glitchtip_enable ? 1 : 0
+
+  enable         = true
+  zone_id        = var.zone_id
+  zone_domain    = var.zone_domain
+  prod_host_ip   = module.host[0].vps_ipv4
+  ops_project_id = var.ops_project_id
+}
+
 resource "gitlab_project_variable" "tang_host_ip" {
   count             = var.enable && var.encrypt_db ? 1 : 0
   project           = var.ops_project_id

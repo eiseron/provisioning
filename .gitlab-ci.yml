@@ -41,6 +41,12 @@ include:
     file: /templates/terraform-validate.yml
     ref: v0.1.8
     inputs:
+      name: "-glitchtip"
+      chdir: modules/glitchtip
+  - project: eiseron/stack/ci
+    file: /templates/terraform-validate.yml
+    ref: v0.1.8
+    inputs:
       name: "-tang-host"
       chdir: modules/tang_host
   - project: eiseron/stack/ci
