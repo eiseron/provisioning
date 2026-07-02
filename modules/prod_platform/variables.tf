@@ -69,6 +69,24 @@ variable "error_monitoring_enable" {
   default     = false
 }
 
+variable "error_monitoring_smtp_password" {
+  description = "SMTP app password for the error monitoring service outbound email. Empty leaves email on the console backend."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "error_monitoring_smtp" {
+  description = "Non-secret SMTP settings (user/host/port/from) for the error monitoring service. Consumed only when error_monitoring_smtp_password is set."
+  type = object({
+    user = optional(string, "")
+    host = optional(string, "")
+    port = optional(string, "587")
+    from = optional(string, "")
+  })
+  default = {}
+}
+
 variable "zone_id" {
   description = "Cloudflare zone id that hosts the error monitoring dashboard subdomain. Only consumed when error_monitoring_enable."
   type        = string

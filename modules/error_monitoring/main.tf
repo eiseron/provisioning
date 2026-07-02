@@ -3,13 +3,22 @@ locals {
   database = "error_monitoring_prod"
   domain   = "${var.subdomain}.${var.zone_domain}"
 
-  deploy_vars = var.enable ? {
-    PROD_TENANT_SLUG            = { value = local.slug, masked = false }
-    PROD_TENANT_PASSWORD        = { value = random_password.db.result, masked = true }
-    ERROR_MONITORING_SECRET_KEY = { value = random_password.secret_key.result, masked = true }
-    ERROR_MONITORING_DB_NAME    = { value = local.database, masked = false }
-    ERROR_MONITORING_HOST       = { value = local.domain, masked = false }
-  } : {}
+  deploy_vars = merge(
+    var.enable ? {
+      PROD_TENANT_SLUG            = { value = local.slug, masked = false }
+      PROD_TENANT_PASSWORD        = { value = random_password.db.result, masked = true }
+      ERROR_MONITORING_SECRET_KEY = { value = random_password.secret_key.result, masked = true }
+      ERROR_MONITORING_DB_NAME    = { value = local.database, masked = false }
+      ERROR_MONITORING_HOST       = { value = local.domain, masked = false }
+    } : {},
+    var.enable && var.smtp_password != "" ? {
+      ERROR_MONITORING_SMTP_PASSWORD = { value = var.smtp_password, masked = true }
+      ERROR_MONITORING_SMTP_USER     = { value = urlencode(var.smtp.user), masked = false }
+      ERROR_MONITORING_SMTP_HOST     = { value = var.smtp.host, masked = false }
+      ERROR_MONITORING_SMTP_PORT     = { value = var.smtp.port, masked = false }
+      ERROR_MONITORING_FROM_EMAIL    = { value = var.smtp.from, masked = false }
+    } : {}
+  )
 }
 
 resource "random_password" "secret_key" {

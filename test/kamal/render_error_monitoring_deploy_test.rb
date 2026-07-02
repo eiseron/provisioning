@@ -7,9 +7,10 @@ DEPLOY = File.expand_path("../../kamal/error-monitoring/config/deploy.yml", __di
 
 BASE = {
   "PROD_HOST" => "10.0.0.1",
-  "KAMAL_REGISTRY_SERVER" => "registry.gitlab.com",
-  "ERROR_MONITORING_IMAGE" => "registry.gitlab.com/eiseron/eiseron-ops/error-monitoring",
-  "ERROR_MONITORING_HOST" => "errors.eiseron.com"
+  "KAMAL_REGISTRY_SERVER" => "registry.example",
+  "ERROR_MONITORING_IMAGE" => "registry.example/org/error-monitoring",
+  "ERROR_MONITORING_HOST" => "errors.example.test",
+  "ERROR_MONITORING_FROM_EMAIL" => "alerts@example.test"
 }.freeze
 
 def render(env)
@@ -28,23 +29,30 @@ end
 manifest = render(BASE)
 
 expect(failures, "service e error-monitoring") { manifest["service"] == "error-monitoring" }
-expect(failures, "imagem respeita o ERROR_MONITORING_IMAGE (registry gravavel do projeto)") do
-  manifest["image"] == "registry.gitlab.com/eiseron/eiseron-ops/error-monitoring"
+expect(failures, "imagem respeita o ERROR_MONITORING_IMAGE") do
+  manifest["image"] == "registry.example/org/error-monitoring"
 end
 expect(failures, "imagem nao usa :latest") { !manifest["image"].to_s.end_with?(":latest") }
 
 fallback = render(BASE.reject { |key, _| key == "ERROR_MONITORING_IMAGE" })
 expect(failures, "sem ERROR_MONITORING_IMAGE, imagem cai no default do registry (interpolacao ERB aninhada)") do
-  fallback["image"] == "registry.gitlab.com/platform/error-monitoring"
+  fallback["image"] == "registry.example/platform/error-monitoring"
 end
 
 secret = manifest.dig("env", "secret") || []
 clear = (manifest.dig("env", "clear") || {}).keys
-expect(failures, "SECRET_KEY e DATABASE_URL ficam sob secret") do
-  %w[SECRET_KEY DATABASE_URL].all? { |k| secret.include?(k) }
+expect(failures, "SECRET_KEY, DATABASE_URL e EMAIL_URL ficam sob secret") do
+  %w[SECRET_KEY DATABASE_URL EMAIL_URL].all? { |k| secret.include?(k) }
 end
-expect(failures, "segredos nunca em clear") do
-  (clear & %w[SECRET_KEY DATABASE_URL]).empty?
+expect(failures, "segredos nunca em clear (EMAIL_URL carrega a senha SMTP)") do
+  (clear & %w[SECRET_KEY DATABASE_URL EMAIL_URL]).empty?
+end
+expect(failures, "from vem do env do consumidor (sem literal no manifesto)") do
+  manifest.dig("env", "clear", "DEFAULT_FROM_EMAIL") == "alerts@example.test"
+end
+fallback_from = render(BASE.reject { |key, _| key == "ERROR_MONITORING_FROM_EMAIL" })
+expect(failures, "sem ERROR_MONITORING_FROM_EMAIL, from cai no default generico do manifesto") do
+  fallback_from.dig("env", "clear", "DEFAULT_FROM_EMAIL") == "webmaster@localhost"
 end
 
 expect(failures, "registro de usuario desabilitado") do

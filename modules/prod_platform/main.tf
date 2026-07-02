@@ -55,6 +55,8 @@ module "error_monitoring" {
   zone_domain    = var.zone_domain
   prod_host_ip   = module.host[0].vps_ipv4
   ops_project_id = var.ops_project_id
+  smtp_password  = var.error_monitoring_smtp_password
+  smtp           = var.error_monitoring_smtp
 }
 
 resource "gitlab_project_variable" "tang_host_ip" {

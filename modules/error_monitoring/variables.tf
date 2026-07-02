@@ -5,7 +5,7 @@ variable "enable" {
 }
 
 variable "zone_id" {
-  description = "Cloudflare zone that hosts the dashboard subdomain (e.g. the eiseron.com zone)."
+  description = "Cloudflare zone that hosts the dashboard subdomain (e.g. the example.com zone)."
   type        = string
 }
 
@@ -40,4 +40,22 @@ variable "db_password_epoch" {
   description = "Rotation epoch for the error monitoring database role password; bump to regenerate on the next apply."
   type        = string
   default     = "1"
+}
+
+variable "smtp_password" {
+  description = "SMTP app password for outbound email (assembled into EMAIL_URL at deploy). Empty leaves email on the console backend."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "smtp" {
+  description = "Non-secret SMTP connection settings the consumer supplies (kept out of the generic manifest). Only consumed when smtp_password is set."
+  type = object({
+    user = optional(string, "")
+    host = optional(string, "")
+    port = optional(string, "587")
+    from = optional(string, "")
+  })
+  default = {}
 }
