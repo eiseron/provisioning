@@ -1,5 +1,5 @@
 service: error-monitoring
-image: <%= ENV.fetch("KAMAL_REGISTRY_SERVER", "registry.gitlab.com") %>/platform/error-monitoring
+image: <%= ENV.fetch("ERROR_MONITORING_IMAGE", "#{ENV.fetch("KAMAL_REGISTRY_SERVER", "registry.gitlab.com")}/platform/error-monitoring") %>
 
 servers:
   web:

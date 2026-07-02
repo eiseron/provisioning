@@ -8,6 +8,7 @@ DEPLOY = File.expand_path("../../kamal/error-monitoring/config/deploy.yml", __di
 BASE = {
   "PROD_HOST" => "10.0.0.1",
   "KAMAL_REGISTRY_SERVER" => "registry.gitlab.com",
+  "ERROR_MONITORING_IMAGE" => "registry.gitlab.com/eiseron/eiseron-ops/error-monitoring",
   "ERROR_MONITORING_HOST" => "errors.eiseron.com"
 }.freeze
 
@@ -27,10 +28,15 @@ end
 manifest = render(BASE)
 
 expect(failures, "service e error-monitoring") { manifest["service"] == "error-monitoring" }
-expect(failures, "imagem sai do nosso registry (platform/error-monitoring), nao do Docker Hub") do
-  manifest["image"] == "registry.gitlab.com/platform/error-monitoring"
+expect(failures, "imagem respeita o ERROR_MONITORING_IMAGE (registry gravavel do projeto)") do
+  manifest["image"] == "registry.gitlab.com/eiseron/eiseron-ops/error-monitoring"
 end
 expect(failures, "imagem nao usa :latest") { !manifest["image"].to_s.end_with?(":latest") }
+
+fallback = render(BASE.reject { |key, _| key == "ERROR_MONITORING_IMAGE" })
+expect(failures, "sem ERROR_MONITORING_IMAGE, imagem cai no default do registry (interpolacao ERB aninhada)") do
+  fallback["image"] == "registry.gitlab.com/platform/error-monitoring"
+end
 
 secret = manifest.dig("env", "secret") || []
 clear = (manifest.dig("env", "clear") || {}).keys
