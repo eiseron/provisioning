@@ -19,6 +19,30 @@ resource "cloudflare_r2_bucket" "this" {
   }
 }
 
+resource "cloudflare_r2_bucket_lock" "this" {
+  account_id  = var.cloudflare_account_id
+  bucket_name = cloudflare_r2_bucket.this.name
+
+  rules = [
+    {
+      id      = "immutable-timestamped-backups-excludes-history"
+      enabled = true
+      prefix  = "${var.slug}/2"
+      condition = {
+        type            = "Age"
+        max_age_seconds = var.backup_immutable_days * 24 * 60 * 60
+      }
+    }
+  ]
+
+  lifecycle {
+    precondition {
+      condition     = var.backup_immutable_days < var.gem_retention_days
+      error_message = "backup_immutable_days (${var.backup_immutable_days}) must be below gem_retention_days (${var.gem_retention_days}); otherwise prune would try to delete a still-immutable object and R2 Object Lock would deny it, breaking rotation."
+    }
+  }
+}
+
 resource "cloudflare_account_token" "write" {
   account_id = var.cloudflare_account_id
   name       = "Service Token - ${title(var.slug)} DB backup (R2 write)"

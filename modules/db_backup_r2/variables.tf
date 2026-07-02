@@ -13,3 +13,20 @@ variable "r2_location" {
   type        = string
   default     = "ENAM"
 }
+
+variable "backup_immutable_days" {
+  description = "Days each backup object stays immutable via R2 Object Lock (Age condition). Defends against clobber by the write-capable backup token. Must stay below gem_retention_days so the immutability window expires before pruning deletes expired backups."
+  type        = number
+  default     = 7
+
+  validation {
+    condition     = var.backup_immutable_days >= 1
+    error_message = "backup_immutable_days must be at least 1."
+  }
+}
+
+variable "gem_retention_days" {
+  description = "Mirror of the gem's PROD_BACKUP_RETENTION_DAYS (days after which db backup prunes an object). Keep in sync with the deployed gem/accessory config: the module cross-checks that backup_immutable_days stays below it, so the prune never tries to delete a still-immutable object (which R2 Object Lock would deny, silently breaking rotation)."
+  type        = number
+  default     = 15
+}
