@@ -11,7 +11,7 @@ locals {
       ERROR_MONITORING_DB_NAME    = { value = local.database, masked = false }
       ERROR_MONITORING_HOST       = { value = local.domain, masked = false }
     } : {},
-    var.enable && var.smtp_password != "" ? {
+    var.enable && nonsensitive(var.smtp_password) != "" ? {
       ERROR_MONITORING_SMTP_PASSWORD = { value = var.smtp_password, masked = true }
       ERROR_MONITORING_SMTP_USER     = { value = urlencode(var.smtp.user), masked = false }
       ERROR_MONITORING_SMTP_HOST     = { value = var.smtp.host, masked = false }
