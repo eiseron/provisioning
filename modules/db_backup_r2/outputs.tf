@@ -14,3 +14,8 @@ output "write_secret_access_key" {
   value       = sha256(cloudflare_account_token.write.value)
   sensitive   = true
 }
+
+output "lock_prefix" {
+  description = "Key prefix covered by the R2 Object Lock rule. Wire into the verify job (PROD_BACKUP_LOCK_PREFIX) so the daily verify asserts the newest backup is under it — catches key-format drift that would leave the lock protecting nothing."
+  value       = local.lock_prefix
+}

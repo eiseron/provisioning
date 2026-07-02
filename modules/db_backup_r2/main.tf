@@ -7,6 +7,8 @@ locals {
   }
 
   bucket_resource = "com.cloudflare.edge.r2.bucket.${var.cloudflare_account_id}_default_${cloudflare_r2_bucket.this.name}"
+
+  lock_prefix = "${var.slug}/2"
 }
 
 resource "cloudflare_r2_bucket" "this" {
@@ -27,7 +29,7 @@ resource "cloudflare_r2_bucket_lock" "this" {
     {
       id      = "immutable-timestamped-backups-excludes-history"
       enabled = true
-      prefix  = "${var.slug}/2"
+      prefix  = local.lock_prefix
       condition = {
         type            = "Age"
         max_age_seconds = var.backup_immutable_days * 24 * 60 * 60
