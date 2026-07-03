@@ -1,3 +1,17 @@
+resource "gitlab_group" "this" {
+  name             = var.name
+  path             = var.slug
+  description      = var.group.description
+  visibility_level = var.group.visibility_level
+
+  avatar      = var.avatar_path
+  avatar_hash = var.avatar_path == null ? null : filesha256(var.avatar_path)
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 locals {
   site_preview_enabled = var.site_preview.site_project_id != ""
 }
