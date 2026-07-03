@@ -27,9 +27,14 @@ locals {
 }
 
 resource "random_password" "root" {
-  length  = 32
-  special = false
-  keepers = { epoch = var.root_password_epoch }
+  length           = 32
+  special          = true
+  override_special = "@"
+  min_lower        = 1
+  min_upper        = 1
+  min_numeric      = 1
+  min_special      = 1
+  keepers          = { epoch = var.root_password_epoch }
 }
 
 resource "cloudflare_r2_bucket" "data" {

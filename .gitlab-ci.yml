@@ -120,3 +120,4 @@ kamal-render:
     - ruby test/kamal/render_app_deploy_test.rb
     - ruby test/kamal/render_error_monitoring_deploy_test.rb
     - ruby test/kamal/render_observability_deploy_test.rb
+    - ruby test/tofu/observability_password_policy_test.rb
