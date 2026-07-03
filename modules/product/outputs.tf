@@ -93,3 +93,8 @@ output "ops_credentials" {
     r2_secret_key_readonly    = cloudflare_api_token.state_readonly.value
   }
 }
+
+output "admin_access_aud" {
+  description = "Cloudflare Access AUD tag for the admin application, or null when the admin gate is disabled."
+  value       = one(cloudflare_zero_trust_access_application.admin[*].aud)
+}

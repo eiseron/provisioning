@@ -65,6 +65,35 @@ variable "additional_preview_access_policies" {
   default     = []
 }
 
+variable "admin_gate_origin_ip" {
+  description = "IPv4 that admin.<domain> proxies to. When set, the module provisions a reinforced Cloudflare Access application on the admin subdomain, its DNS record, and the ADMIN_ACCESS_* CI vars on the ops repo. Null skips the admin gate."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.admin_gate_origin_ip == null || can(regex("^(\\d{1,3}\\.){3}\\d{1,3}$", var.admin_gate_origin_ip))
+    error_message = "admin_gate_origin_ip must be a valid IPv4 address or null."
+  }
+}
+
+variable "admin_gate_emails" {
+  description = "Emails allowed through Cloudflare Access on the admin subdomain (owner-only). Required (non-empty) when the admin gate is enabled."
+  type        = list(string)
+  default     = []
+}
+
+variable "admin_gate_auth_domain" {
+  description = "Zero Trust team auth domain (e.g. team.cloudflareaccess.com) used to build ADMIN_ACCESS_ISSUER and ADMIN_ACCESS_CERTS_URL. Required when the admin gate is enabled."
+  type        = string
+  default     = null
+}
+
+variable "admin_gate_subdomain" {
+  description = "Subdomain label for the admin gate; admin.<domain> by default."
+  type        = string
+  default     = "admin"
+}
+
 variable "repositories" {
   description = "Extra repos beyond the app and the ops repo, keyed by repo name."
   type = map(object({
