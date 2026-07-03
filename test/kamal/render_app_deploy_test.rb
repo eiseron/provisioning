@@ -24,6 +24,12 @@ BACKUP = {
   "PROD_BACKUP_AGE_RECIPIENTS" => "age1aaa,age1bbb"
 }.freeze
 
+ADMIN = {
+  "ADMIN_ACCESS_AUDIENCES" => "aud123",
+  "ADMIN_ACCESS_ISSUER" => "https://team.cloudflareaccess.com",
+  "ADMIN_ACCESS_CERTS_URL" => "https://team.cloudflareaccess.com/cdn-cgi/access/certs"
+}.freeze
+
 def render(env)
   saved = ENV.to_h
   env.each { |key, value| ENV[key] = value }
@@ -53,8 +59,27 @@ expect(failures, "credenciais ficam sob secret, nunca em clear") do
     (clear & %w[PGPASSWORD AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY]).empty?
 end
 
+admin_off = render(BASE)
+expect(failures, "admin gate desligado: sem ADMIN_ACCESS no clear") do
+  (admin_off.dig("env", "clear") || {}).keys.none? { |k| k.start_with?("ADMIN_ACCESS") }
+end
+expect(failures, "admin gate desligado: sem ADMIN_ACCESS no secret") do
+  (admin_off.dig("env", "secret") || []).none? { |k| k.start_with?("ADMIN_ACCESS") }
+end
+
+admin_on = render(BASE.merge(ADMIN))
+expect(failures, "admin gate ligado: issuer e certs url em clear") do
+  clear = admin_on.dig("env", "clear") || {}
+  clear.key?("ADMIN_ACCESS_ISSUER") && clear.key?("ADMIN_ACCESS_CERTS_URL")
+end
+expect(failures, "admin gate ligado: audiences sob secret, nunca em clear") do
+  secret = admin_on.dig("env", "secret") || []
+  clear = (admin_on.dig("env", "clear") || {}).keys
+  secret.include?("ADMIN_ACCESS_AUDIENCES") && !clear.include?("ADMIN_ACCESS_AUDIENCES")
+end
+
 if failures.empty?
-  puts "kamal render: OK (backup on/off)"
+  puts "kamal render: OK (backup + admin gate on/off)"
 else
   failures.each { |failure| warn "FAIL: #{failure}" }
   exit 1
