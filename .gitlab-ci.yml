@@ -128,3 +128,4 @@ kamal-render:
     - ruby test/kamal/render_observability_deploy_test.rb
     - ruby test/tofu/observability_password_policy_test.rb
     - ruby test/tofu/release_branch_protection_test.rb
+    - ruby test/tofu/cloudflare_pages_phase4_test.rb

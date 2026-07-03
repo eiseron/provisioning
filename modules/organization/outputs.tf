@@ -24,6 +24,11 @@ output "service_account_username" {
   value       = length(gitlab_group_service_account.robot) > 0 ? gitlab_group_service_account.robot[0].username : null
 }
 
+output "site_pages_project_name" {
+  description = "Name of the institutional site Cloudflare Pages project. Null if cloudflare_account_id is not set."
+  value       = local.site_pages_enabled ? cloudflare_pages_project.site[0].name : null
+}
+
 output "group_id" {
   description = "Numeric ID of the organization's top-level GitLab group"
   value       = gitlab_group.this.id

@@ -109,6 +109,28 @@ variable "avatar_path" {
   default     = null
 }
 
+variable "cloudflare_account_id" {
+  description = "Cloudflare account ID used to manage the institutional site Pages project and its custom domains. Null disables all Cloudflare Pages resources in this module."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.cloudflare_account_id == null || length(trimspace(var.cloudflare_account_id)) > 0
+    error_message = "cloudflare_account_id must be null or a non-empty, non-blank string."
+  }
+}
+
+variable "site_domains" {
+  description = "Custom domains to attach to the institutional site Cloudflare Pages project (e.g. [\"eiseron.com\", \"www.eiseron.com\"]). Requires cloudflare_account_id and site_preview.pages_project_name to be set."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = alltrue([for d in var.site_domains : length(trimspace(d)) > 0])
+    error_message = "site_domains must not contain empty or blank strings."
+  }
+}
+
 variable "group" {
   description = "Top-level GitLab group settings for the organization. description and visibility_level must match the live group so an import/moved plan stays a no-op (omitting visibility would let the provider default to private and downgrade a public root group)."
   type = object({
