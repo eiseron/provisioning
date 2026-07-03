@@ -59,6 +59,21 @@ module "error_monitoring" {
   smtp           = var.error_monitoring_smtp
 }
 
+module "observability" {
+  source = "../observability"
+
+  count = var.enable && var.observability_enable ? 1 : 0
+
+  enable                = true
+  zone_id               = var.zone_id
+  zone_domain           = var.zone_domain
+  prod_host_ip          = module.host[0].vps_ipv4
+  ops_project_id        = var.ops_project_id
+  cloudflare_account_id = var.cloudflare_account_id
+  r2_location           = var.r2_location
+  root_email            = var.observability_root_email
+}
+
 resource "gitlab_project_variable" "tang_host_ip" {
   count             = var.enable && var.encrypt_db ? 1 : 0
   project           = var.ops_project_id

@@ -88,13 +88,37 @@ variable "error_monitoring_smtp" {
 }
 
 variable "zone_id" {
-  description = "Cloudflare zone id that hosts the error monitoring dashboard subdomain. Only consumed when error_monitoring_enable."
+  description = "Cloudflare zone id that hosts the error monitoring / observability dashboard subdomains. Consumed when error_monitoring_enable or observability_enable."
   type        = string
   default     = ""
 }
 
 variable "zone_domain" {
-  description = "Apex domain of the Cloudflare zone; the error monitoring dashboard is errors.<zone_domain>. Only consumed when error_monitoring_enable."
+  description = "Apex domain of the Cloudflare zone; the error monitoring dashboard is errors.<zone_domain> and observability is observe.<zone_domain>. Consumed when error_monitoring_enable or observability_enable."
+  type        = string
+  default     = ""
+}
+
+variable "observability_enable" {
+  description = "Provision the co-located observability backend (OpenObserve + R2 bucket + OTel collector deploy variables) on the prod host. Requires enable."
+  type        = bool
+  default     = false
+}
+
+variable "observability_root_email" {
+  description = "Bootstrap root user email for OpenObserve. Consumer-supplied; only consumed when observability_enable."
+  type        = string
+  default     = ""
+}
+
+variable "cloudflare_account_id" {
+  description = "Cloudflare account that owns the observability R2 bucket. Only consumed when observability_enable."
+  type        = string
+  default     = ""
+}
+
+variable "r2_location" {
+  description = "R2 location hint for the observability bucket (e.g. enam, weur). Empty lets Cloudflare choose. Only consumed when observability_enable."
   type        = string
   default     = ""
 }

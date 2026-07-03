@@ -47,6 +47,12 @@ include:
     file: /templates/terraform-validate.yml
     ref: v0.1.8
     inputs:
+      name: "-observability"
+      chdir: modules/observability
+  - project: eiseron/stack/ci
+    file: /templates/terraform-validate.yml
+    ref: v0.1.8
+    inputs:
       name: "-tang-host"
       chdir: modules/tang_host
   - project: eiseron/stack/ci
@@ -113,3 +119,4 @@ kamal-render:
   script:
     - ruby test/kamal/render_app_deploy_test.rb
     - ruby test/kamal/render_error_monitoring_deploy_test.rb
+    - ruby test/kamal/render_observability_deploy_test.rb
