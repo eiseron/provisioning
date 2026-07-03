@@ -42,6 +42,31 @@ variable "repos" {
   }
 }
 
+variable "github_repos" {
+  description = "GitHub repositories to provision as public counterparts to the org's GitLab repos. Map key is the GitHub repo name. All fields are optional."
+  type = map(object({
+    description              = optional(string, "")
+    has_issues               = optional(bool, true)
+    has_wiki                 = optional(bool, true)
+    has_projects             = optional(bool, true)
+    auto_init                = optional(bool, false)
+    license_template         = optional(string, null)
+    allow_merge_commit       = optional(bool, true)
+    allow_rebase_merge       = optional(bool, true)
+    vulnerability_alerts     = optional(bool, true)
+    topics                   = optional(list(string), [])
+    enable_branch_protection = optional(bool, true)
+  }))
+  default = {}
+
+  validation {
+    condition = alltrue([
+      for k in keys(var.github_repos) : can(regex("^[a-zA-Z0-9][a-zA-Z0-9._-]*$", k)) && length(k) <= 100
+    ])
+    error_message = "github_repos map keys must start with an alphanumeric character, contain only letters, digits, hyphens, underscores, or dots, and be at most 100 characters."
+  }
+}
+
 variable "skip_repos" {
   description = "Set of repo slugs to exclude from provisioning. Use to opt out of a default repo that this organization does not need."
   type        = set(string)
