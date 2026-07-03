@@ -43,11 +43,11 @@ end
 
 secret = manifest.dig("env", "secret") || []
 clear = (manifest.dig("env", "clear") || {}).keys
-expect(failures, "senha root e chaves S3 do R2 ficam sob secret") do
-  %w[ZO_ROOT_USER_PASSWORD ZO_S3_ACCESS_KEY ZO_S3_SECRET_KEY].all? { |k| secret.include?(k) }
+expect(failures, "senha root, chaves S3 do R2 e senha SMTP ficam sob secret") do
+  %w[ZO_ROOT_USER_PASSWORD ZO_S3_ACCESS_KEY ZO_S3_SECRET_KEY ZO_SMTP_PASSWORD].all? { |k| secret.include?(k) }
 end
-expect(failures, "segredos nunca em clear (chaves R2 e senha root)") do
-  (clear & %w[ZO_ROOT_USER_PASSWORD ZO_S3_ACCESS_KEY ZO_S3_SECRET_KEY]).empty?
+expect(failures, "segredos nunca em clear (chaves R2, senha root e SMTP)") do
+  (clear & %w[ZO_ROOT_USER_PASSWORD ZO_S3_ACCESS_KEY ZO_S3_SECRET_KEY ZO_SMTP_PASSWORD]).empty?
 end
 
 expect(failures, "storage aponta para S3/R2") do
@@ -86,6 +86,45 @@ end
 expect(failures, "collector nao usa :latest") { !collector["image"].to_s.end_with?(":latest") }
 expect(failures, "auth do OTLP para o OpenObserve fica sob secret do collector") do
   (collector.dig("env", "secret") || []).include?("OBSERVABILITY_OTLP_AUTH")
+end
+expect(failures, "collector encaminha ao OpenObserve por https no host publico (nao pelo nome versionado do container)") do
+  collector.dig("env", "clear", "OBSERVABILITY_OTLP_ENDPOINT") == "https://observe.example.test/api/default"
+end
+expect(failures, "collector resolve o host do OpenObserve pelo gateway do host (caminho interno, sem Cloudflare)") do
+  (collector.dig("options", "add-host") || []).include?("observe.example.test:host-gateway")
+end
+
+node = manifest.dig("accessories", "node-exporter") || {}
+expect(failures, "accessory node-exporter pinado por digest") do
+  node["image"].to_s.start_with?("prom/node-exporter@sha256:")
+end
+expect(failures, "node-exporter fica na rede interna kamal (nao exposto no host; metricas do host vem via mounts de procfs/sysfs)") do
+  node["network"] == "kamal"
+end
+expect(failures, "node-exporter le o host via procfs/sysfs montados (metricas reais sem host network)") do
+  (node["volumes"] || []).any? { |v| v.start_with?("/proc:/host/proc") } &&
+    node["cmd"].to_s.include?("--path.procfs=/host/proc")
+end
+expect(failures, "collector scrapa o node-exporter pelo nome estavel de accessory (interno)") do
+  collector.dig("env", "clear", "OBSERVABILITY_NODE_TARGET") == "observability-node-exporter:9100"
+end
+
+cadvisor = manifest.dig("accessories", "cadvisor") || {}
+expect(failures, "accessory cadvisor pinado por digest") do
+  cadvisor["image"].to_s.start_with?("gcr.io/cadvisor/cadvisor@sha256:")
+end
+expect(failures, "exporters nao usam :latest") do
+  [node["image"], cadvisor["image"]].none? { |i| i.to_s.end_with?(":latest") }
+end
+expect(failures, "cadvisor nao roda privileged (least-privilege)") do
+  cadvisor.dig("options", "privileged").nil?
+end
+expect(failures, "cadvisor usa cap-add SYS_PTRACE + no-new-privileges no lugar de privileged") do
+  (cadvisor.dig("options", "cap-add") || []).include?("SYS_PTRACE") &&
+    (cadvisor.dig("options", "security-opt") || []).include?("no-new-privileges")
+end
+expect(failures, "exporters tem limite de memoria (evita noisy-neighbor)") do
+  !node.dig("options", "memory").nil? && !cadvisor.dig("options", "memory").nil?
 end
 
 if failures.empty?

@@ -52,3 +52,21 @@ variable "root_password_epoch" {
   type        = string
   default     = "1"
 }
+
+variable "smtp_password" {
+  description = "SMTP app password enabling OpenObserve password recovery and alert email. Empty disables outbound email."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "smtp" {
+  description = "Non-secret SMTP connection settings the consumer supplies (kept out of the generic manifest). Only consumed when smtp_password is set."
+  type = object({
+    user = optional(string, "")
+    host = optional(string, "")
+    port = optional(string, "587")
+    from = optional(string, "")
+  })
+  default = {}
+}

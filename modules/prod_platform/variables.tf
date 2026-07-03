@@ -122,3 +122,21 @@ variable "r2_location" {
   type        = string
   default     = ""
 }
+
+variable "observability_smtp_password" {
+  description = "SMTP app password for OpenObserve password recovery and alert email. Empty disables outbound email. Only consumed when observability_enable."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "observability_smtp" {
+  description = "Non-secret SMTP settings (user/host/port/from) for OpenObserve. Consumed only when observability_smtp_password is set."
+  type = object({
+    user = optional(string, "")
+    host = optional(string, "")
+    port = optional(string, "587")
+    from = optional(string, "")
+  })
+  default = {}
+}

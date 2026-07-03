@@ -39,10 +39,16 @@ env:
     ZO_ROOT_USER_EMAIL: <%= ENV.fetch("OBSERVABILITY_ROOT_EMAIL", "root@example.test") %>
     ZO_S3_SERVER_URL: <%= ENV.fetch("OBSERVABILITY_R2_ENDPOINT", "https://r2.example.test") %>
     ZO_S3_BUCKET_NAME: <%= ENV.fetch("OBSERVABILITY_R2_BUCKET", "observability") %>
+    ZO_SMTP_HOST: <%= ENV.fetch("OBSERVABILITY_SMTP_HOST", "") %>
+    ZO_SMTP_PORT: <%= ENV.fetch("OBSERVABILITY_SMTP_PORT", "587") %>
+    ZO_SMTP_USER_NAME: <%= ENV.fetch("OBSERVABILITY_SMTP_USER", "") %>
+    ZO_SMTP_FROM_EMAIL: <%= ENV.fetch("OBSERVABILITY_SMTP_FROM", "") %>
+    ZO_SMTP_ENCRYPTION: <%= ENV.fetch("OBSERVABILITY_SMTP_ENCRYPTION", "starttls") %>
   secret:
     - ZO_ROOT_USER_PASSWORD
     - ZO_S3_ACCESS_KEY
     - ZO_S3_SECRET_KEY
+    - ZO_SMTP_PASSWORD
 
 volumes:
   - /var/lib/crypt/observability/data:/data
@@ -53,11 +59,47 @@ accessories:
     host: <%= ENV.fetch("PROD_HOST") %>
     network: kamal
     cmd: --config=/etc/otelcol-contrib/config.yaml
+    options:
+      memory: 300m
+      cpus: "0.30"
+      add-host:
+        - <%= "#{ENV.fetch("OBSERVABILITY_HOST", "observe.example.test")}:host-gateway" %>
     env:
       clear:
-        OBSERVABILITY_OTLP_ENDPOINT: http://observability-web:5080/api/default
-        OBSERVABILITY_OTLP_ORG: default
+        OBSERVABILITY_OTLP_ENDPOINT: <%= "https://#{ENV.fetch("OBSERVABILITY_HOST", "observe.example.test")}/api/#{ENV.fetch("OBSERVABILITY_OTLP_ORG", "default")}" %>
+        OBSERVABILITY_OTLP_ORG: <%= ENV.fetch("OBSERVABILITY_OTLP_ORG", "default") %>
+        OBSERVABILITY_NODE_TARGET: observability-node-exporter:9100
+        OBSERVABILITY_CADVISOR_TARGET: observability-cadvisor:8080
       secret:
         - OBSERVABILITY_OTLP_AUTH
     files:
       - config/otel-collector.yaml:/etc/otelcol-contrib/config.yaml
+  node-exporter:
+    image: prom/node-exporter@sha256:e9cff4fc67b1818f8c97adb115b9f12c9a54b533de86765d4a0effc01b357205
+    host: <%= ENV.fetch("PROD_HOST") %>
+    network: kamal
+    cmd: --path.procfs=/host/proc --path.sysfs=/host/sys --path.rootfs=/host/root --collector.filesystem.mount-points-exclude=^/(host|sys|proc|dev|etc)($|/)
+    options:
+      memory: 64m
+      cpus: "0.10"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro,rslave
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor@sha256:3de2bd5203120b866d74a9b283b2ffb8ec382fbf9dc321814700c6ea6f44ec57
+    host: <%= ENV.fetch("PROD_HOST") %>
+    network: kamal
+    options:
+      memory: 256m
+      cpus: "0.20"
+      cap-add:
+        - SYS_PTRACE
+      security-opt:
+        - no-new-privileges
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro

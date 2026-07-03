@@ -14,16 +14,25 @@ locals {
 
   r2_endpoint = "https://${var.cloudflare_account_id}.r2.cloudflarestorage.com"
 
-  deploy_vars = var.enable ? {
-    OBSERVABILITY_HOST                 = { value = local.domain, masked = false }
-    OBSERVABILITY_ROOT_EMAIL           = { value = var.root_email, masked = false }
-    OBSERVABILITY_ROOT_PASSWORD        = { value = random_password.root.result, masked = true }
-    OBSERVABILITY_R2_BUCKET            = { value = cloudflare_r2_bucket.data.name, masked = false }
-    OBSERVABILITY_R2_ENDPOINT          = { value = local.r2_endpoint, masked = false }
-    OBSERVABILITY_R2_ACCESS_KEY_ID     = { value = cloudflare_account_token.rw.id, masked = true }
-    OBSERVABILITY_R2_SECRET_ACCESS_KEY = { value = sha256(cloudflare_account_token.rw.value), masked = true }
-    OBSERVABILITY_OTLP_BASIC           = { value = base64encode("${var.root_email}:${random_password.root.result}"), masked = true }
-  } : {}
+  deploy_vars = merge(
+    var.enable ? {
+      OBSERVABILITY_HOST                 = { value = local.domain, masked = false }
+      OBSERVABILITY_ROOT_EMAIL           = { value = var.root_email, masked = false }
+      OBSERVABILITY_ROOT_PASSWORD        = { value = random_password.root.result, masked = true }
+      OBSERVABILITY_R2_BUCKET            = { value = cloudflare_r2_bucket.data.name, masked = false }
+      OBSERVABILITY_R2_ENDPOINT          = { value = local.r2_endpoint, masked = false }
+      OBSERVABILITY_R2_ACCESS_KEY_ID     = { value = cloudflare_account_token.rw.id, masked = true }
+      OBSERVABILITY_R2_SECRET_ACCESS_KEY = { value = sha256(cloudflare_account_token.rw.value), masked = true }
+      OBSERVABILITY_OTLP_BASIC           = { value = base64encode("${var.root_email}:${random_password.root.result}"), masked = true }
+    } : {},
+    var.enable && nonsensitive(var.smtp_password) != "" ? {
+      OBSERVABILITY_SMTP_PASSWORD = { value = var.smtp_password, masked = true }
+      OBSERVABILITY_SMTP_USER     = { value = var.smtp.user, masked = false }
+      OBSERVABILITY_SMTP_HOST     = { value = var.smtp.host, masked = false }
+      OBSERVABILITY_SMTP_PORT     = { value = var.smtp.port, masked = false }
+      OBSERVABILITY_SMTP_FROM     = { value = var.smtp.from, masked = false }
+    } : {}
+  )
 }
 
 resource "random_password" "root" {

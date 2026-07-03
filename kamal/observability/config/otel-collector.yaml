@@ -5,6 +5,17 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: node
+          scrape_interval: 30s
+          static_configs:
+            - targets: ["${env:OBSERVABILITY_NODE_TARGET}"]
+        - job_name: cadvisor
+          scrape_interval: 30s
+          static_configs:
+            - targets: ["${env:OBSERVABILITY_CADVISOR_TARGET}"]
 
 processors:
   batch: {}
@@ -30,6 +41,6 @@ service:
       processors: [batch]
       exporters: [otlphttp/openobserve]
     metrics:
-      receivers: [otlp]
+      receivers: [otlp, prometheus]
       processors: [batch]
       exporters: [otlphttp/openobserve]
