@@ -10,6 +10,7 @@ BASE = {
   "KAMAL_REGISTRY_SERVER" => "registry.example",
   "OBSERVABILITY_IMAGE" => "registry.example/org/observability",
   "OBSERVABILITY_HOST" => "observe.example.test",
+  "CI_COMMIT_SHORT_SHA" => "abc1234",
   "OBSERVABILITY_ROOT_EMAIL" => "ops@example.test",
   "OBSERVABILITY_R2_ENDPOINT" => "https://acct.r2.example.test",
   "OBSERVABILITY_R2_BUCKET" => "eiseron-observability"
@@ -87,11 +88,11 @@ expect(failures, "collector nao usa :latest") { !collector["image"].to_s.end_wit
 expect(failures, "auth do OTLP para o OpenObserve fica sob secret do collector") do
   (collector.dig("env", "secret") || []).include?("OBSERVABILITY_OTLP_AUTH")
 end
-expect(failures, "collector encaminha ao OpenObserve por https no host publico (nao pelo nome versionado do container)") do
-  collector.dig("env", "clear", "OBSERVABILITY_OTLP_ENDPOINT") == "https://observe.example.test/api/default"
+expect(failures, "collector encaminha direto ao container do OpenObserve na rede kamal (http interno; evita o ufw/proxy do host)") do
+  collector.dig("env", "clear", "OBSERVABILITY_OTLP_ENDPOINT") == "http://observability-web-abc1234:5080/api/default"
 end
-expect(failures, "collector resolve o host do OpenObserve pelo gateway do host (caminho interno, sem Cloudflare)") do
-  (collector.dig("options", "add-host") || []).include?("observe.example.test:host-gateway")
+expect(failures, "collector nao usa mais add-host/host-gateway (o caminho pelo host era bloqueado pelo ufw)") do
+  (collector.dig("options", "add-host") || []).empty?
 end
 
 node = manifest.dig("accessories", "node-exporter") || {}

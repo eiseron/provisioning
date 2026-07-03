@@ -62,11 +62,9 @@ accessories:
     options:
       memory: 300m
       cpus: "0.30"
-      add-host:
-        - <%= "#{ENV.fetch("OBSERVABILITY_HOST", "observe.example.test")}:host-gateway" %>
     env:
       clear:
-        OBSERVABILITY_OTLP_ENDPOINT: <%= "https://#{ENV.fetch("OBSERVABILITY_HOST", "observe.example.test")}/api/#{ENV.fetch("OBSERVABILITY_OTLP_ORG", "default")}" %>
+        OBSERVABILITY_OTLP_ENDPOINT: <%= "http://observability-web-#{ENV.fetch("CI_COMMIT_SHORT_SHA", "app")}:5080/api/#{ENV.fetch("OBSERVABILITY_OTLP_ORG", "default")}" %>
         OBSERVABILITY_OTLP_ORG: <%= ENV.fetch("OBSERVABILITY_OTLP_ORG", "default") %>
         OBSERVABILITY_NODE_TARGET: observability-node-exporter:9100
         OBSERVABILITY_CADVISOR_TARGET: observability-cadvisor:8080
