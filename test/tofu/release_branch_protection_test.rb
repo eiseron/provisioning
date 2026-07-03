@@ -59,9 +59,9 @@ expect(failures, "eiseron-planning has protect_release_branch = true in default_
   planning_block.match?(/protect_release_branch\s*=\s*true/)
 end
 
-expect(failures, "eiseron-ops does NOT have protect_release_branch = true (does not use release/*)") do
+expect(failures, "eiseron-ops has protect_release_branch = false (keeps map type uniform)") do
   ops_block = org_main[/-ops\"\s*=\s*\{(.*?)\n\s*\}/m, 1] || ""
-  !ops_block.match?(/protect_release_branch\s*=\s*true/)
+  ops_block.match?(/protect_release_branch\s*=\s*false/)
 end
 
 if failures.empty?

@@ -23,6 +23,7 @@ locals {
       squash_option                         = "never"
       only_allow_merge_if_pipeline_succeeds = true
       deploy_promotion                      = true
+      protect_release_branch                = false
     }
     "${var.slug}-site" = {
       description                           = "Institutional Website of the Organization"
