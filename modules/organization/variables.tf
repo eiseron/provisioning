@@ -9,6 +9,7 @@ variable "repos" {
     squash_option                         = optional(string, "always")
     only_allow_merge_if_pipeline_succeeds = optional(bool, true)
     deploy_promotion                      = optional(bool, false)
+    protect_release_branch                = optional(bool, false)
   }))
   default = {}
 

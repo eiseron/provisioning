@@ -77,6 +77,12 @@ include:
     file: /templates/terraform-validate.yml
     ref: v0.1.8
     inputs:
+      name: "-gitlab-repository-protected"
+      chdir: modules/gitlab_repository_protected
+  - project: eiseron/stack/ci
+    file: /templates/terraform-validate.yml
+    ref: v0.1.8
+    inputs:
       name: "-organization"
       chdir: modules/organization
   - project: eiseron/stack/ci
@@ -121,3 +127,4 @@ kamal-render:
     - ruby test/kamal/render_error_monitoring_deploy_test.rb
     - ruby test/kamal/render_observability_deploy_test.rb
     - ruby test/tofu/observability_password_policy_test.rb
+    - ruby test/tofu/release_branch_protection_test.rb

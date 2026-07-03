@@ -174,3 +174,9 @@ variable "deploy_promotion" {
   type        = bool
   default     = false
 }
+
+variable "protect_release_branch" {
+  description = "When true, protect the release/* branch pattern (push: no one, merge: maintainer). Preserves release branches created by the automated release flow."
+  type        = bool
+  default     = false
+}

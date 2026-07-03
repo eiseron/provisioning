@@ -33,6 +33,7 @@ locals {
       squash_option                         = "always"
       only_allow_merge_if_pipeline_succeeds = true
       deploy_promotion                      = false
+      protect_release_branch                = true
     }
     "${var.slug}-planning" = {
       description                           = "Implementation Plans and Architecture of the Organization"
@@ -43,6 +44,7 @@ locals {
       squash_option                         = "always"
       only_allow_merge_if_pipeline_succeeds = false
       deploy_promotion                      = false
+      protect_release_branch                = true
     }
   }
   effective_repos = {
@@ -99,6 +101,7 @@ module "repo" {
   squash_option                         = each.value.squash_option
   only_allow_merge_if_pipeline_succeeds = each.value.only_allow_merge_if_pipeline_succeeds
   deploy_promotion                      = each.value.deploy_promotion
+  protect_release_branch                = each.value.protect_release_branch
   avatar_path                           = var.avatar_path
 }
 

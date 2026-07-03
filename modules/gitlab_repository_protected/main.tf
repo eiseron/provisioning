@@ -70,6 +70,16 @@ resource "gitlab_branch_protection" "production" {
   allow_force_push   = false
 }
 
+resource "gitlab_branch_protection" "release" {
+  count = var.protect_release_branch ? 1 : 0
+
+  project            = gitlab_project.this.id
+  branch             = "release/*"
+  push_access_level  = "no one"
+  merge_access_level = "maintainer"
+  allow_force_push   = false
+}
+
 resource "gitlab_tag_protection" "version" {
   project             = gitlab_project.this.id
   tag                 = "*"
