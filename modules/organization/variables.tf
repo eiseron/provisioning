@@ -67,6 +67,31 @@ variable "site_preview" {
   default = {}
 }
 
+variable "robot_user_id" {
+  description = "GitLab user ID to add as developer to the org group (e.g. the automation bot account). Null disables the membership."
+  type        = number
+  default     = null
+
+  validation {
+    condition     = var.robot_user_id == null || var.robot_user_id > 0
+    error_message = "robot_user_id must be a positive integer (a valid GitLab user ID)."
+  }
+}
+
+variable "service_account" {
+  description = "Org-level CI service account to create inside the group. When set, the module creates the service account and its group membership (developer). Null skips both resources."
+  type = object({
+    name     = string
+    username = string
+  })
+  default = null
+
+  validation {
+    condition     = var.service_account == null || (length(trimspace(var.service_account.name)) > 0 && length(trimspace(var.service_account.username)) > 0)
+    error_message = "service_account.name and service_account.username must be non-empty strings."
+  }
+}
+
 variable "name" {
   description = "Display name of the organization; used as the top-level GitLab group name"
   type        = string

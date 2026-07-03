@@ -14,6 +14,16 @@ output "repo_paths" {
   value       = { for k, v in module.repo : k => v.path_with_namespace }
 }
 
+output "service_account_id" {
+  description = "Numeric service account user ID of the org-level CI robot. Null if service_account was not configured."
+  value       = length(gitlab_group_service_account.robot) > 0 ? gitlab_group_service_account.robot[0].service_account_id : null
+}
+
+output "service_account_username" {
+  description = "Username of the org-level CI robot service account. Null if service_account was not configured."
+  value       = length(gitlab_group_service_account.robot) > 0 ? gitlab_group_service_account.robot[0].username : null
+}
+
 output "group_id" {
   description = "Numeric ID of the organization's top-level GitLab group"
   value       = gitlab_group.this.id

@@ -52,6 +52,39 @@ locals {
   site_preview_enabled = var.site_preview.site_project_id != ""
 }
 
+resource "gitlab_group_membership" "robot" {
+  count        = var.robot_user_id != null ? 1 : 0
+  group_id     = gitlab_group.this.id
+  user_id      = var.robot_user_id
+  access_level = "developer"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "gitlab_group_service_account" "robot" {
+  count    = var.service_account != null ? 1 : 0
+  group    = gitlab_group.this.id
+  name     = var.service_account.name
+  username = var.service_account.username
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "gitlab_group_membership" "service_account" {
+  count        = var.service_account != null ? 1 : 0
+  group_id     = gitlab_group.this.id
+  user_id      = gitlab_group_service_account.robot[0].service_account_id
+  access_level = "developer"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 module "repo" {
   for_each = local.effective_repos
   source   = "../gitlab_repository_protected"
