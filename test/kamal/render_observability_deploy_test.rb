@@ -126,6 +126,14 @@ end
 expect(failures, "exporters tem limite de memoria (evita noisy-neighbor)") do
   !node.dig("options", "memory").nil? && !cadvisor.dig("options", "memory").nil?
 end
+expect(failures, "cmd de accessory sem metacaractere de shell perigoso: ( ) | ; & < > $ ` (kamal monta o docker run sem aspas; escopo = os que quebram/injetam no bash)") do
+  (manifest["accessories"] || {}).values.none? do |acc|
+    acc.is_a?(Hash) && acc["cmd"].to_s.match?(/[()|;&<>$`]/)
+  end
+end
+expect(failures, "node-exporter mantem mount-points-exclude (nao dropar = evita double-count dos bind-mounts /host)") do
+  node["cmd"].to_s.include?("--collector.filesystem.mount-points-exclude=")
+end
 
 if failures.empty?
   puts "kamal render observability: OK"

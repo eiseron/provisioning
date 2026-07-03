@@ -78,7 +78,7 @@ accessories:
     image: prom/node-exporter@sha256:e9cff4fc67b1818f8c97adb115b9f12c9a54b533de86765d4a0effc01b357205
     host: <%= ENV.fetch("PROD_HOST") %>
     network: kamal
-    cmd: --path.procfs=/host/proc --path.sysfs=/host/sys --path.rootfs=/host/root --collector.filesystem.mount-points-exclude=^/(host|sys|proc|dev|etc)($|/)
+    cmd: --path.procfs=/host/proc --path.sysfs=/host/sys --path.rootfs=/host/root --collector.filesystem.mount-points-exclude=^/host
     options:
       memory: 64m
       cpus: "0.10"
