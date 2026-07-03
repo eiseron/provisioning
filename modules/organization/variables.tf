@@ -1,3 +1,52 @@
+variable "repos" {
+  description = "Extra org-level repositories to add to (or override from) the standard set. Merged with the module's built-in defaults (eiseron-ops, eiseron-site, eiseron-planning) before provisioning. Defaults to empty — most callers need only add non-standard repos here."
+  type = map(object({
+    description                           = optional(string, "")
+    visibility_level                      = optional(string, "private")
+    topics                                = optional(list(string), [])
+    issues_access_level                   = optional(string, "disabled")
+    wiki_access_level                     = optional(string, "disabled")
+    squash_option                         = optional(string, "always")
+    only_allow_merge_if_pipeline_succeeds = optional(bool, true)
+    deploy_promotion                      = optional(bool, false)
+  }))
+  default = {}
+
+  validation {
+    condition = alltrue([
+      for k, v in var.repos : contains(["private", "internal", "public"], v.visibility_level)
+    ])
+    error_message = "repos[*].visibility_level must be 'private', 'internal', or 'public'."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.repos : contains(["enabled", "disabled", "private"], v.issues_access_level)
+    ])
+    error_message = "repos[*].issues_access_level must be 'enabled', 'disabled', or 'private'."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.repos : contains(["enabled", "disabled", "private"], v.wiki_access_level)
+    ])
+    error_message = "repos[*].wiki_access_level must be 'enabled', 'disabled', or 'private'."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.repos : contains(["never", "always", "default_on", "default_off"], v.squash_option)
+    ])
+    error_message = "repos[*].squash_option must be 'never', 'always', 'default_on', or 'default_off'."
+  }
+}
+
+variable "skip_repos" {
+  description = "Set of repo slugs to exclude from provisioning. Use to opt out of a default repo that this organization does not need."
+  type        = set(string)
+  default     = []
+}
+
 variable "ops_project_id" {
   description = "GitLab project ID of the organization ops repo, which acts as the pages preview deployer"
   type        = string
