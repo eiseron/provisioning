@@ -140,3 +140,10 @@ variable "observability_smtp" {
   })
   default = {}
 }
+
+variable "observability_root_password" {
+  description = "Explicit OpenObserve root password (consumer-chosen, from SOPS) so a human can log in. Empty uses the generated random password. Only consumed when observability_enable."
+  type        = string
+  default     = ""
+  sensitive   = true
+}

@@ -72,6 +72,7 @@ module "observability" {
   cloudflare_account_id = var.cloudflare_account_id
   r2_location           = var.r2_location
   root_email            = var.observability_root_email
+  root_password         = var.observability_root_password
   smtp_password         = var.observability_smtp_password
   smtp                  = var.observability_smtp
 }

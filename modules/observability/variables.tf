@@ -70,3 +70,21 @@ variable "smtp" {
   })
   default = {}
 }
+
+variable "root_password" {
+  description = "Explicit OpenObserve root password (consumer-chosen, e.g. from SOPS) so a human can log in. Empty falls back to the generated random_password. Rotation is manual: update the SOPS secret, tofu apply, then confirm login."
+  type        = string
+  default     = ""
+  sensitive   = true
+
+  validation {
+    condition = var.root_password == "" || (
+      length(var.root_password) >= 8 &&
+      can(regex("[a-z]", var.root_password)) &&
+      can(regex("[A-Z]", var.root_password)) &&
+      can(regex("[0-9]", var.root_password)) &&
+      can(regex("[^a-zA-Z0-9]", var.root_password))
+    )
+    error_message = "root_password must be empty (use the generated one) or satisfy OpenObserve complexity: at least 8 chars with a lowercase, an uppercase, a digit, and a special character."
+  }
+}
