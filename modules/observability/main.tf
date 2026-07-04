@@ -16,6 +16,8 @@ locals {
 
   root_pw = nonsensitive(var.root_password != "") ? var.root_password : random_password.root.result
 
+  pg_monitor_pw = random_password.pg_monitor.result
+
   deploy_vars = merge(
     var.enable ? {
       OBSERVABILITY_HOST                 = { value = local.domain, masked = false }
@@ -26,6 +28,8 @@ locals {
       OBSERVABILITY_R2_ACCESS_KEY_ID     = { value = cloudflare_account_token.rw.id, masked = true }
       OBSERVABILITY_R2_SECRET_ACCESS_KEY = { value = sha256(cloudflare_account_token.rw.value), masked = true }
       OBSERVABILITY_OTLP_BASIC           = { value = base64encode("${var.root_email}:${local.root_pw}"), masked = true }
+      OBSERVABILITY_PG_MONITOR_USER      = { value = var.pg_monitor_user, masked = false }
+      OBSERVABILITY_PG_MONITOR_PASSWORD  = { value = local.pg_monitor_pw, masked = true }
     } : {},
     var.enable && nonsensitive(var.smtp_password) != "" ? {
       OBSERVABILITY_SMTP_PASSWORD = { value = var.smtp_password, masked = true }
@@ -35,6 +39,12 @@ locals {
       OBSERVABILITY_SMTP_FROM     = { value = var.smtp.from, masked = false }
     } : {}
   )
+}
+
+resource "random_password" "pg_monitor" {
+  length  = 32
+  special = false
+  keepers = { epoch = var.pg_monitor_password_epoch }
 }
 
 resource "random_password" "root" {

@@ -53,6 +53,18 @@ variable "root_password_epoch" {
   default     = "1"
 }
 
+variable "pg_monitor_user" {
+  description = "Login role the postgres-exporter uses to read Postgres statistics. Must match the role provisioned by the pg_monitor_user Ansible role."
+  type        = string
+  default     = "monitoring"
+}
+
+variable "pg_monitor_password_epoch" {
+  description = "Rotation epoch for the Postgres monitoring role password; bump to regenerate on the next apply."
+  type        = string
+  default     = "1"
+}
+
 variable "smtp_password" {
   description = "SMTP app password enabling OpenObserve password recovery and alert email. Empty disables outbound email."
   type        = string

@@ -136,6 +136,32 @@ expect(failures, "node-exporter mantem mount-points-exclude (nao dropar = evita 
   node["cmd"].to_s.include?("--collector.filesystem.mount-points-exclude=")
 end
 
+postgres = manifest.dig("accessories", "postgres-exporter") || {}
+expect(failures, "accessory postgres-exporter pinado por digest") do
+  postgres["image"].to_s.start_with?("quay.io/prometheuscommunity/postgres-exporter@sha256:")
+end
+expect(failures, "postgres-exporter nao usa :latest") { !postgres["image"].to_s.end_with?(":latest") }
+expect(failures, "postgres-exporter fica na rede interna kamal (alcanca o platform-db sem expor porta)") do
+  postgres["network"] == "kamal"
+end
+expect(failures, "DSN do postgres-exporter (com a senha da role) fica sob secret, nunca em clear") do
+  (postgres.dig("env", "secret") || []).include?("DATA_SOURCE_NAME") &&
+    !(postgres.dig("env", "clear") || {}).key?("DATA_SOURCE_NAME")
+end
+expect(failures, "postgres-exporter tem limite de memoria e no-new-privileges (least-privilege)") do
+  !postgres.dig("options", "memory").nil? &&
+    (postgres.dig("options", "security-opt") || []).include?("no-new-privileges")
+end
+expect(failures, "collector scrapa o postgres-exporter pelo nome estavel de accessory (interno)") do
+  collector.dig("env", "clear", "OBSERVABILITY_POSTGRES_TARGET") == "observability-postgres-exporter:9187"
+end
+
+dsn_line = File.readlines(File.expand_path("../../kamal/observability/.kamal/secrets", __dir__))
+               .grep(/DATA_SOURCE_NAME/).first.to_s
+expect(failures, "DSN do postgres-exporter nao desliga TLS (sslmode=prefer usa TLS assim que o platform-db tiver cert)") do
+  dsn_line.include?("sslmode=") && !dsn_line.include?("sslmode=disable")
+end
+
 if failures.empty?
   puts "kamal render observability: OK"
 else

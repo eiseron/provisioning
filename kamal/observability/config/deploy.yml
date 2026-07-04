@@ -68,6 +68,7 @@ accessories:
         OBSERVABILITY_OTLP_ORG: <%= ENV.fetch("OBSERVABILITY_OTLP_ORG", "default") %>
         OBSERVABILITY_NODE_TARGET: observability-node-exporter:9100
         OBSERVABILITY_CADVISOR_TARGET: observability-cadvisor:8080
+        OBSERVABILITY_POSTGRES_TARGET: observability-postgres-exporter:9187
       secret:
         - OBSERVABILITY_OTLP_AUTH
     files:
@@ -101,3 +102,15 @@ accessories:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter@sha256:38606faa38c54787525fb0ff2fd6b41b4cfb75d455c1df294927c5f611699b17
+    host: <%= ENV.fetch("PROD_HOST") %>
+    network: kamal
+    options:
+      memory: 64m
+      cpus: "0.10"
+      security-opt:
+        - no-new-privileges
+    env:
+      secret:
+        - DATA_SOURCE_NAME

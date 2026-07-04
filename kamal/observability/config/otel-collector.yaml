@@ -16,6 +16,10 @@ receivers:
           scrape_interval: 30s
           static_configs:
             - targets: ["${env:OBSERVABILITY_CADVISOR_TARGET}"]
+        - job_name: postgres
+          scrape_interval: 30s
+          static_configs:
+            - targets: ["${env:OBSERVABILITY_POSTGRES_TARGET}"]
 
 processors:
   batch: {}
