@@ -1,6 +1,11 @@
 resource "hcloud_ssh_key" "this" {
   name       = "${var.name}-admin"
   public_key = var.ssh_public_key
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes  = [name, public_key]
+  }
 }
 
 resource "hcloud_server" "this" {
@@ -26,5 +31,6 @@ resource "gitlab_user_runner" "this" {
 
   lifecycle {
     prevent_destroy = true
+    ignore_changes  = [group_id]
   }
 }
