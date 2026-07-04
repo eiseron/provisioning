@@ -1,0 +1,5 @@
+pg_monitor_container_name: platform-db
+
+pg_monitor_role_name: monitoring
+
+pg_monitor_connection_limit: 5

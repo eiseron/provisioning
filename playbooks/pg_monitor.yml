@@ -1,0 +1,13 @@
+- name: Provision the read-only monitoring role on the production Postgres
+  hosts: all
+  remote_user: root
+  become: true
+  gather_facts: false
+  vars:
+    pg_monitor_admin_user: "{{ lookup('env', 'PG_ADMIN_USER') }}"
+    pg_monitor_password: "{{ lookup('env', 'PG_MONITOR_PASSWORD') }}"
+    pg_monitor_role_name: "{{ lookup('env', 'PG_MONITOR_ROLE_NAME') | default('monitoring', true) }}"
+    pg_monitor_container_name: "{{ lookup('env', 'PG_MONITOR_CONTAINER') | default('platform-db', true) }}"
+
+  roles:
+    - eiseron.provisioning.pg_monitor_user

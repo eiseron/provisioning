@@ -1,0 +1,29 @@
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: instance
+    image: geerlingguy/docker-debian12-ansible:latest
+    pre_build_image: true
+    privileged: true
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    command: /lib/systemd/systemd
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: ${MOLECULE_PROJECT_DIRECTORY}/../
+  inventory:
+    host_vars:
+      instance:
+        pg_shared_user: "molecule_admin"
+        pg_shared_password: "{{ lookup('password', '/tmp/molecule_pg_admin_pw chars=ascii_letters,digits length=24') }}"
+        pg_monitor_container_name: "shared-pg"
+        pg_monitor_admin_user: "molecule_admin"
+        pg_monitor_role_name: "molecule_monitoring"
+        pg_monitor_password: "{{ lookup('password', '/tmp/molecule_pg_monitor_pw chars=ascii_letters,digits length=24') }}"
+        pg_monitor_connection_limit: 5
+verifier:
+  name: ansible
