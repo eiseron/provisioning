@@ -1,0 +1,30 @@
+resource "hcloud_ssh_key" "this" {
+  name       = "${var.name}-admin"
+  public_key = var.ssh_public_key
+}
+
+resource "hcloud_server" "this" {
+  name        = var.name
+  server_type = var.server_type
+  image       = var.image
+  location    = var.location
+  ssh_keys    = [hcloud_ssh_key.this.id]
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes  = [ssh_keys, image]
+  }
+}
+
+resource "gitlab_user_runner" "this" {
+  runner_type = "group_type"
+  group_id    = var.group_id
+
+  tag_list        = var.tag_list
+  untagged        = var.untagged
+  maximum_timeout = var.maximum_timeout
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}

@@ -1,0 +1,48 @@
+- name: Assert runner token is provided and has expected format
+  ansible.builtin.assert:
+    that:
+      - gitlab_runner_token | length > 0
+      - gitlab_runner_token is match('^glrt-')
+    fail_msg: "gitlab_runner_token must be set and start with 'glrt-' (passed via -e from CI)"
+
+- name: Assert GPG checksum is set and well-formed
+  ansible.builtin.assert:
+    that:
+      - gitlab_runner_gpg_checksum | length > 0
+      - gitlab_runner_gpg_checksum is match('^sha256:[0-9a-f]{64}$')
+    fail_msg: "gitlab_runner_gpg_checksum must be a non-empty sha256:<64-hex> string"
+
+- name: Add GitLab Runner apt repository key
+  ansible.builtin.get_url:
+    url: https://packages.gitlab.com/runner/gitlab-runner/gpgkey
+    dest: /etc/apt/keyrings/gitlab-runner.asc
+    mode: "0644"
+    checksum: "{{ gitlab_runner_gpg_checksum }}"
+
+- name: Add GitLab Runner apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/gitlab-runner.asc] https://packages.gitlab.com/runner/gitlab-runner/debian/ {{ ansible_distribution_release }} main"
+    filename: gitlab-runner
+    state: present
+
+- name: Install gitlab-runner
+  ansible.builtin.apt:
+    name: gitlab-runner
+    state: present
+    update_cache: true
+
+- name: Render gitlab-runner config
+  ansible.builtin.template:
+    src: config.toml.j2
+    dest: /etc/gitlab-runner/config.toml
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  notify: Restart gitlab-runner
+
+- name: Enable and start gitlab-runner service
+  ansible.builtin.systemd:
+    name: gitlab-runner
+    enabled: true
+    state: started

@@ -1,0 +1,14 @@
+- name: Converge
+  hosts: all
+  become: true
+  vars:
+    gitlab_runner_token: "glrt-molecule-fake-token"
+    gitlab_runner_concurrent: 3
+    gitlab_runner_cache_s3_endpoint: "test-account.r2.cloudflarestorage.com"
+    gitlab_runner_cache_s3_bucket: "eiseron-runner-cache"
+    gitlab_runner_cache_s3_access_key: "AKIAFAKEACCESSKEY"
+    gitlab_runner_cache_s3_secret_key: "secretkeymolecule"
+    gitlab_runner_cache_s3_bucket_location: "auto"
+    gitlab_runner_cache_shared: true
+  roles:
+    - role: gitlab_runner

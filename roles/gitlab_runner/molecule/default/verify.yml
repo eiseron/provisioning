@@ -1,0 +1,117 @@
+- name: Verify gitlab_runner role
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Check gitlab-runner binary is installed
+      ansible.builtin.command: gitlab-runner --version
+      changed_when: false
+
+    - name: Check config.toml exists with restricted mode
+      ansible.builtin.stat:
+        path: /etc/gitlab-runner/config.toml
+      register: config_stat
+
+    - name: Assert config.toml exists
+      ansible.builtin.assert:
+        that: config_stat.stat.exists
+        fail_msg: "/etc/gitlab-runner/config.toml not found"
+
+    - name: Assert config.toml is owner-readable only
+      ansible.builtin.assert:
+        that: config_stat.stat.mode == "0600"
+        fail_msg: "config.toml mode is {{ config_stat.stat.mode }}, expected 0600 (contains runner token + R2 secret)"
+
+    - name: Read rendered config.toml
+      ansible.builtin.slurp:
+        src: /etc/gitlab-runner/config.toml
+      register: config_content
+      no_log: true
+
+    - name: Decode rendered config
+      ansible.builtin.set_fact:
+        config_text: "{{ config_content.content | b64decode }}"
+      no_log: true
+
+    - name: Assert concurrent is set to expected value
+      ansible.builtin.assert:
+        that: "'concurrent = 3' in config_text"
+        fail_msg: "concurrent setting not rendered into config.toml"
+
+    - name: Assert docker pull_policy is rendered
+      ansible.builtin.assert:
+        that: "'pull_policy = [\"always\"]' in config_text"
+        fail_msg: "pull_policy not rendered into [runners.docker] block"
+
+    - name: Assert runner name is rendered
+      ansible.builtin.assert:
+        that: "'name = \"eiseron-runner\"' in config_text"
+        fail_msg: "Runner name not rendered into config.toml"
+
+    - name: Assert runner section is present
+      ansible.builtin.assert:
+        that: "'[[runners]]' in config_text"
+        fail_msg: "[[runners]] section missing from config.toml"
+
+    - name: Assert runner token is rendered
+      ansible.builtin.assert:
+        that: "'token = \"glrt-molecule-fake-token\"' in config_text"
+        fail_msg: "Runner authentication token not rendered into config.toml"
+
+    - name: Assert S3 cache section is rendered
+      ansible.builtin.assert:
+        that: "'[runners.cache]' in config_text"
+        fail_msg: "[runners.cache] block missing — cache vars were set but block was not rendered"
+
+    - name: Assert cache type is s3
+      ansible.builtin.assert:
+        that: "'Type = \"s3\"' in config_text"
+        fail_msg: "Cache Type=s3 not rendered"
+
+    - name: Assert cache is shared
+      ansible.builtin.assert:
+        that: "'Shared = true' in config_text"
+        fail_msg: "Cache Shared=true not rendered"
+
+    - name: Assert S3 server address is rendered
+      ansible.builtin.assert:
+        that: "'ServerAddress = \"test-account.r2.cloudflarestorage.com\"' in config_text"
+        fail_msg: "S3 ServerAddress not rendered correctly"
+
+    - name: Assert S3 bucket name is rendered
+      ansible.builtin.assert:
+        that: "'BucketName = \"eiseron-runner-cache\"' in config_text"
+        fail_msg: "S3 BucketName not rendered correctly"
+
+    - name: Assert S3 access key is rendered
+      ansible.builtin.assert:
+        that: "'AccessKey = \"AKIAFAKEACCESSKEY\"' in config_text"
+        fail_msg: "S3 AccessKey not rendered correctly"
+
+    - name: Assert S3 secret key is rendered
+      ansible.builtin.assert:
+        that: "'SecretKey = \"secretkeymolecule\"' in config_text"
+        fail_msg: "S3 SecretKey not rendered correctly"
+
+    - name: Assert docker executor block is rendered
+      ansible.builtin.assert:
+        that:
+          - "'[runners.docker]' in config_text"
+          - "'volumes = [\"/cache\"]' in config_text"
+        fail_msg: "[runners.docker] block missing or volumes not set"
+
+    - name: Check gitlab-runner service is enabled and running
+      ansible.builtin.systemd:
+        name: gitlab-runner
+      register: runner_service
+
+    - name: Assert gitlab-runner service is enabled
+      ansible.builtin.assert:
+        that: runner_service.status.UnitFileState == "enabled"
+        fail_msg: "gitlab-runner systemd unit is not enabled"
+
+    - name: Assert gitlab-runner service is active
+      ansible.builtin.assert:
+        that: runner_service.status.ActiveState == "active"
+        fail_msg: "gitlab-runner systemd unit is not active"

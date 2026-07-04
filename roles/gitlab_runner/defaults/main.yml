@@ -1,0 +1,17 @@
+gitlab_runner_url: "https://gitlab.com"
+gitlab_runner_token: ""
+gitlab_runner_name: "eiseron-runner"
+gitlab_runner_executor: "docker"
+gitlab_runner_docker_image: "alpine:latest"
+gitlab_runner_docker_pull_policy:
+  - always
+gitlab_runner_concurrent: 3
+
+gitlab_runner_gpg_checksum: "sha256:003c0ca2fea61767f8c6de7a1c0f49fc88ea3c8db95e3cd1856b32ce9d876e0f"
+
+gitlab_runner_cache_s3_endpoint: ""
+gitlab_runner_cache_s3_bucket: ""
+gitlab_runner_cache_s3_access_key: ""
+gitlab_runner_cache_s3_secret_key: ""
+gitlab_runner_cache_s3_bucket_location: "auto"
+gitlab_runner_cache_shared: true

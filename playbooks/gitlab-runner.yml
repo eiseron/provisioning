@@ -1,0 +1,29 @@
+- name: Provision GitLab runner VPS
+  hosts: all
+  remote_user: root
+  become: false
+  gather_facts: false
+
+  vars:
+    ssh_permit_root_login: "prohibit-password"
+    hardening_allowed_users: [root]
+    fail2ban_ignoreip: >-
+      {{ ['127.0.0.1/8', '::1'] +
+         ([lookup('env', 'CI_RUNNER_IP')] | reject('equalto', '') | list) }}
+
+  pre_tasks:
+    - name: Wait for SSH to become reachable
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        sleep: 10
+    - name: Gather facts after host is reachable
+      ansible.builtin.setup:
+
+  roles:
+    - eiseron.provisioning.common
+    - eiseron.provisioning.ssh
+    - eiseron.provisioning.hardening
+    - eiseron.provisioning.ufw
+    - eiseron.provisioning.fail2ban
+    - eiseron.provisioning.docker
+    - eiseron.provisioning.gitlab_runner
