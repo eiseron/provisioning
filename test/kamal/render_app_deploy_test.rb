@@ -27,7 +27,8 @@ BACKUP = {
 ADMIN = {
   "ADMIN_ACCESS_AUDIENCES" => "aud123",
   "ADMIN_ACCESS_ISSUER" => "https://team.cloudflareaccess.com",
-  "ADMIN_ACCESS_CERTS_URL" => "https://team.cloudflareaccess.com/cdn-cgi/access/certs"
+  "ADMIN_ACCESS_CERTS_URL" => "https://team.cloudflareaccess.com/cdn-cgi/access/certs",
+  "ADMIN_ACCESS_HOST" => "admin.afinados.io"
 }.freeze
 
 def render(env)
@@ -66,6 +67,9 @@ end
 expect(failures, "admin gate desligado: sem ADMIN_ACCESS no secret") do
   (admin_off.dig("env", "secret") || []).none? { |k| k.start_with?("ADMIN_ACCESS") }
 end
+expect(failures, "admin gate desligado: proxy usa host singular") do
+  admin_off.dig("proxy", "host") == BASE["APP_HOST"] && admin_off.dig("proxy", "hosts").nil?
+end
 
 admin_on = render(BASE.merge(ADMIN))
 expect(failures, "admin gate ligado: issuer e certs url em clear") do
@@ -76,6 +80,13 @@ expect(failures, "admin gate ligado: audiences sob secret, nunca em clear") do
   secret = admin_on.dig("env", "secret") || []
   clear = (admin_on.dig("env", "clear") || {}).keys
   secret.include?("ADMIN_ACCESS_AUDIENCES") && !clear.include?("ADMIN_ACCESS_AUDIENCES")
+end
+expect(failures, "admin gate ligado: proxy lista app host e admin host") do
+  hosts = admin_on.dig("proxy", "hosts") || []
+  hosts.include?(BASE["APP_HOST"]) && hosts.include?(ADMIN["ADMIN_ACCESS_HOST"])
+end
+expect(failures, "admin gate ligado: proxy nao usa host singular") do
+  admin_on.dig("proxy", "host").nil?
 end
 
 if failures.empty?

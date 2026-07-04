@@ -18,6 +18,11 @@ locals {
       masked = false
       scope  = "*"
     }
+    ADMIN_ACCESS_HOST = {
+      value  = local.admin_gate_host
+      masked = false
+      scope  = "production"
+    }
   } : {}
 }
 
@@ -94,4 +99,8 @@ resource "gitlab_project_variable" "admin_gate_ops" {
   masked            = each.value.masked
   protected         = true
   environment_scope = each.value.scope
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }

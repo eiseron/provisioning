@@ -8,7 +8,13 @@ servers:
 
 proxy:
   ssl: <%= ENV.fetch("PROXY_SSL", "true") %>
+<% if ENV["ADMIN_ACCESS_HOST"].to_s != "" %>
+  hosts:
+    - <%= ENV.fetch("APP_HOST") %>
+    - <%= ENV.fetch("ADMIN_ACCESS_HOST") %>
+<% else %>
   host: <%= ENV.fetch("APP_HOST") %>
+<% end %>
   app_port: <%= ENV.fetch("APP_PORT", "4000") %>
 
 registry:
