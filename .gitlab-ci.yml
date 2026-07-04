@@ -131,3 +131,4 @@ kamal-render:
     - ruby test/tofu/cloudflare_pages_phase4_test.rb
     - ruby test/tofu/github_repos_phase5_test.rb
     - ruby test/tofu/admin_gate_test.rb
+    - ruby test/tofu/product_db_backup_test.rb

@@ -6,6 +6,11 @@ locals {
     if contains(group.scopes, "com.cloudflare.api.account")
   }
 
+  bucket_perm = {
+    for group in data.cloudflare_api_token_permission_groups_list.all.result : group.name => group.id
+    if anytrue([for scope in group.scopes : strcontains(scope, "edge.r2.bucket")])
+  }
+
   bucket_resource = "com.cloudflare.edge.r2.bucket.${var.cloudflare_account_id}_default_${cloudflare_r2_bucket.this.name}"
 
   lock_prefix = "${var.slug}/2"
@@ -61,6 +66,23 @@ resource "cloudflare_account_token" "write" {
       effect = "allow"
       permission_groups = [
         { id = local.account_perm["Workers R2 Storage Write"] },
+      ]
+      resources = jsonencode({
+        (local.bucket_resource) = "*"
+      })
+    }
+  ]
+}
+
+resource "cloudflare_account_token" "read" {
+  account_id = var.cloudflare_account_id
+  name       = "Service Token - ${title(var.slug)} DB backup (R2 read)"
+
+  policies = [
+    {
+      effect = "allow"
+      permission_groups = [
+        { id = local.bucket_perm["Workers R2 Storage Bucket Item Read"] },
       ]
       resources = jsonencode({
         (local.bucket_resource) = "*"

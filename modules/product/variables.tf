@@ -137,3 +137,21 @@ variable "github_mirror_token" {
   sensitive   = true
 }
 
+variable "enable_db_backup" {
+  description = "When true, provisions an R2 backup bucket (via db_backup_r2) and writes PROD_BACKUP_* and PROD_DRILL_* CI variables into the ops repo."
+  type        = bool
+  default     = true
+}
+
+variable "db_backup_immutable_days" {
+  description = "Days each backup object stays immutable via R2 Object Lock. Forwarded to db_backup_r2; only relevant when enable_db_backup = true."
+  type        = number
+  default     = 7
+}
+
+variable "db_backup_gem_retention_days" {
+  description = "Mirror of the gem's PROD_BACKUP_RETENTION_DAYS. Must exceed db_backup_immutable_days. Only relevant when enable_db_backup = true."
+  type        = number
+  default     = 15
+}
+
