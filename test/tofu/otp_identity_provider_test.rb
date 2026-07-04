@@ -53,6 +53,22 @@ expect(failures, "cloudflare provider version requires at least 5.16 in organiza
   org_tf.match?(/cloudflare\/cloudflare[\s\S]*?~>\s*5\.(?:1[6-9]|[2-9]\d)/m)
 end
 
+expect(failures, "cloudflare_zero_trust_access_identity_providers list data source used to discover existing OTP provider") do
+  org_cf.match?(/data\s+"cloudflare_zero_trust_access_identity_providers"\s+"all"/)
+end
+
+expect(failures, "dynamic import block imports existing OTP provider when discovered") do
+  org_cf.match?(/import\s*\{[\s\S]*?for_each\s*=\s*local\.existing_otp_id/m)
+end
+
+expect(failures, "existing_otp_id local filters by onetimepin type") do
+  org_cf.match?(/existing_otp_id.*onetimepin/m)
+end
+
+expect(failures, "precondition guards against multiple onetimepin providers") do
+  org_cf.match?(/precondition[\s\S]*?length\(local\._existing_otp_ids\)\s*<=\s*1/m)
+end
+
 if failures.empty?
   puts "tofu otp identity provider: OK"
 else
