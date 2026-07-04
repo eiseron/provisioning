@@ -58,3 +58,23 @@ resource "gitlab_project_variable" "preview_ops_deploy" {
   protected         = true
   environment_scope = "production"
 }
+
+resource "gitlab_pipeline_schedule" "preview_sweep" {
+  count = local.preview_enabled ? 1 : 0
+
+  project       = module.repository[local.ops_repo_key].id
+  description   = "Nightly preview sweep - remove orphaned Docker preview containers"
+  ref           = "refs/heads/main"
+  cron          = "0 3 * * *"
+  cron_timezone = "UTC"
+  active        = true
+}
+
+resource "gitlab_pipeline_schedule_variable" "preview_sweep_flag" {
+  count = local.preview_enabled ? 1 : 0
+
+  project              = module.repository[local.ops_repo_key].id
+  pipeline_schedule_id = gitlab_pipeline_schedule.preview_sweep[0].pipeline_schedule_id
+  key                  = "PREVIEW_SWEEP"
+  value                = "true"
+}
