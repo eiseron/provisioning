@@ -48,6 +48,6 @@ resource "cloudflare_workers_cron_trigger" "uptime" {
   script_name = cloudflare_workers_script.uptime[0].script_name
 
   schedules = [
-    { cron = "*/1 * * * *" },
+    { cron = "*/5 * * * *" },
   ]
 }
