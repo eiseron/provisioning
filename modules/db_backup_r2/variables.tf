@@ -30,3 +30,15 @@ variable "gem_retention_days" {
   type        = number
   default     = 15
 }
+
+variable "ops_project_id" {
+  description = "GitLab numeric project ID of the product ops repo. When set, the module creates PROD_BACKUP_*, PROD_DRILL_*, and PROD_BACKUP_LOCK_PREFIX CI variables in that project (environment=production, protected=true)."
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.ops_project_id == null || can(tonumber(var.ops_project_id))
+    error_message = "ops_project_id must be a numeric GitLab project ID or null."
+  }
+}

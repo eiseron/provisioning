@@ -9,6 +9,13 @@ locals {
   bucket_resource = "com.cloudflare.edge.r2.bucket.${var.cloudflare_account_id}_default_${cloudflare_r2_bucket.this.name}"
 
   lock_prefix = "${var.slug}/2"
+
+  ci_vars = var.ops_project_id != null ? {
+    PROD_BACKUP_AWS_ACCESS_KEY_ID     = { value = cloudflare_account_token.write.id, masked = true }
+    PROD_BACKUP_AWS_SECRET_ACCESS_KEY = { value = sha256(cloudflare_account_token.write.value), masked = true }
+    PROD_DRILL_AWS_ACCESS_KEY_ID      = { value = cloudflare_account_token.write.id, masked = true }
+    PROD_DRILL_AWS_SECRET_ACCESS_KEY  = { value = sha256(cloudflare_account_token.write.value), masked = true }
+  } : {}
 }
 
 resource "cloudflare_r2_bucket" "this" {
@@ -60,4 +67,32 @@ resource "cloudflare_account_token" "write" {
       })
     }
   ]
+}
+
+resource "gitlab_project_variable" "ci_vars" {
+  for_each          = local.ci_vars
+  project           = var.ops_project_id
+  key               = each.key
+  value             = each.value.value
+  masked            = each.value.masked
+  protected         = true
+  environment_scope = "production"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "gitlab_project_variable" "lock_prefix" {
+  count             = var.ops_project_id != null ? 1 : 0
+  project           = var.ops_project_id
+  key               = "PROD_BACKUP_LOCK_PREFIX"
+  value             = local.lock_prefix
+  masked            = false
+  protected         = true
+  environment_scope = "production"
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
