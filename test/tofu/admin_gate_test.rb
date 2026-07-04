@@ -21,8 +21,8 @@ expect(failures, "access policy admin is count-guarded by admin_gate_enabled") d
   admin.match?(/resource\s+"cloudflare_zero_trust_access_policy"\s+"admin"[\s\S]*?count\s*=\s*local\.admin_gate_enabled\s*\?\s*1\s*:\s*0/m)
 end
 
-expect(failures, "access policy admin requires MFA") do
-  admin.match?(/auth_method\s*=\s*"mfa"/)
+expect(failures, "access policy admin requires otp auth method (email OTP)") do
+  admin.match?(/auth_method\s*=\s*"otp"/)
 end
 
 expect(failures, "access policy admin requires purpose justification") do

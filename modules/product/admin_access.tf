@@ -38,7 +38,7 @@ resource "cloudflare_zero_trust_access_policy" "admin" {
   include = [for email in var.admin_gate_emails : { email = { email = email } }]
 
   require = [
-    { auth_method = { auth_method = "mfa" } },
+    { auth_method = { auth_method = "otp" } },
   ]
 
   lifecycle {
