@@ -1,0 +1,40 @@
+- name: Verify app group and user are created even when GID/UID 1000 are taken
+  hosts: all
+  become: true
+  tasks:
+    - name: Check app group exists
+      ansible.builtin.getent:
+        database: group
+        key: app
+      register: app_group_entry
+
+    - name: Assert app group exists with any GID
+      ansible.builtin.assert:
+        that: app_group_entry.ansible_facts.getent_group['app'] is defined
+        fail_msg: "app group was not created despite GID conflict"
+
+    - name: Assert app group did not steal GID 1000 from occupied group
+      ansible.builtin.assert:
+        that: app_group_entry.ansible_facts.getent_group['app'][1] != '1000'
+        fail_msg: "app group should have an auto-assigned GID when 1000 is taken"
+
+    - name: Check app user exists
+      ansible.builtin.getent:
+        database: passwd
+        key: app
+      register: app_user_entry
+
+    - name: Assert app user exists with nologin shell
+      ansible.builtin.assert:
+        that: "'/nologin' in app_user_entry.ansible_facts.getent_passwd['app'][5]"
+        fail_msg: "app user was not created or has wrong shell"
+
+    - name: Assert app user home directory exists
+      ansible.builtin.stat:
+        path: /home/app
+      register: app_home
+
+    - name: Assert home directory is present
+      ansible.builtin.assert:
+        that: app_home.stat.exists
+        fail_msg: "/home/app does not exist"

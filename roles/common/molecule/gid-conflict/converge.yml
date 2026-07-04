@@ -1,0 +1,22 @@
+- name: Pre-create conflicting GID and UID
+  hosts: all
+  become: true
+  tasks:
+    - name: Create group that occupies GID 1000
+      ansible.builtin.group:
+        name: occupied
+        gid: 1000
+        state: present
+
+    - name: Create user that occupies UID 1000
+      ansible.builtin.user:
+        name: occupied
+        uid: 1000
+        group: occupied
+        state: present
+
+- name: Converge
+  hosts: all
+  become: true
+  roles:
+    - role: common

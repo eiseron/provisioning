@@ -45,20 +45,38 @@
     name: "{{ timezone }}"
 
 - name: Create app group with fixed GID
-  ansible.builtin.group:
-    name: "{{ app_group }}"
-    gid: "{{ app_gid }}"
-    state: present
+  block:
+    - name: Create app group with fixed GID (preferred)
+      ansible.builtin.group:
+        name: "{{ app_group }}"
+        gid: "{{ app_gid }}"
+        state: present
+  rescue:
+    - name: Create app group (GID already taken, auto-assign)
+      ansible.builtin.group:
+        name: "{{ app_group }}"
+        state: present
 
 - name: Create app user with fixed UID
-  ansible.builtin.user:
-    name: "{{ app_user }}"
-    group: "{{ app_group }}"
-    uid: "{{ app_uid }}"
-    shell: /usr/sbin/nologin
-    home: "/home/{{ app_user }}"
-    create_home: true
-    state: present
+  block:
+    - name: Create app user with fixed UID (preferred)
+      ansible.builtin.user:
+        name: "{{ app_user }}"
+        group: "{{ app_group }}"
+        uid: "{{ app_uid }}"
+        shell: /usr/sbin/nologin
+        home: "/home/{{ app_user }}"
+        create_home: true
+        state: present
+  rescue:
+    - name: Create app user (UID already taken, auto-assign)
+      ansible.builtin.user:
+        name: "{{ app_user }}"
+        group: "{{ app_group }}"
+        shell: /usr/sbin/nologin
+        home: "/home/{{ app_user }}"
+        create_home: true
+        state: present
 
 - name: Create docker group
   ansible.builtin.group:
