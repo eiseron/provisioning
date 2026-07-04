@@ -83,8 +83,8 @@ expect(failures, "cloudflare provider declared in organization/terraform.tf") do
   org_tf.match?(/cloudflare\/cloudflare/)
 end
 
-expect(failures, "cloudflare provider version pinned to ~> 5.0") do
-  org_tf.match?(/cloudflare\/cloudflare[\s\S]*?~>\s*5\.0/m)
+expect(failures, "cloudflare provider version requires at least 5.16") do
+  org_tf.match?(/cloudflare\/cloudflare[\s\S]*?~>\s*5\.(?:1[6-9]|[2-9]\d)/m)
 end
 
 expect(failures, "output site_pages_project_name exists in organization/outputs.tf") do

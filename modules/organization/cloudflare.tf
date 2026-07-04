@@ -4,6 +4,19 @@ locals {
     local.site_preview_enabled &&
     var.site_preview.pages_project_name != ""
   )
+  otp_idp_enabled = var.cloudflare_account_id != null
+}
+
+resource "cloudflare_zero_trust_access_identity_provider" "otp" {
+  count      = local.otp_idp_enabled ? 1 : 0
+  account_id = var.cloudflare_account_id
+  name       = "One-time PIN"
+  type       = "onetimepin"
+  config     = {}
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "cloudflare_pages_project" "site" {
