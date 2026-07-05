@@ -54,7 +54,7 @@ variable "root_password_epoch" {
 }
 
 variable "pg_monitor_user" {
-  description = "Login role the postgres-exporter uses to read Postgres statistics. Must match the role provisioned by the pg_monitor_user Ansible role."
+  description = "Login role the postgres-exporter uses to read Postgres statistics. Must match the role provisioned by eiseron observability deploy (ensure_pg_monitor_role)."
   type        = string
   default     = "monitoring"
 }
