@@ -29,24 +29,18 @@ locals {
 resource "cloudflare_zero_trust_access_policy" "admin" {
   count = local.admin_gate_enabled ? 1 : 0
 
-  account_id                     = var.cloudflare_account_id
-  name                           = "${var.slug} admin (owner only)"
-  decision                       = "allow"
-  purpose_justification_required = true
-  purpose_justification_prompt   = "Reason for accessing the ${var.slug} admin"
+  account_id = var.cloudflare_account_id
+  name       = "${var.slug} admin"
+  decision   = "allow"
 
-  include = [for email in var.admin_gate_emails : { email = { email = email } }]
-
-  require = [
-    { auth_method = { auth_method = "otp" } },
-  ]
+  include = [for domain in var.admin_gate_email_domains : { email_domain = { domain = domain } }]
 
   lifecycle {
     prevent_destroy = true
 
     precondition {
-      condition     = length(var.admin_gate_emails) > 0
-      error_message = "admin_gate_emails must list at least one allowed email when the admin gate is enabled."
+      condition     = length(var.admin_gate_email_domains) > 0
+      error_message = "admin_gate_email_domains must list at least one allowed email domain when the admin gate is enabled."
     }
 
     precondition {
@@ -62,7 +56,7 @@ resource "cloudflare_zero_trust_access_application" "admin" {
   account_id                = var.cloudflare_account_id
   name                      = "${var.slug} admin"
   type                      = "self_hosted"
-  session_duration          = "30m"
+  session_duration          = "24h"
   app_launcher_visible      = false
   auto_redirect_to_identity = false
 

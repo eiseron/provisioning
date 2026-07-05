@@ -21,24 +21,20 @@ expect(failures, "access policy admin is count-guarded by admin_gate_enabled") d
   admin.match?(/resource\s+"cloudflare_zero_trust_access_policy"\s+"admin"[\s\S]*?count\s*=\s*local\.admin_gate_enabled\s*\?\s*1\s*:\s*0/m)
 end
 
-expect(failures, "access policy admin requires otp auth method (email OTP)") do
-  admin.match?(/auth_method\s*=\s*"otp"/)
+expect(failures, "access policy admin has no auth_method require (it blocks One-time PIN login; OTP is the only IdP so the requirement is redundant)") do
+  !admin.match?(/auth_method/)
 end
 
-expect(failures, "access policy admin requires purpose justification") do
-  admin.match?(/purpose_justification_required\s*=\s*true/)
-end
-
-expect(failures, "access policy admin includes emails from admin_gate_emails") do
-  admin.match?(/include\s*=\s*\[for\s+email\s+in\s+var\.admin_gate_emails/)
+expect(failures, "access policy admin includes team email domains from admin_gate_email_domains") do
+  admin.match?(/include\s*=\s*\[for\s+domain\s+in\s+var\.admin_gate_email_domains[\s\S]*?email_domain\s*=\s*\{\s*domain\s*=\s*domain/m)
 end
 
 expect(failures, "access policy admin has prevent_destroy") do
   admin.match?(/access_policy"\s+"admin"[\s\S]*?prevent_destroy\s*=\s*true/m)
 end
 
-expect(failures, "access policy admin preconditions on non-empty emails") do
-  admin.match?(/length\(var\.admin_gate_emails\)\s*>\s*0/)
+expect(failures, "access policy admin preconditions on non-empty email domains") do
+  admin.match?(/length\(var\.admin_gate_email_domains\)\s*>\s*0/)
 end
 
 expect(failures, "access policy admin preconditions on auth_domain present") do
@@ -51,6 +47,10 @@ end
 
 expect(failures, "access application admin does not auto-redirect to identity") do
   admin.match?(/auto_redirect_to_identity\s*=\s*false/)
+end
+
+expect(failures, "access application admin session duration is 24h (matches the working team apps)") do
+  admin.match?(/session_duration\s*=\s*"24h"/)
 end
 
 expect(failures, "access application admin destination is the admin subdomain host") do
@@ -82,8 +82,8 @@ expect(failures, "variable admin_gate_origin_ip validates an IPv4 or null") do
   vars.match?(/admin_gate_origin_ip[\s\S]*?validation[\s\S]*?regex/m)
 end
 
-expect(failures, "variable admin_gate_emails exists") do
-  vars.match?(/variable\s+"admin_gate_emails"/)
+expect(failures, "variable admin_gate_email_domains exists") do
+  vars.match?(/variable\s+"admin_gate_email_domains"/)
 end
 
 expect(failures, "variable admin_gate_auth_domain exists") do

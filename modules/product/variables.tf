@@ -76,8 +76,8 @@ variable "admin_gate_origin_ip" {
   }
 }
 
-variable "admin_gate_emails" {
-  description = "Emails allowed through Cloudflare Access on the admin subdomain (owner-only). Required (non-empty) when the admin gate is enabled."
+variable "admin_gate_email_domains" {
+  description = "Email domains allowed through Cloudflare Access on the admin subdomain; gates admin.<domain> for the team. Required (non-empty) when the admin gate is enabled; the consumer supplies its own domains."
   type        = list(string)
   default     = []
 }
