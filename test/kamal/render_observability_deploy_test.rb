@@ -57,6 +57,14 @@ end
 expect(failures, "telemetria externa do OpenObserve desligada") do
   manifest.dig("env", "clear", "ZO_TELEMETRY") == "false"
 end
+expect(failures, "retencao finita (default 30 dias, nao os 3650 do OpenObserve; teto o crescimento no R2)") do
+  days = manifest.dig("env", "clear", "ZO_COMPACT_DATA_RETENTION_DAYS").to_i
+  days.positive? && days < 3650
+end
+retention_override = render(BASE.merge("OBSERVABILITY_RETENTION_DAYS" => "90"))
+expect(failures, "retencao e ajustavel via OBSERVABILITY_RETENTION_DAYS") do
+  retention_override.dig("env", "clear", "ZO_COMPACT_DATA_RETENTION_DAYS").to_i == 90
+end
 expect(failures, "endpoint e bucket do R2 vem do env do consumidor") do
   manifest.dig("env", "clear", "ZO_S3_SERVER_URL") == "https://acct.r2.example.test" &&
     manifest.dig("env", "clear", "ZO_S3_BUCKET_NAME") == "eiseron-observability"

@@ -36,6 +36,7 @@ env:
     ZO_S3_FEATURE_FORCE_PATH_STYLE: "true"
     ZO_TELEMETRY: "false"
     ZO_DATA_DIR: "/data"
+    ZO_COMPACT_DATA_RETENTION_DAYS: <%= ENV.fetch("OBSERVABILITY_RETENTION_DAYS", "30") %>
     ZO_ROOT_USER_EMAIL: <%= ENV.fetch("OBSERVABILITY_ROOT_EMAIL", "root@example.test") %>
     ZO_S3_SERVER_URL: <%= ENV.fetch("OBSERVABILITY_R2_ENDPOINT", "https://r2.example.test") %>
     ZO_S3_BUCKET_NAME: <%= ENV.fetch("OBSERVABILITY_R2_BUCKET", "observability") %>
