@@ -94,6 +94,12 @@ variable "admin_gate_subdomain" {
   default     = "admin"
 }
 
+variable "admin_gate_app_host" {
+  description = "Host that serves the app's /admin routes (e.g. app.<domain>). The admin Access application gates <app_host>/admin so the gate rides on the app's existing origin and certificate instead of a separate admin subdomain. Required when the admin gate is enabled."
+  type        = string
+  default     = null
+}
+
 variable "repositories" {
   description = "Extra repos beyond the app and the ops repo, keyed by repo name."
   type = map(object({

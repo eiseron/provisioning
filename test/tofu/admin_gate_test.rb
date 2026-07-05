@@ -53,8 +53,17 @@ expect(failures, "access application admin session duration is 24h (matches the 
   admin.match?(/session_duration\s*=\s*"24h"/)
 end
 
-expect(failures, "access application admin destination is the admin subdomain host") do
-  admin.match?(/uri\s*=\s*local\.admin_gate_host/)
+expect(failures, "access application admin gates the app host /admin path (rides on the app origin/cert)") do
+  admin.match?(/admin_gate_uri\s*=\s*"\$\{var\.admin_gate_app_host\}\/admin"/) &&
+    admin.match?(/uri\s*=\s*local\.admin_gate_uri/)
+end
+
+expect(failures, "access policy admin preconditions on app host present") do
+  admin.match?(/var\.admin_gate_app_host\s*!=\s*null/)
+end
+
+expect(failures, "variable admin_gate_app_host exists") do
+  vars.match?(/variable\s+"admin_gate_app_host"/)
 end
 
 expect(failures, "access application admin has prevent_destroy") do

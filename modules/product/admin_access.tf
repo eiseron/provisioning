@@ -1,6 +1,7 @@
 locals {
   admin_gate_enabled = var.admin_gate_origin_ip != null
   admin_gate_host    = "${var.admin_gate_subdomain}.${var.domain}"
+  admin_gate_uri     = "${var.admin_gate_app_host}/admin"
 
   admin_gate_ops_vars = local.admin_gate_enabled ? {
     ADMIN_ACCESS_AUDIENCES = {
@@ -47,6 +48,11 @@ resource "cloudflare_zero_trust_access_policy" "admin" {
       condition     = var.admin_gate_auth_domain != null
       error_message = "admin_gate_auth_domain is required when the admin gate is enabled."
     }
+
+    precondition {
+      condition     = var.admin_gate_app_host != null
+      error_message = "admin_gate_app_host is required when the admin gate is enabled (the gate protects <app_host>/admin)."
+    }
   }
 }
 
@@ -61,7 +67,7 @@ resource "cloudflare_zero_trust_access_application" "admin" {
   auto_redirect_to_identity = false
 
   destinations = [
-    { type = "public", uri = local.admin_gate_host },
+    { type = "public", uri = local.admin_gate_uri },
   ]
 
   policies = [
