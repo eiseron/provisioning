@@ -68,6 +68,8 @@ accessories:
         - PGPASSWORD
         - AWS_ACCESS_KEY_ID
         - AWS_SECRET_ACCESS_KEY
+        - TELEGRAM_BOT_TOKEN
+        - TELEGRAM_CHAT_ID
     directories:
       - <%= ENV.fetch("PROD_BACKUP_STAGING", "/var/lib/crypt/#{ENV.fetch("PROD_TENANT_SLUG")}/backups") %>:/backups
     options:
