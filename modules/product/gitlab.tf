@@ -8,6 +8,7 @@ locals {
       mirror      = local.is_public
       topics      = var.topics
       is_ops      = false
+      github      = null
     }
     "${var.slug}-ops" = {
       description = "Infrastructure as Code for ${var.slug}"
@@ -15,6 +16,7 @@ locals {
       mirror      = false
       topics      = []
       is_ops      = true
+      github      = null
     }
   }
 
@@ -25,6 +27,7 @@ locals {
       mirror      = repo.is_ops ? false : coalesce(repo.mirror, repo.public)
       topics      = repo.topics
       is_ops      = repo.is_ops
+      github      = repo.github
     }
   }
 

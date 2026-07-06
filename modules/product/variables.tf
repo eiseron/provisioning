@@ -97,6 +97,20 @@ variable "repositories" {
     mirror      = optional(bool)
     topics      = optional(list(string), [])
     is_ops      = optional(bool, false)
+    github = optional(object({
+      homepage_url            = optional(string, "")
+      has_issues              = optional(bool, true)
+      has_wiki                = optional(bool, true)
+      has_projects            = optional(bool, true)
+      delete_branch_on_merge  = optional(bool, false)
+      vulnerability_alerts    = optional(bool, false)
+      auto_init               = optional(bool, false)
+      gitignore_template      = optional(string, null)
+      license_template        = optional(string, null)
+      enforce_admins          = optional(bool, true)
+      required_linear_history = optional(bool, false)
+      allows_force_pushes     = optional(bool, false)
+    }), null)
   }))
   default = {}
 }
