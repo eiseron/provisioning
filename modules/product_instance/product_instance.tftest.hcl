@@ -238,3 +238,103 @@ run "ci_vars_creates_group_and_project_vars" {
     error_message = "SECRETS_FILE project var must be created on ops project"
   }
 }
+
+run "prod_disabled_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(gitlab_pipeline_trigger.prod_deployer) == 0
+    error_message = "No prod_deployer trigger must be created when prod is not enabled"
+  }
+
+  assert {
+    condition     = length(gitlab_project_deploy_token.prod_registry) == 0
+    error_message = "No prod_registry deploy token must be created when prod is not enabled"
+  }
+
+  assert {
+    condition     = length(gitlab_project_variable.prod_ops) == 0
+    error_message = "No prod ops CI vars must be created when prod is not enabled"
+  }
+}
+
+run "prod_enabled_creates_trigger_token_and_deploy_token" {
+  command = plan
+
+  variables {
+    app_project_id   = "87654321"
+    app_project_path = "eiseron/myproduct/myproduct"
+    ops_project_path = "eiseron/myproduct/myproduct-ops"
+    prod             = { enabled = true }
+  }
+
+  assert {
+    condition     = length(gitlab_pipeline_trigger.prod_deployer) == 1
+    error_message = "prod_deployer trigger must be created when prod.enabled is true"
+  }
+
+  assert {
+    condition     = gitlab_pipeline_trigger.prod_deployer[0].project == var.ops_project_id
+    error_message = "prod_deployer trigger must be on the ops project"
+  }
+
+  assert {
+    condition     = length(gitlab_project_deploy_token.prod_registry) == 1
+    error_message = "prod_registry deploy token must be created when prod.enabled is true"
+  }
+
+  assert {
+    condition     = gitlab_project_deploy_token.prod_registry[0].project == "87654321"
+    error_message = "prod_registry deploy token must be on the app project"
+  }
+
+  assert {
+    condition     = length(gitlab_project_variable.prod_ops) == 4
+    error_message = "Four prod ops CI vars must be created (KAMAL_REGISTRY_USERNAME, KAMAL_REGISTRY_PASSWORD, SECRET_KEY_BASE, PROD_PROJECT)"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_ops["SECRET_KEY_BASE"].masked == true
+    error_message = "SECRET_KEY_BASE must be masked"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_ops["KAMAL_REGISTRY_PASSWORD"].masked == true
+    error_message = "KAMAL_REGISTRY_PASSWORD must be masked"
+  }
+
+  assert {
+    condition     = length(gitlab_project_variable.prod_app) == 2
+    error_message = "Two prod app CI vars must be created without R2 (PROD_DEPLOYER_TRIGGER_TOKEN, PROD_DEPLOYER_PROJECT)"
+  }
+}
+
+run "prod_with_r2_creates_four_app_vars" {
+  command = plan
+
+  variables {
+    app_project_id   = "87654321"
+    app_project_path = "eiseron/myproduct/myproduct"
+    ops_project_path = "eiseron/myproduct/myproduct-ops"
+    prod = {
+      enabled              = true
+      r2_access_key_id     = "r2-key-id"
+      r2_secret_access_key = "r2-secret"
+    }
+  }
+
+  assert {
+    condition     = length(gitlab_project_variable.prod_app) == 4
+    error_message = "Four prod app CI vars must be created with R2 (PROD_DEPLOYER_TRIGGER_TOKEN, PROD_DEPLOYER_PROJECT, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)"
+  }
+
+  assert {
+    condition     = contains(keys(gitlab_project_variable.prod_app), "AWS_ACCESS_KEY_ID")
+    error_message = "AWS_ACCESS_KEY_ID must be present when r2_access_key_id is set"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_app["AWS_SECRET_ACCESS_KEY"].masked == true
+    error_message = "AWS_SECRET_ACCESS_KEY must be masked"
+  }
+}

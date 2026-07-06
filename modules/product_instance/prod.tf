@@ -1,0 +1,61 @@
+locals {
+  prod_enabled = nonsensitive(var.prod.enabled) && var.app_project_id != ""
+
+  prod_app_vars_base = local.prod_enabled ? {
+    PROD_DEPLOYER_TRIGGER_TOKEN = gitlab_pipeline_trigger.prod_deployer[0].token
+    PROD_DEPLOYER_PROJECT       = var.ops_project_path
+  } : {}
+
+  prod_app_vars_r2 = local.prod_enabled && nonsensitive(var.prod.r2_access_key_id != "") ? {
+    AWS_ACCESS_KEY_ID     = var.prod.r2_access_key_id
+    AWS_SECRET_ACCESS_KEY = var.prod.r2_secret_access_key
+  } : {}
+
+  prod_app_vars = merge(local.prod_app_vars_base, local.prod_app_vars_r2)
+
+  prod_ops_vars = local.prod_enabled ? {
+    KAMAL_REGISTRY_USERNAME = gitlab_project_deploy_token.prod_registry[0].username
+    KAMAL_REGISTRY_PASSWORD = gitlab_project_deploy_token.prod_registry[0].token
+    SECRET_KEY_BASE         = random_password.secret_key_base[0].result
+    PROD_PROJECT            = var.app_project_path
+  } : {}
+}
+
+resource "gitlab_pipeline_trigger" "prod_deployer" {
+  count       = local.prod_enabled ? 1 : 0
+  project     = var.ops_project_id
+  description = "Production deployer triggered by the app CI pipeline"
+}
+
+resource "gitlab_project_deploy_token" "prod_registry" {
+  count   = local.prod_enabled ? 1 : 0
+  project = var.app_project_id
+  name    = "prod-registry-pull"
+  scopes  = ["read_registry"]
+}
+
+resource "random_password" "secret_key_base" {
+  count   = local.prod_enabled ? 1 : 0
+  length  = 64
+  special = false
+}
+
+resource "gitlab_project_variable" "prod_app" {
+  for_each          = local.prod_app_vars
+  project           = var.app_project_id
+  key               = each.key
+  value             = each.value
+  masked            = each.key != "PROD_DEPLOYER_PROJECT"
+  protected         = true
+  environment_scope = "*"
+}
+
+resource "gitlab_project_variable" "prod_ops" {
+  for_each          = local.prod_ops_vars
+  project           = var.ops_project_id
+  key               = each.key
+  value             = each.value
+  masked            = !contains(["KAMAL_REGISTRY_USERNAME", "PROD_PROJECT"], each.key)
+  protected         = true
+  environment_scope = "production"
+}

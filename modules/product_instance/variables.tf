@@ -39,8 +39,20 @@ variable "workers_ref" {
   default     = ""
 }
 
+variable "app_project_id" {
+  description = "Numeric ID of the app project. Required when prod.enabled is true; used for the registry pull deploy token and app-project CI variables."
+  type        = string
+  default     = ""
+}
+
 variable "app_project_path" {
-  description = "Full path of the app project (e.g. eiseron/afinados/afinados). Required when release_token is set; the token CI variables land there so the release job can push tags and publish docs."
+  description = "Full path of the app project (e.g. eiseron/afinados/afinados). Required when release_token is set or prod.enabled is true."
+  type        = string
+  default     = ""
+}
+
+variable "ops_project_path" {
+  description = "Full path of the ops project (e.g. eiseron/afinados/afinados-ops). Required when prod.enabled is true; used as PROD_DEPLOYER_PROJECT in the app CI vars."
   type        = string
   default     = ""
 }
@@ -66,6 +78,17 @@ variable "ci_vars" {
     cloudflare_api_token  = optional(string, "")
     cloudflare_account_id = optional(string, "")
     secrets_file          = optional(string, "")
+  })
+  default   = {}
+  sensitive = true
+}
+
+variable "prod" {
+  description = "Production deployment wiring. When enabled (and app_project_id is set) provisions: a pipeline trigger on the ops project (PROD_DEPLOYER_TRIGGER_TOKEN + PROD_DEPLOYER_PROJECT on the app project); a registry pull deploy token (KAMAL_REGISTRY_USERNAME + KAMAL_REGISTRY_PASSWORD on the ops project, production scope); a generated 64-char SECRET_KEY_BASE (ops project, production scope); PROD_PROJECT (ops project, production scope). Optionally passes R2 asset credentials as AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY on the app project when r2_access_key_id is set. Defaults skip all resource creation."
+  type = object({
+    enabled              = optional(bool, false)
+    r2_access_key_id     = optional(string, "")
+    r2_secret_access_key = optional(string, "")
   })
   default   = {}
   sensitive = true
