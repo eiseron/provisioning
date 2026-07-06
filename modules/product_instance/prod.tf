@@ -6,9 +6,9 @@ locals {
     PROD_DEPLOYER_PROJECT       = var.ops_project_path
   } : {}
 
-  prod_app_vars_r2 = local.prod_enabled && nonsensitive(var.prod.r2_access_key_id != "") ? {
-    AWS_ACCESS_KEY_ID     = var.prod.r2_access_key_id
-    AWS_SECRET_ACCESS_KEY = var.prod.r2_secret_access_key
+  prod_app_vars_r2 = local.prod_enabled && (local.assets_enabled || nonsensitive(var.prod.r2_access_key_id != "")) ? {
+    AWS_ACCESS_KEY_ID     = local.assets_enabled ? cloudflare_api_token.assets_write[0].id : var.prod.r2_access_key_id
+    AWS_SECRET_ACCESS_KEY = local.assets_enabled ? sha256(cloudflare_api_token.assets_write[0].value) : var.prod.r2_secret_access_key
   } : {}
 
   prod_app_vars = merge(local.prod_app_vars_base, local.prod_app_vars_r2)

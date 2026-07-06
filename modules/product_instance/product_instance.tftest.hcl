@@ -591,3 +591,43 @@ run "app_dns_is_proxied" {
     error_message = "App DNS record must be proxied through Cloudflare"
   }
 }
+
+run "prod_with_r2_buckets_sets_aws_key_on_app_project" {
+  command = plan
+
+  variables {
+    app_project_id   = "87654321"
+    app_project_path = "eiseron/myproduct/myproduct"
+    ops_project_path = "eiseron/myproduct/myproduct-ops"
+    prod             = { enabled = true }
+    r2_buckets = {
+      cdn_domain              = "cdn.myproduct.io"
+      assets_write_permission = "a1b2c3d4e5f6"
+    }
+  }
+
+  assert {
+    condition     = contains(keys(gitlab_project_variable.prod_app), "AWS_ACCESS_KEY_ID")
+    error_message = "AWS_ACCESS_KEY_ID must be set on app project when prod + r2_buckets are enabled"
+  }
+}
+
+run "prod_with_r2_buckets_aws_secret_is_masked" {
+  command = plan
+
+  variables {
+    app_project_id   = "87654321"
+    app_project_path = "eiseron/myproduct/myproduct"
+    ops_project_path = "eiseron/myproduct/myproduct-ops"
+    prod             = { enabled = true }
+    r2_buckets = {
+      cdn_domain              = "cdn.myproduct.io"
+      assets_write_permission = "a1b2c3d4e5f6"
+    }
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_app["AWS_SECRET_ACCESS_KEY"].masked == true
+    error_message = "AWS_SECRET_ACCESS_KEY must be masked when sourced from r2_buckets token"
+  }
+}
