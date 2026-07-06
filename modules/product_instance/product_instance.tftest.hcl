@@ -379,3 +379,142 @@ run "prod_host_ssh_pubkey_accepted" {
     error_message = "prod_host.ssh_pubkey must reflect the provided value"
   }
 }
+
+run "r2_assets_disabled_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(cloudflare_r2_bucket.assets) == 0
+    error_message = "No assets bucket must be created when r2_buckets.cdn_domain is empty"
+  }
+}
+
+run "r2_assets_creates_bucket_when_cdn_domain_set" {
+  command = plan
+
+  variables {
+    r2_buckets = {
+      cdn_domain              = "cdn.myproduct.io"
+      assets_write_permission = "a1b2c3d4e5f6"
+    }
+  }
+
+  assert {
+    condition     = length(cloudflare_r2_bucket.assets) == 1
+    error_message = "Assets bucket must be created when cdn_domain is set"
+  }
+}
+
+run "r2_assets_bucket_name_uses_slug" {
+  command = plan
+
+  variables {
+    r2_buckets = {
+      cdn_domain              = "cdn.myproduct.io"
+      assets_write_permission = "a1b2c3d4e5f6"
+    }
+  }
+
+  assert {
+    condition     = cloudflare_r2_bucket.assets[0].name == "test-product-assets"
+    error_message = "Assets bucket name must be <slug>-assets"
+  }
+}
+
+run "r2_sourcemaps_disabled_by_default" {
+  command = plan
+
+  variables {
+    r2_buckets = {
+      cdn_domain              = "cdn.myproduct.io"
+      assets_write_permission = "a1b2c3d4e5f6"
+    }
+  }
+
+  assert {
+    condition     = length(cloudflare_r2_bucket.sourcemaps) == 0
+    error_message = "No sourcemaps bucket must be created when sourcemaps_enabled is false"
+  }
+}
+
+run "r2_sourcemaps_creates_bucket" {
+  command = plan
+
+  variables {
+    r2_buckets = {
+      cdn_domain              = "cdn.myproduct.io"
+      sourcemaps_enabled      = true
+      assets_write_permission = "a1b2c3d4e5f6"
+    }
+  }
+
+  assert {
+    condition     = length(cloudflare_r2_bucket.sourcemaps) == 1
+    error_message = "Sourcemaps bucket must be created when sourcemaps_enabled is true"
+  }
+}
+
+run "r2_assets_ci_vars_are_masked" {
+  command = plan
+
+  variables {
+    r2_buckets = {
+      cdn_domain              = "cdn.myproduct.io"
+      assets_write_permission = "a1b2c3d4e5f6"
+    }
+  }
+
+  assert {
+    condition     = gitlab_project_variable.assets_ops["ASSETS_R2_ACCESS_KEY_ID"].masked == true
+    error_message = "ASSETS_R2_ACCESS_KEY_ID must be masked"
+  }
+}
+
+run "r2_assets_secret_key_is_masked" {
+  command = plan
+
+  variables {
+    r2_buckets = {
+      cdn_domain              = "cdn.myproduct.io"
+      assets_write_permission = "a1b2c3d4e5f6"
+    }
+  }
+
+  assert {
+    condition     = gitlab_project_variable.assets_ops["ASSETS_R2_SECRET_ACCESS_KEY"].masked == true
+    error_message = "ASSETS_R2_SECRET_ACCESS_KEY must be masked"
+  }
+}
+
+run "r2_cdn_skipped_without_zone_id" {
+  command = plan
+
+  variables {
+    r2_buckets = {
+      cdn_domain              = "cdn.myproduct.io"
+      assets_write_permission = "a1b2c3d4e5f6"
+    }
+  }
+
+  assert {
+    condition     = length(cloudflare_r2_custom_domain.cdn) == 0
+    error_message = "CDN custom domain must not be created when zone_id is empty"
+  }
+}
+
+run "r2_cdn_created_with_zone_id" {
+  command = plan
+
+  variables {
+    r2_buckets = {
+      cdn_domain              = "cdn.myproduct.io"
+      zone_id                 = "abc123zone"
+      assets_write_permission = "a1b2c3d4e5f6"
+    }
+  }
+
+  assert {
+    condition     = length(cloudflare_r2_custom_domain.cdn) == 1
+    error_message = "CDN custom domain must be created when zone_id is set"
+  }
+}

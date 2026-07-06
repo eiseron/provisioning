@@ -115,6 +115,18 @@ variable "prod_host" {
   default = null
 }
 
+variable "r2_buckets" {
+  description = "R2 bucket wiring for static assets and sourcemaps. cdn_domain gates assets bucket + CDN custom domain + write token + CI vars on the ops project (ASSETS_R2_BUCKET, ASSETS_R2_ENDPOINT, ASSETS_R2_ACCESS_KEY_ID, ASSETS_R2_SECRET_ACCESS_KEY, ASSETS_CDN_URL). sourcemaps_enabled adds a <slug>-sourcemaps bucket scoped into the same write token. zone_id is required for the CDN custom domain record; omitting it skips only the custom domain. assets_write_permission is the Cloudflare permission group ID for 'Workers R2 Storage Write' (resolved by the caller via cloudflare_api_token_permission_groups_list). r2_location is the Cloudflare R2 location hint. Empty cdn_domain skips all resource creation."
+  type = object({
+    cdn_domain              = optional(string, "")
+    zone_id                 = optional(string, "")
+    sourcemaps_enabled      = optional(bool, false)
+    r2_location             = optional(string, "ENAM")
+    assets_write_permission = optional(string, "")
+  })
+  default = {}
+}
+
 variable "site_preview" {
   description = "Static-site MR preview wiring (Cloudflare Pages, dispatch pattern). When site_project_id is set the module provisions, on ops_project_id, the deployer pipeline trigger and the PREVIEW_PAGES_PROJECT / PREVIEW_SITE_PROJECT dispatch variables, and on the site project the PREVIEW_DEPLOYER_PROJECT / PREVIEW_DEPLOYER_TRIGGER_TOKEN variables plus a job-token allowlist letting the site trigger the ops deployer. The Cloudflare token stays out of this module: it is account-scoped, minted where the account permission exists (eiseron-ops), and injected as a protected variable on the deployer. Defaults skip resource creation. Fields: site_project_id + site_project_path identify the static site repo; ops_project_path is the deployer path injected on the site; pages_project_name is the Cloudflare Pages project (the *.pages.dev host prefix)."
   type = object({
