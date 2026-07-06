@@ -36,6 +36,9 @@ env:
     PORT: <%= ENV.fetch("APP_PORT", "4000") %>
     PHX_SERVER: "true"
     POOL_SIZE: "10"
+<% if ENV["OBSERVABILITY_OTLP_ENDPOINT"].to_s != "" %>
+    OBSERVABILITY_OTLP_ENDPOINT: <%= ENV.fetch("OBSERVABILITY_OTLP_ENDPOINT") %>
+<% end %>
 <% if ENV["ADMIN_ACCESS_AUDIENCES"].to_s != "" %>
     ADMIN_ACCESS_ISSUER: <%= ENV.fetch("ADMIN_ACCESS_ISSUER") %>
     ADMIN_ACCESS_CERTS_URL: <%= ENV.fetch("ADMIN_ACCESS_CERTS_URL") %>

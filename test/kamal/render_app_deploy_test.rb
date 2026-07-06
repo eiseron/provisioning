@@ -117,8 +117,18 @@ expect(failures, "media ligada: credenciais R2 sob secret, nunca em clear") do
   end && (clear & %w[MEDIA_R2_ACCESS_KEY_ID MEDIA_R2_SECRET_ACCESS_KEY]).empty?
 end
 
+obs_off = render(BASE)
+expect(failures, "observability desligada: sem OBSERVABILITY_OTLP_ENDPOINT em clear") do
+  !(obs_off.dig("env", "clear") || {}).key?("OBSERVABILITY_OTLP_ENDPOINT")
+end
+
+obs_on = render(BASE.merge("OBSERVABILITY_OTLP_ENDPOINT" => "http://observability-collector:4318"))
+expect(failures, "observability ligada: OBSERVABILITY_OTLP_ENDPOINT em clear com o endpoint") do
+  (obs_on.dig("env", "clear") || {})["OBSERVABILITY_OTLP_ENDPOINT"] == "http://observability-collector:4318"
+end
+
 if failures.empty?
-  puts "kamal render: OK (backup + admin gate + media on/off)"
+  puts "kamal render: OK (backup + admin + media + observability gate on/off)"
 else
   failures.each { |failure| warn "FAIL: #{failure}" }
   exit 1
