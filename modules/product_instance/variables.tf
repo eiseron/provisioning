@@ -52,6 +52,25 @@ variable "release_token" {
   sensitive   = true
 }
 
+variable "group_id" {
+  description = "Numeric ID of the product's GitLab group (e.g. the afinados group). Required when ci_vars tokens are set; group variables land here so every pipeline in the group inherits them without repeating the secret in each project."
+  type        = string
+  default     = ""
+}
+
+variable "ci_vars" {
+  description = "Group-level and ops-project CI variables for the product's pipeline fleet. Tokens (github_token, gitlab_token, cloudflare_api_token) land as masked protected gitlab_group_variable on the product group. cloudflare_account_id lands as a non-masked protected group var. secrets_file lands as SECRETS_FILE on the ops project (production scope). All fields are optional; empty string skips resource creation for that variable."
+  type = object({
+    github_token          = optional(string, "")
+    gitlab_token          = optional(string, "")
+    cloudflare_api_token  = optional(string, "")
+    cloudflare_account_id = optional(string, "")
+    secrets_file          = optional(string, "")
+  })
+  default   = {}
+  sensitive = true
+}
+
 variable "backup" {
   description = "DB backup wiring. When bucket_name is set the module creates three protected CI variables on the ops project (PROD_BACKUP_BUCKET, PROD_BACKUP_NAME, PROD_BACKUP_AGE_RECIPIENTS) plus two pipeline schedules: a daily staleness verifier and a weekly restore drill. The drill schedule is activated only when drill_key is also set, and the key lands as a masked CI variable (PROD_BACKUP_DRILL_KEY). Defaults leave no resources created."
   type = object({

@@ -174,3 +174,67 @@ run "release_token_creates_two_vars_on_app_project" {
     error_message = "GITLAB_TOKEN must be masked"
   }
 }
+
+run "ci_vars_disabled_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(gitlab_group_variable.ci_token) == 0
+    error_message = "No group CI token vars must be created when ci_vars is empty"
+  }
+
+  assert {
+    condition     = length(gitlab_group_variable.cloudflare_account_id) == 0
+    error_message = "No CLOUDFLARE_ACCOUNT_ID group var must be created when ci_vars is empty"
+  }
+
+  assert {
+    condition     = length(gitlab_project_variable.secrets_file) == 0
+    error_message = "No SECRETS_FILE var must be created when ci_vars.secrets_file is empty"
+  }
+}
+
+run "ci_vars_creates_group_and_project_vars" {
+  command = plan
+
+  variables {
+    group_id = "99887766"
+    ci_vars = {
+      github_token          = "ghp_secret"
+      gitlab_token          = "glpat_secret"
+      cloudflare_api_token  = "cf_secret"
+      cloudflare_account_id = "abc123"
+      secrets_file          = "secrets.enc.env"
+    }
+  }
+
+  assert {
+    condition     = length(gitlab_group_variable.ci_token) == 3
+    error_message = "Three masked group vars must be created (GITHUB_TOKEN, GITLAB_TOKEN, CLOUDFLARE_API_TOKEN)"
+  }
+
+  assert {
+    condition     = contains(keys(gitlab_group_variable.ci_token), "GITHUB_TOKEN")
+    error_message = "GITHUB_TOKEN group var must be present"
+  }
+
+  assert {
+    condition     = gitlab_group_variable.ci_token["GITHUB_TOKEN"].masked == true
+    error_message = "GITHUB_TOKEN must be masked"
+  }
+
+  assert {
+    condition     = length(gitlab_group_variable.cloudflare_account_id) == 1
+    error_message = "CLOUDFLARE_ACCOUNT_ID group var must be created"
+  }
+
+  assert {
+    condition     = gitlab_group_variable.cloudflare_account_id[0].masked == false
+    error_message = "CLOUDFLARE_ACCOUNT_ID must not be masked"
+  }
+
+  assert {
+    condition     = length(gitlab_project_variable.secrets_file) == 1
+    error_message = "SECRETS_FILE project var must be created on ops project"
+  }
+}
