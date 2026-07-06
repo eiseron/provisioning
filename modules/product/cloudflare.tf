@@ -57,6 +57,10 @@ resource "cloudflare_account_token" "ops_write" {
   account_id = var.cloudflare_account_id
   name       = "Service Token - ${title(var.slug)} Ops (Terraform)"
 
+  lifecycle {
+    ignore_changes = [name]
+  }
+
   policies = [
     {
       effect = "allow"
@@ -87,6 +91,10 @@ resource "cloudflare_account_token" "ops_write" {
 resource "cloudflare_account_token" "ops_readonly" {
   account_id = var.cloudflare_account_id
   name       = "Service Token - ${title(var.slug)} Ops Readonly (Terraform)"
+
+  lifecycle {
+    ignore_changes = [name]
+  }
 
   policies = [
     {
