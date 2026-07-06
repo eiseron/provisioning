@@ -58,7 +58,7 @@ env:
 <% if ENV["PROD_BACKUP_BUCKET"].to_s != "" %>
 accessories:
   backup:
-    image: <%= ENV.fetch("BACKUP_IMAGE", "registry.gitlab.com/eiseron/stack/automation:v0.27.0") %>
+    image: <%= ENV.fetch("BACKUP_IMAGE", "registry.gitlab.com/eiseron/stack/automation:v0.39.0") %>
     host: <%= ENV.fetch("PROD_HOST") %>
     network: kamal
     cmd: eiseron db backup schedule
