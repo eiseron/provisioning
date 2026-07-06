@@ -106,6 +106,15 @@ variable "backup" {
   sensitive = true
 }
 
+variable "prod_host" {
+  description = "Pointer to the shared production server. When set, gates the app DNS A record (A3) and any resources that need the server address. Fields: ip is the server IPv4 used for the DNS record; ssh_pubkey is the host public key injected into known_hosts for SSH-based deployments. Null skips all prod_host-gated resources; apply succeeds without it."
+  type = object({
+    ip         = string
+    ssh_pubkey = string
+  })
+  default = null
+}
+
 variable "site_preview" {
   description = "Static-site MR preview wiring (Cloudflare Pages, dispatch pattern). When site_project_id is set the module provisions, on ops_project_id, the deployer pipeline trigger and the PREVIEW_PAGES_PROJECT / PREVIEW_SITE_PROJECT dispatch variables, and on the site project the PREVIEW_DEPLOYER_PROJECT / PREVIEW_DEPLOYER_TRIGGER_TOKEN variables plus a job-token allowlist letting the site trigger the ops deployer. The Cloudflare token stays out of this module: it is account-scoped, minted where the account permission exists (eiseron-ops), and injected as a protected variable on the deployer. Defaults skip resource creation. Fields: site_project_id + site_project_path identify the static site repo; ops_project_path is the deployer path injected on the site; pages_project_name is the Cloudflare Pages project (the *.pages.dev host prefix)."
   type = object({

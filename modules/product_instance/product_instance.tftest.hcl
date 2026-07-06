@@ -338,3 +338,44 @@ run "prod_with_r2_creates_four_app_vars" {
     error_message = "AWS_SECRET_ACCESS_KEY must be masked"
   }
 }
+
+run "prod_host_null_by_default" {
+  command = plan
+
+  assert {
+    condition     = var.prod_host == null
+    error_message = "prod_host must default to null"
+  }
+}
+
+run "prod_host_pointer_accepted" {
+  command = plan
+
+  variables {
+    prod_host = {
+      ip         = "1.2.3.4"
+      ssh_pubkey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAItest"
+    }
+  }
+
+  assert {
+    condition     = var.prod_host.ip == "1.2.3.4"
+    error_message = "prod_host.ip must reflect the provided value"
+  }
+}
+
+run "prod_host_ssh_pubkey_accepted" {
+  command = plan
+
+  variables {
+    prod_host = {
+      ip         = "1.2.3.4"
+      ssh_pubkey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAItest"
+    }
+  }
+
+  assert {
+    condition     = var.prod_host.ssh_pubkey == "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAItest"
+    error_message = "prod_host.ssh_pubkey must reflect the provided value"
+  }
+}
