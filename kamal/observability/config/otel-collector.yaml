@@ -23,6 +23,19 @@ receivers:
 
 processors:
   batch: {}
+  redaction:
+    allow_all_keys: true
+    blocked_key_patterns:
+      - "(?i).*(password|passwd|secret|token|authorization|auth|api[_-]?key|apikey|cookie|session|credential).*"
+      - "(?i).*(cpf|cnpj|\\brg\\b|ssn|passport|passaporte).*"
+      - "(?i).*(e[-_]?mail|phone|telefone|celular|whatsapp).*"
+      - "(?i).*(full[_-]?name|nome[_-]?completo|first[_-]?name|last[_-]?name|address|endereco|\\bcep\\b|birth|nascimento).*"
+      - "(?i).*(patient|paciente|\\bmrn\\b|\\becg\\b|laudo|diagnos|health|medical|prontuario).*"
+    blocked_values:
+      - "[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}"
+      - "\\b\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d{2}\\b"
+      - "\\b(?:\\d[ \\-]?){13,19}\\b"
+    summary: silent
 
 exporters:
   otlphttp/openobserve:
@@ -38,11 +51,11 @@ service:
   pipelines:
     logs:
       receivers: [otlp]
-      processors: [batch]
+      processors: [redaction, batch]
       exporters: [otlphttp/openobserve]
     traces:
       receivers: [otlp]
-      processors: [batch]
+      processors: [redaction, batch]
       exporters: [otlphttp/openobserve]
     metrics:
       receivers: [otlp, prometheus]
