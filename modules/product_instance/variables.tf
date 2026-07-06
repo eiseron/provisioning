@@ -39,6 +39,19 @@ variable "workers_ref" {
   default     = ""
 }
 
+variable "app_project_path" {
+  description = "Full path of the app project (e.g. eiseron/afinados/afinados). Required when release_token is set; the token CI variables land there so the release job can push tags and publish docs."
+  type        = string
+  default     = ""
+}
+
+variable "release_token" {
+  description = "GitLab personal or project access token used by the release job to push tags and publish docs. When set, the module creates RELEASE_TOKEN and GITLAB_TOKEN (same value) as masked, protected CI variables on the app project (all environments). Defaults skip resource creation."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "backup" {
   description = "DB backup wiring. When bucket_name is set the module creates three protected CI variables on the ops project (PROD_BACKUP_BUCKET, PROD_BACKUP_NAME, PROD_BACKUP_AGE_RECIPIENTS) plus two pipeline schedules: a daily staleness verifier and a weekly restore drill. The drill schedule is activated only when drill_key is also set, and the key lands as a masked CI variable (PROD_BACKUP_DRILL_KEY). Defaults leave no resources created."
   type = object({

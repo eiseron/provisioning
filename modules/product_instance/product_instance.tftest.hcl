@@ -126,3 +126,51 @@ run "backup_drill_key_activates_drill_schedule" {
     error_message = "backup_drill schedule must be active when drill_key is set"
   }
 }
+
+run "release_token_disabled_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(gitlab_project_variable.release_token) == 0
+    error_message = "No release_token CI var must be created when release_token is not set"
+  }
+
+  assert {
+    condition     = length(gitlab_project_variable.gitlab_token_docs) == 0
+    error_message = "No GITLAB_TOKEN CI var must be created when release_token is not set"
+  }
+}
+
+run "release_token_creates_two_vars_on_app_project" {
+  command = plan
+
+  variables {
+    app_project_path = "eiseron/myproduct/myproduct"
+    release_token    = "glpat-secret-token"
+  }
+
+  assert {
+    condition     = length(gitlab_project_variable.release_token) == 1
+    error_message = "RELEASE_TOKEN CI var must be created when release_token is set"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.release_token[0].project == "eiseron/myproduct/myproduct"
+    error_message = "RELEASE_TOKEN must be created on the app project"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.release_token[0].masked == true
+    error_message = "RELEASE_TOKEN must be masked"
+  }
+
+  assert {
+    condition     = length(gitlab_project_variable.gitlab_token_docs) == 1
+    error_message = "GITLAB_TOKEN CI var must be created when release_token is set"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.gitlab_token_docs[0].masked == true
+    error_message = "GITLAB_TOKEN must be masked"
+  }
+}
