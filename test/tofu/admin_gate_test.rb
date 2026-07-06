@@ -54,7 +54,7 @@ expect(failures, "access application admin session duration is 24h (matches the 
 end
 
 expect(failures, "access application admin gates the app host /admin path (rides on the app origin/cert)") do
-  admin.match?(/admin_gate_uri\s*=\s*"\$\{var\.admin_gate_app_host\}\/admin"/) &&
+  admin.match?(/admin_gate_uri\s*=\s*var\.admin_gate_app_host\s*!=\s*null\s*\?\s*"\$\{var\.admin_gate_app_host\}\/admin"\s*:\s*null/) &&
     admin.match?(/uri\s*=\s*local\.admin_gate_uri/)
 end
 

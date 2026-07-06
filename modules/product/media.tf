@@ -1,7 +1,7 @@
 locals {
   media_enabled = var.media_subdomain != null
   media_bucket  = "${var.slug}-media"
-  media_host    = "${var.media_subdomain}.${var.domain}"
+  media_host    = var.media_subdomain != null ? "${var.media_subdomain}.${var.domain}" : null
 
   media_ops_vars = local.media_enabled ? {
     MEDIA_R2_BUCKET = {

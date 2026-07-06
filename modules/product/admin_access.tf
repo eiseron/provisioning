@@ -1,6 +1,6 @@
 locals {
   admin_gate_enabled = var.admin_gate_app_host != null
-  admin_gate_uri     = "${var.admin_gate_app_host}/admin"
+  admin_gate_uri     = var.admin_gate_app_host != null ? "${var.admin_gate_app_host}/admin" : null
 
   admin_gate_ops_vars = local.admin_gate_enabled ? {
     ADMIN_ACCESS_AUDIENCES = {
