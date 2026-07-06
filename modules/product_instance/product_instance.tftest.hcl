@@ -518,3 +518,76 @@ run "r2_cdn_created_with_zone_id" {
     error_message = "CDN custom domain must be created when zone_id is set"
   }
 }
+
+run "app_dns_disabled_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(cloudflare_dns_record.app) == 0
+    error_message = "No app DNS record must be created when prod_host and zone_id are not set"
+  }
+}
+
+run "app_dns_requires_prod_host" {
+  command = plan
+
+  variables {
+    zone_id = "abc123zone"
+  }
+
+  assert {
+    condition     = length(cloudflare_dns_record.app) == 0
+    error_message = "No app DNS record must be created when prod_host is null"
+  }
+}
+
+run "app_dns_created_with_prod_host_and_zone" {
+  command = plan
+
+  variables {
+    zone_id = "abc123zone"
+    prod_host = {
+      ip         = "1.2.3.4"
+      ssh_pubkey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAItest"
+    }
+  }
+
+  assert {
+    condition     = length(cloudflare_dns_record.app) == 1
+    error_message = "App DNS record must be created when prod_host and zone_id are set"
+  }
+}
+
+run "app_dns_content_matches_prod_host_ip" {
+  command = plan
+
+  variables {
+    zone_id = "abc123zone"
+    prod_host = {
+      ip         = "1.2.3.4"
+      ssh_pubkey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAItest"
+    }
+  }
+
+  assert {
+    condition     = cloudflare_dns_record.app[0].content == "1.2.3.4"
+    error_message = "App DNS record content must match prod_host.ip"
+  }
+}
+
+run "app_dns_is_proxied" {
+  command = plan
+
+  variables {
+    zone_id = "abc123zone"
+    prod_host = {
+      ip         = "1.2.3.4"
+      ssh_pubkey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAItest"
+    }
+  }
+
+  assert {
+    condition     = cloudflare_dns_record.app[0].proxied == true
+    error_message = "App DNS record must be proxied through Cloudflare"
+  }
+}

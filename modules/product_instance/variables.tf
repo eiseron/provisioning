@@ -20,6 +20,12 @@ variable "slug" {
   default     = ""
 }
 
+variable "zone_id" {
+  description = "Cloudflare zone ID of the product's apex domain. Gates the app DNS A record (A3): when set together with prod_host, creates an 'app' A record pointing to prod_host.ip, proxied. Defaults skip DNS resource creation."
+  type        = string
+  default     = ""
+}
+
 variable "cloudflare_account_id" {
   description = "Cloudflare account ID. Required when alerting.enable_uptime_monitor is true; the worker, KV namespace and cron trigger land in this account."
   type        = string
