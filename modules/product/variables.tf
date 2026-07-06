@@ -83,6 +83,12 @@ variable "admin_gate_app_host" {
   default     = null
 }
 
+variable "media_subdomain" {
+  description = "Subdomain label for the public R2 media bucket that serves uploaded images (e.g. img -> img.<domain>). When set, the module provisions the <slug>-media R2 bucket, its public custom domain, an R2 write token, and the MEDIA_* CI vars on the ops repo. Null skips media uploads."
+  type        = string
+  default     = null
+}
+
 variable "repositories" {
   description = "Extra repos beyond the app and the ops repo, keyed by repo name."
   type = map(object({

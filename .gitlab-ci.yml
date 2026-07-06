@@ -134,3 +134,4 @@ kamal-render:
     - ruby test/tofu/admin_gate_test.rb
     - ruby test/tofu/product_db_backup_test.rb
     - ruby test/tofu/otp_identity_provider_test.rb
+    - ruby test/tofu/media_test.rb
