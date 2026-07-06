@@ -40,11 +40,20 @@ env:
     ADMIN_ACCESS_ISSUER: <%= ENV.fetch("ADMIN_ACCESS_ISSUER") %>
     ADMIN_ACCESS_CERTS_URL: <%= ENV.fetch("ADMIN_ACCESS_CERTS_URL") %>
 <% end %>
+<% if ENV["MEDIA_R2_BUCKET"].to_s != "" %>
+    MEDIA_PUBLIC_BASE_URL: <%= ENV.fetch("MEDIA_PUBLIC_BASE_URL") %>
+<% end %>
   secret:
     - SECRET_KEY_BASE
     - DATABASE_URL
 <% if ENV["ADMIN_ACCESS_AUDIENCES"].to_s != "" %>
     - ADMIN_ACCESS_AUDIENCES
+<% end %>
+<% if ENV["MEDIA_R2_BUCKET"].to_s != "" %>
+    - MEDIA_R2_BUCKET
+    - MEDIA_R2_ENDPOINT
+    - MEDIA_R2_ACCESS_KEY_ID
+    - MEDIA_R2_SECRET_ACCESS_KEY
 <% end %>
 <% if ENV["PROD_BACKUP_BUCKET"].to_s != "" %>
 accessories:
