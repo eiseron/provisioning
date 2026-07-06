@@ -41,3 +41,88 @@ run "uptime_monitor_disabled_creates_no_resources" {
     error_message = "No KV namespace must be created when uptime monitor is disabled"
   }
 }
+
+run "backup_disabled_by_default_creates_no_resources" {
+  command = plan
+
+  assert {
+    condition     = length(gitlab_project_variable.backup) == 0
+    error_message = "No backup CI vars must be created when backup is not configured"
+  }
+
+  assert {
+    condition     = length(gitlab_pipeline_schedule.backup_verify) == 0
+    error_message = "No backup_verify schedule must be created when backup is not configured"
+  }
+
+  assert {
+    condition     = length(gitlab_pipeline_schedule.backup_drill) == 0
+    error_message = "No backup_drill schedule must be created when backup is not configured"
+  }
+}
+
+run "backup_enabled_creates_ci_vars_and_schedules" {
+  command = plan
+
+  variables {
+    backup = {
+      bucket_name    = "my-backups"
+      name           = "myproduct"
+      age_recipients = "age1abc123"
+      drill_key      = ""
+    }
+  }
+
+  assert {
+    condition     = length(gitlab_project_variable.backup) == 3
+    error_message = "Three backup CI vars must be created (PROD_BACKUP_BUCKET, PROD_BACKUP_NAME, PROD_BACKUP_AGE_RECIPIENTS)"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.backup["PROD_BACKUP_BUCKET"].masked == false
+    error_message = "PROD_BACKUP_BUCKET must not be masked"
+  }
+
+  assert {
+    condition     = length(gitlab_pipeline_schedule.backup_verify) == 1
+    error_message = "backup_verify schedule must be created when backup is enabled"
+  }
+
+  assert {
+    condition     = gitlab_pipeline_schedule.backup_verify[0].cron == "0 11 * * *"
+    error_message = "backup_verify must run daily at 11:00 UTC"
+  }
+
+  assert {
+    condition     = length(gitlab_project_variable.backup_drill_key) == 0
+    error_message = "No drill key CI var must be created when drill_key is empty"
+  }
+
+  assert {
+    condition     = gitlab_pipeline_schedule.backup_drill[0].active == false
+    error_message = "backup_drill schedule must be inactive when drill_key is empty"
+  }
+}
+
+run "backup_drill_key_activates_drill_schedule" {
+  command = plan
+
+  variables {
+    backup = {
+      bucket_name    = "my-backups"
+      name           = "myproduct"
+      age_recipients = "age1abc123"
+      drill_key      = "secret-drill-key"
+    }
+  }
+
+  assert {
+    condition     = length(gitlab_project_variable.backup_drill_key) == 1
+    error_message = "Drill key CI var must be created when drill_key is set"
+  }
+
+  assert {
+    condition     = gitlab_pipeline_schedule.backup_drill[0].active == true
+    error_message = "backup_drill schedule must be active when drill_key is set"
+  }
+}

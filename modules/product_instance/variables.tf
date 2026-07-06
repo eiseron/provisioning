@@ -39,6 +39,18 @@ variable "workers_ref" {
   default     = ""
 }
 
+variable "backup" {
+  description = "DB backup wiring. When bucket_name is set the module creates three protected CI variables on the ops project (PROD_BACKUP_BUCKET, PROD_BACKUP_NAME, PROD_BACKUP_AGE_RECIPIENTS) plus two pipeline schedules: a daily staleness verifier and a weekly restore drill. The drill schedule is activated only when drill_key is also set, and the key lands as a masked CI variable (PROD_BACKUP_DRILL_KEY). Defaults leave no resources created."
+  type = object({
+    bucket_name    = optional(string, "")
+    name           = optional(string, "")
+    age_recipients = optional(string, "")
+    drill_key      = optional(string, "")
+  })
+  default   = {}
+  sensitive = true
+}
+
 variable "site_preview" {
   description = "Static-site MR preview wiring (Cloudflare Pages, dispatch pattern). When site_project_id is set the module provisions, on ops_project_id, the deployer pipeline trigger and the PREVIEW_PAGES_PROJECT / PREVIEW_SITE_PROJECT dispatch variables, and on the site project the PREVIEW_DEPLOYER_PROJECT / PREVIEW_DEPLOYER_TRIGGER_TOKEN variables plus a job-token allowlist letting the site trigger the ops deployer. The Cloudflare token stays out of this module: it is account-scoped, minted where the account permission exists (eiseron-ops), and injected as a protected variable on the deployer. Defaults skip resource creation. Fields: site_project_id + site_project_path identify the static site repo; ops_project_path is the deployer path injected on the site; pages_project_name is the Cloudflare Pages project (the *.pages.dev host prefix)."
   type = object({
