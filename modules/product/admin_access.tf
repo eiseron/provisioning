@@ -1,6 +1,5 @@
 locals {
-  admin_gate_enabled = var.admin_gate_origin_ip != null
-  admin_gate_host    = "${var.admin_gate_subdomain}.${var.domain}"
+  admin_gate_enabled = var.admin_gate_app_host != null
   admin_gate_uri     = "${var.admin_gate_app_host}/admin"
 
   admin_gate_ops_vars = local.admin_gate_enabled ? {
@@ -20,7 +19,7 @@ locals {
       scope  = "*"
     }
     ADMIN_ACCESS_HOST = {
-      value  = local.admin_gate_host
+      value  = var.admin_gate_app_host
       masked = false
       scope  = "production"
     }
@@ -79,15 +78,12 @@ resource "cloudflare_zero_trust_access_application" "admin" {
   }
 }
 
-resource "cloudflare_dns_record" "admin" {
-  count = local.admin_gate_enabled ? 1 : 0
+removed {
+  from = cloudflare_dns_record.admin
 
-  zone_id = cloudflare_zone.this.id
-  name    = var.admin_gate_subdomain
-  type    = "A"
-  content = var.admin_gate_origin_ip
-  proxied = true
-  ttl     = 1
+  lifecycle {
+    destroy = true
+  }
 }
 
 resource "gitlab_project_variable" "admin_gate_ops" {

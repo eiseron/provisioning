@@ -13,8 +13,8 @@ def expect(failures, description)
   failures << description unless yield
 end
 
-expect(failures, "admin_gate_enabled local guards on admin_gate_origin_ip != null") do
-  admin.match?(/admin_gate_enabled\s*=\s*var\.admin_gate_origin_ip\s*!=\s*null/)
+expect(failures, "admin_gate_enabled local guards on admin_gate_app_host != null") do
+  admin.match?(/admin_gate_enabled\s*=\s*var\.admin_gate_app_host\s*!=\s*null/)
 end
 
 expect(failures, "access policy admin is count-guarded by admin_gate_enabled") do
@@ -70,8 +70,9 @@ expect(failures, "access application admin has prevent_destroy") do
   admin.match?(/access_application"\s+"admin"[\s\S]*?prevent_destroy\s*=\s*true/m)
 end
 
-expect(failures, "admin DNS record is count-guarded and proxied to the origin ip") do
-  admin.match?(/resource\s+"cloudflare_dns_record"\s+"admin"[\s\S]*?content\s*=\s*var\.admin_gate_origin_ip[\s\S]*?proxied\s*=\s*true/m)
+expect(failures, "admin subdomain DNS record is gone (gate rides on the app host, not a separate host)") do
+  !admin.match?(/resource\s+"cloudflare_dns_record"\s+"admin"/) &&
+    admin.match?(/removed\s*\{[\s\S]*?from\s*=\s*cloudflare_dns_record\.admin[\s\S]*?destroy\s*=\s*true/m)
 end
 
 expect(failures, "ADMIN_ACCESS ops CI vars are provisioned") do
@@ -83,12 +84,12 @@ expect(failures, "aud is read via one() rather than indexed") do
     !admin.match?(/access_application\.admin\[0\]\.aud/)
 end
 
-expect(failures, "variable admin_gate_origin_ip defaults to null") do
-  vars.match?(/variable\s+"admin_gate_origin_ip"[\s\S]*?default\s*=\s*null/m)
+expect(failures, "orphaned admin_gate_origin_ip variable is removed") do
+  !vars.match?(/variable\s+"admin_gate_origin_ip"/)
 end
 
-expect(failures, "variable admin_gate_origin_ip validates an IPv4 or null") do
-  vars.match?(/admin_gate_origin_ip[\s\S]*?validation[\s\S]*?regex/m)
+expect(failures, "orphaned admin_gate_subdomain variable is removed") do
+  !vars.match?(/variable\s+"admin_gate_subdomain"/)
 end
 
 expect(failures, "variable admin_gate_email_domains exists") do
@@ -97,10 +98,6 @@ end
 
 expect(failures, "variable admin_gate_auth_domain exists") do
   vars.match?(/variable\s+"admin_gate_auth_domain"/)
-end
-
-expect(failures, "variable admin_gate_subdomain defaults to admin") do
-  vars.match?(/variable\s+"admin_gate_subdomain"[\s\S]*?default\s*=\s*"admin"/m)
 end
 
 expect(failures, "output admin_access_aud exists") do

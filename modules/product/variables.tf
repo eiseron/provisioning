@@ -65,19 +65,8 @@ variable "additional_preview_access_policies" {
   default     = []
 }
 
-variable "admin_gate_origin_ip" {
-  description = "IPv4 that admin.<domain> proxies to. When set, the module provisions a reinforced Cloudflare Access application on the admin subdomain, its DNS record, and the ADMIN_ACCESS_* CI vars on the ops repo. Null skips the admin gate."
-  type        = string
-  default     = null
-
-  validation {
-    condition     = var.admin_gate_origin_ip == null || can(regex("^(\\d{1,3}\\.){3}\\d{1,3}$", var.admin_gate_origin_ip))
-    error_message = "admin_gate_origin_ip must be a valid IPv4 address or null."
-  }
-}
-
 variable "admin_gate_email_domains" {
-  description = "Email domains allowed through Cloudflare Access on the admin subdomain; gates admin.<domain> for the team. Required (non-empty) when the admin gate is enabled; the consumer supplies its own domains."
+  description = "Email domains allowed through Cloudflare Access on the app's /admin path; gates <app_host>/admin for the team. Required (non-empty) when the admin gate is enabled; the consumer supplies its own domains."
   type        = list(string)
   default     = []
 }
@@ -88,14 +77,8 @@ variable "admin_gate_auth_domain" {
   default     = null
 }
 
-variable "admin_gate_subdomain" {
-  description = "Subdomain label for the admin gate; admin.<domain> by default."
-  type        = string
-  default     = "admin"
-}
-
 variable "admin_gate_app_host" {
-  description = "Host that serves the app's /admin routes (e.g. app.<domain>). The admin Access application gates <app_host>/admin so the gate rides on the app's existing origin and certificate instead of a separate admin subdomain. Required when the admin gate is enabled."
+  description = "Host that serves the app's /admin routes (e.g. app.<domain>). When set, the module gates <app_host>/admin with a Cloudflare Access application and provisions the ADMIN_ACCESS_* CI vars on the ops repo; the gate rides on the app's existing origin and certificate. Null skips the admin gate."
   type        = string
   default     = null
 }
