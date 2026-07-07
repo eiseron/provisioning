@@ -97,6 +97,11 @@ expect(failures, "admin gate ligado: proxy nao usa host singular") do
   admin_on.dig("proxy", "host").nil?
 end
 
+path_gate = render(BASE.merge(ADMIN).merge("ADMIN_ACCESS_HOST" => BASE["APP_HOST"]))
+expect(failures, "gate no mesmo host: proxy usa host singular (sem duplicar)") do
+  path_gate.dig("proxy", "host") == BASE["APP_HOST"] && path_gate.dig("proxy", "hosts").nil?
+end
+
 media_off = render(BASE)
 expect(failures, "media desligada: sem MEDIA no clear") do
   (media_off.dig("env", "clear") || {}).keys.none? { |k| k.start_with?("MEDIA") }

@@ -8,7 +8,7 @@ servers:
 
 proxy:
   ssl: <%= ENV.fetch("PROXY_SSL", "true") %>
-<% if ENV["ADMIN_ACCESS_HOST"].to_s != "" %>
+<% if ENV["ADMIN_ACCESS_HOST"].to_s != "" && ENV["ADMIN_ACCESS_HOST"] != ENV["APP_HOST"] %>
   hosts:
     - <%= ENV.fetch("APP_HOST") %>
     - <%= ENV.fetch("ADMIN_ACCESS_HOST") %>
