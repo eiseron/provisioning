@@ -67,6 +67,17 @@ expect(failures, "credenciais ficam sob secret, nunca em clear") do
   %w[PGPASSWORD AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY].all? { |k| secret.include?(k) } &&
     (clear & %w[PGPASSWORD AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY]).empty?
 end
+expect(failures, "telegram desligado: sem TELEGRAM no secret do backup") do
+  (backup.dig("env", "secret") || []).none? { |k| k.start_with?("TELEGRAM") }
+end
+
+backup_tg =
+  render(BASE.merge(BACKUP).merge("TELEGRAM_BOT_TOKEN" => "tok", "TELEGRAM_CHAT_ID" => "chat"))
+  .dig("accessories", "backup") || {}
+expect(failures, "telegram ligado: TELEGRAM_BOT_TOKEN e CHAT_ID sob secret do backup") do
+  secret = backup_tg.dig("env", "secret") || []
+  secret.include?("TELEGRAM_BOT_TOKEN") && secret.include?("TELEGRAM_CHAT_ID")
+end
 
 admin_off = render(BASE)
 expect(failures, "admin gate desligado: sem ADMIN_ACCESS no clear") do
@@ -133,7 +144,7 @@ expect(failures, "observability ligada: OBSERVABILITY_OTLP_ENDPOINT em clear com
 end
 
 if failures.empty?
-  puts "kamal render: OK (backup + admin + media + observability gate on/off)"
+  puts "kamal render: OK (backup + admin + media + observability + telegram gate on/off)"
 else
   failures.each { |failure| warn "FAIL: #{failure}" }
   exit 1
