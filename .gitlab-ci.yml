@@ -59,6 +59,12 @@ include:
     file: /templates/terraform-validate.yml
     ref: v0.1.8
     inputs:
+      name: "-swarm-app"
+      chdir: modules/swarm_app/examples/validate
+  - project: eiseron/stack/ci
+    file: /templates/terraform-validate.yml
+    ref: v0.1.8
+    inputs:
       name: "-tang-host"
       chdir: modules/tang_host
   - project: eiseron/stack/ci
