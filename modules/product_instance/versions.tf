@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.6"
+  required_version = ">= 1.9"
 
   required_providers {
     gitlab = {
@@ -9,6 +9,11 @@ terraform {
     cloudflare = {
       source  = "cloudflare/cloudflare"
       version = ">= 5.0"
+    }
+    docker = {
+      source                = "kreuzwerker/docker"
+      version               = "~> 3.0"
+      configuration_aliases = [docker]
     }
   }
 }

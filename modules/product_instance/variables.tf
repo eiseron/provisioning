@@ -144,3 +144,35 @@ variable "site_preview" {
   })
   default = {}
 }
+
+variable "runtime" {
+  description = "App runtime-service wiring for the Docker Swarm deployment. When enable is true (and prod is enabled) the module creates the product's swarm service via the swarm_app submodule over the docker provider passed by the consumer, reusing the generated SECRET_KEY_BASE and building DATABASE_URL from db_tenant_password. Dormant by default so the module stays inert until the product cutover. Fields: app_host is the public host Traefik routes to; app_image is the image used only on create/recreate (the running image is owned by the deploy); observability_otlp_endpoint is where the app sends telemetry; admin_access_* wire the OIDC admin gate; placement_constraints select the node the app runs on."
+  type = object({
+    enable                      = optional(bool, false)
+    app_host                    = optional(string, "")
+    app_image                   = optional(string, "")
+    observability_otlp_endpoint = optional(string, "http://observability-collector:4318")
+    admin_access_issuer         = optional(string, "")
+    admin_access_certs_url      = optional(string, "")
+    admin_access_audiences      = optional(string, "")
+    placement_constraints       = optional(list(string), ["node.role==manager"])
+  })
+  default = {}
+
+  validation {
+    condition     = !var.runtime.enable || (var.runtime.app_host != "" && var.runtime.app_image != "")
+    error_message = "runtime.app_host and runtime.app_image must be set when runtime.enable is true."
+  }
+}
+
+variable "db_tenant_password" {
+  description = "Password of the product's Postgres tenant role, used to assemble the app service DATABASE_URL (ecto://<slug>:<pw>@platform-db/<slug>_prod). Generated in the org ops repo and injected as TF_VAR_db_tenant_password only on production applies; empty while dormant."
+  type        = string
+  sensitive   = true
+  default     = ""
+
+  validation {
+    condition     = !var.runtime.enable || var.db_tenant_password != ""
+    error_message = "db_tenant_password must be set when runtime.enable is true (an empty password yields a DATABASE_URL the app cannot authenticate with)."
+  }
+}

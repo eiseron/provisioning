@@ -22,6 +22,8 @@ variables {
   }
 }
 
+mock_provider "docker" {}
+
 run "uptime_cron_is_five_minutes" {
   command = plan
 
@@ -673,4 +675,84 @@ run "prod_with_r2_buckets_aws_secret_is_masked" {
     condition     = gitlab_project_variable.prod_app["AWS_SECRET_ACCESS_KEY"].masked == true
     error_message = "AWS_SECRET_ACCESS_KEY must be masked when sourced from r2_buckets token"
   }
+}
+
+run "swarm_disabled_by_default_reads_no_networks" {
+  command = plan
+
+  assert {
+    condition     = length(data.docker_network.traefik) == 0
+    error_message = "No traefik network lookup must happen when swarm is disabled"
+  }
+
+  assert {
+    condition     = length(data.docker_network.internal) == 0
+    error_message = "No internal network lookup must happen when swarm is disabled"
+  }
+}
+
+run "swarm_enabled_wires_the_app_service" {
+  command = plan
+
+  variables {
+    app_project_id   = "87654321"
+    app_project_path = "eiseron/myproduct/myproduct"
+    ops_project_path = "eiseron/myproduct/myproduct-ops"
+    prod             = { enabled = true }
+    runtime = {
+      enable    = true
+      app_host  = "app.example.com"
+      app_image = "registry.example.test/acme/app/prod:v1.0.0"
+    }
+    db_tenant_password = "tenant-pw"
+  }
+
+  assert {
+    condition     = length(data.docker_network.traefik) == 1
+    error_message = "Traefik network must be looked up when swarm is enabled"
+  }
+
+  assert {
+    condition     = length(data.docker_network.internal) == 1
+    error_message = "Internal network must be looked up when swarm is enabled"
+  }
+
+  assert {
+    condition     = module.swarm_app.service_name == var.slug
+    error_message = "The swarm app service must be named after the product slug"
+  }
+}
+
+run "swarm_disabled_when_prod_is_disabled" {
+  command = plan
+
+  variables {
+    runtime = {
+      enable    = true
+      app_host  = "app.example.com"
+      app_image = "registry.example.test/acme/app/prod:v1.0.0"
+    }
+    db_tenant_password = "tenant-pw"
+  }
+
+  assert {
+    condition     = length(data.docker_network.traefik) == 0
+    error_message = "Swarm must stay inert when prod is not enabled (no SECRET_KEY_BASE to reuse)"
+  }
+}
+
+run "swarm_enabled_requires_tenant_password" {
+  command = plan
+
+  variables {
+    app_project_id = "87654321"
+    prod           = { enabled = true }
+    runtime = {
+      enable    = true
+      app_host  = "app.example.com"
+      app_image = "registry.example.test/acme/app/prod:v1.0.0"
+    }
+  }
+
+  expect_failures = [var.db_tenant_password]
 }
