@@ -1,0 +1,51 @@
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+log:
+  level: ${log_level}
+
+accessLog: {}
+
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+%{ if length(acme_domains) > 0 ~}
+    http:
+      tls:
+        certResolver: cf
+        domains:
+%{ for domain in acme_domains ~}
+          - main: "${domain}"
+            sans:
+              - "*.${domain}"
+%{ endfor ~}
+%{ endif ~}
+%{ if length(acme_domains) > 0 ~}
+
+certificatesResolvers:
+  cf:
+    acme:
+      email: ${acme_email}
+      storage: /acme/acme.json
+%{ if acme_use_staging ~}
+      caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+%{ endif ~}
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
+%{ endif ~}
+
+providers:
+  swarm:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: ${traefik_network_name}
+
+api:
+  dashboard: false
+  insecure: false
