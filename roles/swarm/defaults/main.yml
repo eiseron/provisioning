@@ -1,0 +1,1 @@
+swarm_advertise_addr: "{{ ansible_default_ipv4.address }}"

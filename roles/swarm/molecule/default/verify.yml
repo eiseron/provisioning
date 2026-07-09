@@ -1,0 +1,25 @@
+- name: Verify swarm role
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Query swarm local node state
+      ansible.builtin.command: docker info --format '{% raw %}{{ .Swarm.LocalNodeState }}{% endraw %}'
+      changed_when: false
+      register: swarm_state
+
+    - name: Assert the swarm is active
+      ansible.builtin.assert:
+        that: swarm_state.stdout == "active"
+        fail_msg: "Docker Swarm is not active after the role ran"
+
+    - name: Query whether the node is a manager
+      ansible.builtin.command: docker info --format '{% raw %}{{ .Swarm.ControlAvailable }}{% endraw %}'
+      changed_when: false
+      register: swarm_manager
+
+    - name: Assert the node is a swarm manager
+      ansible.builtin.assert:
+        that: swarm_manager.stdout == "true"
+        fail_msg: "The single node is not a Swarm manager"
