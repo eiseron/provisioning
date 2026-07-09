@@ -45,20 +45,6 @@ module "tang" {
   ssh_public_key = tls_private_key.tang_bootstrap.public_key_openssh
 }
 
-module "error_monitoring" {
-  source = "../error_monitoring"
-
-  count = var.enable && var.error_monitoring_enable ? 1 : 0
-
-  enable         = true
-  zone_id        = var.zone_id
-  zone_domain    = var.zone_domain
-  prod_host_ip   = module.host[0].vps_ipv4
-  ops_project_id = var.ops_project_id
-  smtp_password  = var.error_monitoring_smtp_password
-  smtp           = var.error_monitoring_smtp
-}
-
 module "observability" {
   source = "../observability"
 

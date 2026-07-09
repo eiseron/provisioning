@@ -63,38 +63,14 @@ variable "key_server_location" {
   default     = "nbg1"
 }
 
-variable "error_monitoring_enable" {
-  description = "Provision the co-located error monitoring service (DNS record + deploy variables) on the prod host. Requires enable."
-  type        = bool
-  default     = false
-}
-
-variable "error_monitoring_smtp_password" {
-  description = "SMTP app password for the error monitoring service outbound email. Empty leaves email on the console backend."
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-variable "error_monitoring_smtp" {
-  description = "Non-secret SMTP settings (user/host/port/from) for the error monitoring service. Consumed only when error_monitoring_smtp_password is set."
-  type = object({
-    user = optional(string, "")
-    host = optional(string, "")
-    port = optional(string, "587")
-    from = optional(string, "")
-  })
-  default = {}
-}
-
 variable "zone_id" {
-  description = "Cloudflare zone id that hosts the error monitoring / observability dashboard subdomains. Consumed when error_monitoring_enable or observability_enable."
+  description = "Cloudflare zone id that hosts the observability dashboard subdomain. Consumed when observability_enable."
   type        = string
   default     = ""
 }
 
 variable "zone_domain" {
-  description = "Apex domain of the Cloudflare zone; the error monitoring dashboard is errors.<zone_domain> and observability is observe.<zone_domain>. Consumed when error_monitoring_enable or observability_enable."
+  description = "Apex domain of the Cloudflare zone; the observability dashboard is observe.<zone_domain>. Consumed when observability_enable."
   type        = string
   default     = ""
 }

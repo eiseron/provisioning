@@ -1,2 +1,0 @@
-FROM glitchtip/glitchtip@sha256:a1208e3c696b9d96d20f44026f73b8a15af863a9aa149a603ff3bda8600d259c
-LABEL service="error-monitoring"
