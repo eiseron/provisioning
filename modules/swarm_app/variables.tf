@@ -16,7 +16,7 @@ variable "service_name" {
 }
 
 variable "app_image" {
-  description = "App image for this release, digest-pinned by the deploy (a bare tag causes a perpetual diff)."
+  description = "App image used only on create/recreate (the running image is owned by the deploy via docker service update; the service ignores_changes on it). Source it from the current-release CI var so a recreate comes back on the deployed version."
   type        = string
   default     = ""
 

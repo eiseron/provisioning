@@ -88,4 +88,8 @@ resource "docker_service" "app" {
     delay   = "7s"
     timeout = "10m"
   }
+
+  lifecycle {
+    ignore_changes = [task_spec[0].container_spec[0].image]
+  }
 }
