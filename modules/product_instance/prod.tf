@@ -13,12 +13,20 @@ locals {
 
   prod_app_vars = merge(local.prod_app_vars_base, local.prod_app_vars_r2)
 
-  prod_ops_vars = local.prod_enabled ? {
+  prod_otlp_endpoint = nonsensitive(var.prod.observability_otlp_endpoint)
+
+  prod_ops_vars_base = local.prod_enabled ? {
     KAMAL_REGISTRY_USERNAME = gitlab_project_deploy_token.prod_registry[0].username
     KAMAL_REGISTRY_PASSWORD = gitlab_project_deploy_token.prod_registry[0].token
     SECRET_KEY_BASE         = random_password.secret_key_base[0].result
     PROD_PROJECT            = var.app_project_path
   } : {}
+
+  prod_ops_vars_observability = local.prod_enabled && local.prod_otlp_endpoint != "" ? {
+    OBSERVABILITY_OTLP_ENDPOINT = local.prod_otlp_endpoint
+  } : {}
+
+  prod_ops_vars = merge(local.prod_ops_vars_base, local.prod_ops_vars_observability)
 }
 
 resource "gitlab_pipeline_trigger" "prod_deployer" {
@@ -55,7 +63,7 @@ resource "gitlab_project_variable" "prod_ops" {
   project           = var.ops_project_id
   key               = each.key
   value             = each.value
-  masked            = !contains(["KAMAL_REGISTRY_USERNAME", "PROD_PROJECT"], each.key)
+  masked            = !contains(["KAMAL_REGISTRY_USERNAME", "PROD_PROJECT", "OBSERVABILITY_OTLP_ENDPOINT"], each.key)
   protected         = true
   environment_scope = "production"
 }

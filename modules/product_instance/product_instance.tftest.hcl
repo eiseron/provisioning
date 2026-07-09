@@ -1,3 +1,12 @@
+mock_provider "gitlab" {
+  mock_data "gitlab_repository_file" {
+    defaults = {
+      content = "eA=="
+    }
+  }
+}
+mock_provider "cloudflare" {}
+
 variables {
   ops_project_id = "12345678"
   slug           = "test-product"
@@ -306,6 +315,40 @@ run "prod_enabled_creates_trigger_token_and_deploy_token" {
   assert {
     condition     = length(gitlab_project_variable.prod_app) == 2
     error_message = "Two prod app CI vars must be created without R2 (PROD_DEPLOYER_TRIGGER_TOKEN, PROD_DEPLOYER_PROJECT)"
+  }
+}
+
+run "prod_observability_endpoint_lands_as_unmasked_ops_var" {
+  command = plan
+
+  variables {
+    app_project_id   = "87654321"
+    app_project_path = "eiseron/myproduct/myproduct"
+    ops_project_path = "eiseron/myproduct/myproduct-ops"
+    prod = {
+      enabled                     = true
+      observability_otlp_endpoint = "http://observability-collector:4318"
+    }
+  }
+
+  assert {
+    condition     = contains(keys(gitlab_project_variable.prod_ops), "OBSERVABILITY_OTLP_ENDPOINT")
+    error_message = "OBSERVABILITY_OTLP_ENDPOINT must be created when prod.observability_otlp_endpoint is set"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_ops["OBSERVABILITY_OTLP_ENDPOINT"].value == "http://observability-collector:4318"
+    error_message = "OBSERVABILITY_OTLP_ENDPOINT must carry the caller-provided collector address"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_ops["OBSERVABILITY_OTLP_ENDPOINT"].masked == false
+    error_message = "OBSERVABILITY_OTLP_ENDPOINT is a non-secret URL and must not be masked"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_ops["OBSERVABILITY_OTLP_ENDPOINT"].environment_scope == "production"
+    error_message = "OBSERVABILITY_OTLP_ENDPOINT must be scoped to production"
   }
 }
 
