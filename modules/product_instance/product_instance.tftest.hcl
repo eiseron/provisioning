@@ -6,6 +6,7 @@ mock_provider "gitlab" {
   }
 }
 mock_provider "cloudflare" {}
+mock_provider "github" {}
 
 variables {
   ops_project_id = "12345678"
@@ -775,4 +776,237 @@ run "runtime_enabled_requires_host_ip" {
   }
 
   expect_failures = [var.runtime]
+}
+
+run "repos_disabled_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(module.gl_app_repo) == 0
+    error_message = "No app GitLab repo must be created when app_repo is null"
+  }
+
+  assert {
+    condition     = length(module.gl_site_repo) == 0
+    error_message = "No site GitLab repo must be created when site_repo is null"
+  }
+
+  assert {
+    condition     = length(module.gl_planning_repo) == 0
+    error_message = "No planning GitLab repo must be created when planning_repo is null"
+  }
+}
+
+run "app_repo_creates_gitlab_project" {
+  command = plan
+
+  variables {
+    group_id = "11223344"
+    app_repo = {
+      description = "My product app"
+      topics      = ["elixir"]
+    }
+  }
+
+  assert {
+    condition     = length(module.gl_app_repo) == 1
+    error_message = "GitLab app repo must be created when app_repo is set"
+  }
+
+  assert {
+    condition     = length(module.gh_app_repo) == 0
+    error_message = "No GitHub app mirror must be created when app_repo.github is null"
+  }
+}
+
+run "app_repo_with_github_creates_both_repos" {
+  command = plan
+
+  variables {
+    group_id = "11223344"
+    app_repo = {
+      description = "My product app"
+      topics      = ["elixir"]
+      github      = { homepage_url = "https://myproduct.io", has_projects = true }
+    }
+  }
+
+  assert {
+    condition     = length(module.gl_app_repo) == 1
+    error_message = "GitLab app repo must be created when app_repo is set"
+  }
+
+  assert {
+    condition     = length(module.gh_app_repo) == 1
+    error_message = "GitHub app mirror must be created when app_repo.github is set"
+  }
+}
+
+run "site_repo_with_pages_creates_cloudflare_pages_project" {
+  command = plan
+
+  variables {
+    group_id = "11223344"
+    site_repo = {
+      description = "My product site"
+      topics      = ["astro"]
+      pages       = { domains = ["myproduct.io", "www.myproduct.io"] }
+    }
+  }
+
+  assert {
+    condition     = length(cloudflare_pages_project.site) == 1
+    error_message = "Cloudflare Pages project must be created when site_repo.pages is set"
+  }
+
+  assert {
+    condition     = cloudflare_pages_project.site[0].name == "test-product-site"
+    error_message = "Pages project name must default to <slug>-site"
+  }
+
+  assert {
+    condition     = length(cloudflare_pages_domain.site) == 2
+    error_message = "Two Cloudflare Pages domains must be created for the two apex+www entries"
+  }
+}
+
+run "site_pages_name_defaults_to_slug_site" {
+  command = plan
+
+  variables {
+    group_id = "11223344"
+    site_repo = {
+      pages = {}
+    }
+  }
+
+  assert {
+    condition     = cloudflare_pages_project.site[0].name == "test-product-site"
+    error_message = "Pages project name must be <slug>-site when site_preview.pages_project_name is not set"
+  }
+}
+
+run "site_preview_pages_project_name_override_respected" {
+  command = plan
+
+  variables {
+    group_id = "11223344"
+    site_repo = {
+      pages = {}
+    }
+    site_preview = {
+      pages_project_name = "custom-pages-name"
+    }
+  }
+
+  assert {
+    condition     = cloudflare_pages_project.site[0].name == "custom-pages-name"
+    error_message = "pages_project_name override must take precedence over the <slug>-site default"
+  }
+}
+
+run "planning_repo_creates_gitlab_project" {
+  command = plan
+
+  variables {
+    group_id = "11223344"
+    planning_repo = {
+      description = "Strategic planning"
+    }
+  }
+
+  assert {
+    condition     = length(module.gl_planning_repo) == 1
+    error_message = "GitLab planning repo must be created when planning_repo is set"
+  }
+}
+
+run "repositories_empty_by_default_creates_no_extra_repos" {
+  command = plan
+
+  assert {
+    condition     = length(module.gl_extra_repos) == 0
+    error_message = "No extra GitLab repos must be created when repositories is empty"
+  }
+
+  assert {
+    condition     = length(module.gh_extra_repos) == 0
+    error_message = "No extra GitHub repos must be created when repositories is empty"
+  }
+}
+
+run "repositories_creates_gitlab_project_per_entry" {
+  command = plan
+
+  variables {
+    group_id = "11223344"
+    repositories = {
+      docs = { description = "Documentation repo" }
+    }
+  }
+
+  assert {
+    condition     = length(module.gl_extra_repos) == 1
+    error_message = "One GitLab extra repo must be created for each repositories entry"
+  }
+}
+
+run "repositories_with_github_creates_mirror" {
+  command = plan
+
+  variables {
+    group_id = "11223344"
+    repositories = {
+      docs = { github = { homepage_url = "https://myproduct.io" } }
+    }
+  }
+
+  assert {
+    condition     = length(module.gh_extra_repos) == 1
+    error_message = "GitHub mirror must be created when repositories entry has github set"
+  }
+}
+
+run "repositories_with_pages_creates_cloudflare_project" {
+  command = plan
+
+  variables {
+    group_id = "11223344"
+    repositories = {
+      docs = { pages = { domains = ["docs.myproduct.io"] } }
+    }
+  }
+
+  assert {
+    condition     = length(cloudflare_pages_project.extra) == 1
+    error_message = "Cloudflare Pages project must be created when repositories entry has pages set"
+  }
+
+  assert {
+    condition     = length(cloudflare_pages_domain.extra) == 1
+    error_message = "One Cloudflare Pages domain must be created for the docs.myproduct.io entry"
+  }
+}
+
+run "prod_enabled_via_app_repo_uses_internal_project_id" {
+  command = plan
+
+  variables {
+    group_id         = "11223344"
+    ops_project_path = "eiseron/myproduct/myproduct-ops"
+    app_repo = {
+      description = "My product app"
+    }
+    prod = { enabled = true }
+  }
+
+  assert {
+    condition     = length(gitlab_pipeline_trigger.prod_deployer) == 1
+    error_message = "prod_deployer trigger must be created when prod.enabled is true and app_repo is set"
+  }
+
+  assert {
+    condition     = length(gitlab_project_deploy_token.prod_registry) == 1
+    error_message = "prod_registry deploy token must be created on the internal app project"
+  }
 }

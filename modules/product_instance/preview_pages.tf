@@ -1,9 +1,9 @@
 locals {
-  site_preview_enabled = var.site_preview.site_project_id != ""
+  site_preview_enabled = local._site_project_id != ""
 
   site_preview_ops_vars = local.site_preview_enabled ? {
-    PREVIEW_PAGES_PROJECT = var.site_preview.pages_project_name
-    PREVIEW_SITE_PROJECT  = var.site_preview.site_project_path
+    PREVIEW_PAGES_PROJECT = local._pages_project_name
+    PREVIEW_SITE_PROJECT  = local._site_project_path
   } : {}
 
   site_preview_site_vars = local.site_preview_enabled ? {
@@ -16,7 +16,7 @@ resource "gitlab_pipeline_trigger" "site_preview" {
   count = local.site_preview_enabled ? 1 : 0
 
   project     = var.ops_project_id
-  description = "${var.site_preview.pages_project_name} MR preview → pages deployer"
+  description = "${local._pages_project_name} MR preview -> pages deployer"
 }
 
 resource "gitlab_project_variable" "site_preview_ops" {
@@ -33,7 +33,7 @@ resource "gitlab_project_variable" "site_preview_ops" {
 resource "gitlab_project_variable" "site_preview_site" {
   for_each = local.site_preview_site_vars
 
-  project   = var.site_preview.site_project_id
+  project   = local._site_project_id
   key       = each.key
   value     = each.value.value
   masked    = each.value.masked
@@ -43,6 +43,6 @@ resource "gitlab_project_variable" "site_preview_site" {
 resource "gitlab_project_job_token_scope" "site_allows_ops" {
   count = local.site_preview_enabled ? 1 : 0
 
-  project           = var.site_preview.site_project_id
+  project           = local._site_project_id
   target_project_id = var.ops_project_id
 }

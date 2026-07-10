@@ -54,16 +54,9 @@ resource "gitlab_project" "this" {
 resource "gitlab_branch_protection" "main" {
   project            = gitlab_project.this.id
   branch             = "main"
-  push_access_level  = length(var.allowed_to_push_user_ids) > 0 ? null : var.push_access_level
+  push_access_level  = var.push_access_level
   merge_access_level = "maintainer"
   allow_force_push   = false
-
-  dynamic "allowed_to_push" {
-    for_each = toset(var.allowed_to_push_user_ids)
-    content {
-      user_id = allowed_to_push.value
-    }
-  }
 }
 
 resource "gitlab_tag_protection" "version" {
@@ -77,14 +70,7 @@ resource "gitlab_branch_protection" "release" {
 
   project            = gitlab_project.this.id
   branch             = "release/*"
-  push_access_level  = length(var.allowed_to_push_user_ids) > 0 ? null : var.push_access_level
+  push_access_level  = var.push_access_level
   merge_access_level = "maintainer"
   allow_force_push   = false
-
-  dynamic "allowed_to_push" {
-    for_each = toset(var.allowed_to_push_user_ids)
-    content {
-      user_id = allowed_to_push.value
-    }
-  }
 }

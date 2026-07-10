@@ -1,5 +1,5 @@
 locals {
-  prod_enabled = nonsensitive(var.prod.enabled) && var.app_project_id != ""
+  prod_enabled = nonsensitive(var.prod.enabled) && local._app_project_id != ""
 
   prod_app_vars_base = local.prod_enabled ? {
     PROD_DEPLOYER_TRIGGER_TOKEN = gitlab_pipeline_trigger.prod_deployer[0].token
@@ -19,7 +19,7 @@ locals {
     KAMAL_REGISTRY_USERNAME = gitlab_project_deploy_token.prod_registry[0].username
     KAMAL_REGISTRY_PASSWORD = gitlab_project_deploy_token.prod_registry[0].token
     SECRET_KEY_BASE         = random_password.secret_key_base[0].result
-    PROD_PROJECT            = var.app_project_path
+    PROD_PROJECT            = local._app_project_path
   } : {}
 
   prod_ops_vars_observability = local.prod_enabled && local.prod_otlp_endpoint != "" ? {
@@ -37,7 +37,7 @@ resource "gitlab_pipeline_trigger" "prod_deployer" {
 
 resource "gitlab_project_deploy_token" "prod_registry" {
   count   = local.prod_enabled ? 1 : 0
-  project = var.app_project_id
+  project = local._app_project_id
   name    = "prod-registry-pull"
   scopes  = ["read_registry"]
 }
@@ -50,7 +50,7 @@ resource "random_password" "secret_key_base" {
 
 resource "gitlab_project_variable" "prod_app" {
   for_each          = local.prod_app_vars
-  project           = var.app_project_id
+  project           = local._app_project_id
   key               = each.key
   value             = each.value
   masked            = each.key != "PROD_DEPLOYER_PROJECT"
