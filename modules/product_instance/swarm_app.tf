@@ -1,3 +1,9 @@
+provider "docker" {
+  host                        = var.runtime.host_ip != "" ? "ssh://${var.runtime.deploy_user}@${var.runtime.host_ip}" : "unix:///var/run/docker.sock"
+  ssh_opts                    = ["-o", "StrictHostKeyChecking=accept-new"]
+  disable_docker_daemon_check = true
+}
+
 data "docker_network" "traefik" {
   count = local.swarm_enabled ? 1 : 0
   name  = "traefik"

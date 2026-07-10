@@ -146,9 +146,11 @@ variable "site_preview" {
 }
 
 variable "runtime" {
-  description = "App runtime-service wiring for the Docker Swarm deployment. When enable is true (and prod is enabled) the module creates the product's swarm service via the swarm_app submodule over the docker provider passed by the consumer, reusing the generated SECRET_KEY_BASE and building DATABASE_URL from db_tenant_password. Dormant by default so the module stays inert until the product cutover. Fields: app_host is the public host Traefik routes to; app_image is the image used only on create/recreate (the running image is owned by the deploy); observability_otlp_endpoint is where the app sends telemetry; admin_access_* wire the OIDC admin gate; placement_constraints select the node the app runs on."
+  description = "App runtime-service wiring. When enable is true (and prod is enabled) the module stands up the product's runtime service, reusing the generated SECRET_KEY_BASE and building DATABASE_URL from db_tenant_password. The module owns the connection to the runtime host, so the consumer passes only data (never a provider). Dormant by default until the product cutover. Fields: host_ip and deploy_user are the production host address and SSH user the module connects to; app_host is the public host routed to the service; app_image is the image used only on create/recreate (the running image is owned by the deploy); observability_otlp_endpoint is where the app sends telemetry; admin_access_* wire the OIDC admin gate; placement_constraints select the host the app runs on."
   type = object({
     enable                      = optional(bool, false)
+    host_ip                     = optional(string, "")
+    deploy_user                 = optional(string, "deploy")
     app_host                    = optional(string, "")
     app_image                   = optional(string, "")
     observability_otlp_endpoint = optional(string, "http://observability-collector:4318")
@@ -160,8 +162,8 @@ variable "runtime" {
   default = {}
 
   validation {
-    condition     = !var.runtime.enable || (var.runtime.app_host != "" && var.runtime.app_image != "")
-    error_message = "runtime.app_host and runtime.app_image must be set when runtime.enable is true."
+    condition     = !var.runtime.enable || (var.runtime.app_host != "" && var.runtime.app_image != "" && var.runtime.host_ip != "")
+    error_message = "runtime.app_host, runtime.app_image and runtime.host_ip must be set when runtime.enable is true."
   }
 }
 

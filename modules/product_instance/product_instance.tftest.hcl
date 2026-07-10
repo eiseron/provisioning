@@ -701,6 +701,7 @@ run "swarm_enabled_wires_the_app_service" {
     prod             = { enabled = true }
     runtime = {
       enable    = true
+      host_ip   = "10.0.0.1"
       app_host  = "app.example.com"
       app_image = "registry.example.test/acme/app/prod:v1.0.0"
     }
@@ -729,6 +730,7 @@ run "swarm_disabled_when_prod_is_disabled" {
   variables {
     runtime = {
       enable    = true
+      host_ip   = "10.0.0.1"
       app_host  = "app.example.com"
       app_image = "registry.example.test/acme/app/prod:v1.0.0"
     }
@@ -749,10 +751,28 @@ run "swarm_enabled_requires_tenant_password" {
     prod           = { enabled = true }
     runtime = {
       enable    = true
+      host_ip   = "10.0.0.1"
       app_host  = "app.example.com"
       app_image = "registry.example.test/acme/app/prod:v1.0.0"
     }
   }
 
   expect_failures = [var.db_tenant_password]
+}
+
+run "runtime_enabled_requires_host_ip" {
+  command = plan
+
+  variables {
+    app_project_id = "87654321"
+    prod           = { enabled = true }
+    runtime = {
+      enable    = true
+      app_host  = "app.example.com"
+      app_image = "registry.example.test/acme/app/prod:v1.0.0"
+    }
+    db_tenant_password = "tenant-pw"
+  }
+
+  expect_failures = [var.runtime]
 }
