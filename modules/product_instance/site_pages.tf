@@ -1,10 +1,10 @@
 locals {
   _pages_project_name = var.site_preview.pages_project_name != "" ? var.site_preview.pages_project_name : "${var.slug}-site"
-  _site_pages_enabled = try(var.site_repo.pages, null) != null && var.cloudflare_account_id != ""
-  _site_pages_domains = local._site_pages_enabled ? try(var.site_repo.pages.domains, []) : []
+  _site_pages_enabled = try(local._site_cfg.pages, null) != null && var.cloudflare_account_id != ""
+  _site_pages_domains = local._site_pages_enabled ? try(local._site_cfg.pages.domains, []) : []
 
   _extra_pages_repos = {
-    for k, v in var.repositories : k => v
+    for k, v in local._extra_cfgs : k => v
     if v.pages != null && var.cloudflare_account_id != ""
   }
   _extra_pages_domains = {
@@ -21,7 +21,7 @@ resource "cloudflare_pages_project" "site" {
 
   account_id        = var.cloudflare_account_id
   name              = local._pages_project_name
-  production_branch = try(var.site_repo.pages.production_branch, "main")
+  production_branch = try(local._site_cfg.pages.production_branch, "main")
 }
 
 resource "cloudflare_pages_domain" "site" {
