@@ -82,6 +82,18 @@ stages:
   - release
   - sync
 
+terraform-validate:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - $CHDIR/**/*
+
+tofu-test:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - $CHDIR/**/*
+
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
