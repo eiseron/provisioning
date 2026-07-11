@@ -1,3 +1,6 @@
+mock_provider "hcloud" {}
+mock_provider "gitlab" {}
+
 variables {
   name           = "test-runner"
   group_id       = 12345678
