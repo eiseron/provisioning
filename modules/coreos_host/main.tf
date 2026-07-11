@@ -20,6 +20,13 @@ locals {
   butane = templatefile("${path.module}/butane/base.bu.tftpl", {
     deploy_ssh_authorized_key = var.deploy_ssh_authorized_key
     hostname                  = var.name
+    luks_enabled              = var.luks.tang.url != ""
+    luks_name                 = var.luks.name
+    luks_device               = var.luks.device
+    luks_mount                = var.luks.mount
+    luks_wipe                 = var.luks.wipe
+    tang_url                  = var.luks.tang.url
+    tang_thumbprint           = var.luks.tang.thumbprint
   })
 }
 

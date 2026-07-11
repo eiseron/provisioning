@@ -58,3 +58,23 @@ variable "platform" {
   type        = string
   default     = "qemu"
 }
+
+variable "luks" {
+  description = "Encrypted data volume, unlocked at boot via network-bound Tang. When tang.url is set, the module emits a storage.luks device bound to Tang via Clevis plus an ext4 filesystem at mount; empty tang.url leaves the host unencrypted. Fields: device is the block device to encrypt (a dedicated fresh volume on the Green host); name is the /dev/mapper name; mount is the filesystem path (reused by the k3s local-path storage); wipe formats the device fresh (safe ONLY on a new device, never against data to preserve). The mapping enables discard/TRIM (needed for cloud SSD wear; leaks coarse used-block info, an accepted tradeoff). tang.url is the existing Tang keyserver (http://<ip>:6800) and tang.thumbprint is the Clevis-pinned advertised-key thumbprint (PROD_LUKS_TANG_THP)."
+  type = object({
+    device = optional(string, "/dev/sdb")
+    name   = optional(string, "crypt")
+    mount  = optional(string, "/var/lib/crypt")
+    wipe   = optional(bool, true)
+    tang = optional(object({
+      url        = optional(string, "")
+      thumbprint = optional(string, "")
+    }), {})
+  })
+  default = {}
+
+  validation {
+    condition     = var.luks.tang.url == "" || var.luks.tang.thumbprint != ""
+    error_message = "luks.tang.thumbprint is required when luks.tang.url is set (an empty thumbprint skips Tang key verification and opens a boot-time MITM window)."
+  }
+}

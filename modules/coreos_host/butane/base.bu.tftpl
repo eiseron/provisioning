@@ -60,6 +60,25 @@ storage:
       contents:
         inline: |
           ${hostname}
+%{ if luks_enabled ~}
+
+  luks:
+    - name: ${luks_name}
+      device: ${luks_device}
+      discard: true
+      wipe_volume: ${luks_wipe}
+      clevis:
+        tang:
+          - url: ${tang_url}
+            thumbprint: ${tang_thumbprint}
+
+  filesystems:
+    - device: /dev/mapper/${luks_name}
+      format: ext4
+      path: ${luks_mount}
+      label: crypt
+      with_mount_unit: true
+%{ endif ~}
 
 systemd:
   units:
