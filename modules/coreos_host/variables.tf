@@ -78,3 +78,18 @@ variable "luks" {
     error_message = "luks.tang.thumbprint is required when luks.tang.url is set (an empty thumbprint skips Tang key verification and opens a boot-time MITM window)."
   }
 }
+
+variable "k3s" {
+  description = "k3s server on this host. When enable is true, the Butane lays down the k3s config (Traefik kept bundled), layers the k3s-selinux policy via rpm-ostree, installs the pinned k3s binary from GitHub releases, and runs k3s server. Fields: version is the pinned release tag (e.g. v1.30.5+k3s1); tls_san lists extra SANs for the API server cert (the public host/IP so the extracted kubeconfig works remotely)."
+  type = object({
+    enable  = optional(bool, false)
+    version = optional(string, "")
+    tls_san = optional(list(string), [])
+  })
+  default = {}
+
+  validation {
+    condition     = !var.k3s.enable || can(regex("^v[0-9]+\\.[0-9]+\\.[0-9]+\\+k3s[0-9]+$", var.k3s.version))
+    error_message = "k3s.version must be a pinned release tag matching v<x>.<y>.<z>+k3s<n> (e.g. v1.30.5+k3s1); it is interpolated into a boot-time shell command, so the format is enforced to prevent injection."
+  }
+}

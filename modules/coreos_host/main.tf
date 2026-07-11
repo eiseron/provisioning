@@ -27,6 +27,9 @@ locals {
     luks_wipe                 = var.luks.wipe
     tang_url                  = var.luks.tang.url
     tang_thumbprint           = var.luks.tang.thumbprint
+    k3s_enabled               = var.k3s.enable
+    k3s_version_url           = replace(var.k3s.version, "+", "%2B")
+    k3s_tls_san               = var.k3s.tls_san
   })
 }
 

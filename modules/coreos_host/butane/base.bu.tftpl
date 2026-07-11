@@ -60,6 +60,29 @@ storage:
       contents:
         inline: |
           ${hostname}
+%{ if k3s_enabled ~}
+
+    - path: /etc/rancher/k3s/config.yaml
+      mode: 0600
+      contents:
+        inline: |
+          write-kubeconfig-mode: "0640"
+          tls-san:
+%{ for san in k3s_tls_san ~}
+            - ${san}
+%{ endfor ~}
+
+    - path: /etc/yum.repos.d/rancher-k3s-common.repo
+      mode: 0644
+      contents:
+        inline: |
+          [rancher-k3s-common-stable]
+          name=Rancher K3s Common (stable)
+          baseurl=https://rpm.rancher.io/k3s/stable/common/coreos/noarch
+          enabled=1
+          gpgcheck=1
+          gpgkey=https://rpm.rancher.io/public.key
+%{ endif ~}
 %{ if luks_enabled ~}
 
   luks:
@@ -88,3 +111,54 @@ systemd:
           contents: |
             [Service]
             Environment=ZINCATI_UPDATE_STRATEGY=periodic
+%{ if k3s_enabled ~}
+
+    - name: rpm-ostree-install-k3s-selinux.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Layer k3s-selinux via rpm-ostree
+        Wants=network-online.target
+        After=network-online.target
+        Before=k3s-install.service
+        ConditionPathExists=!/var/lib/%N.done
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/usr/bin/rpm-ostree install --apply-live --allow-inactive --idempotent k3s-selinux
+        ExecStart=/usr/bin/touch /var/lib/%N.done
+        [Install]
+        WantedBy=multi-user.target
+
+    - name: k3s-install.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Install the pinned k3s binary
+        Wants=network-online.target
+        After=network-online.target rpm-ostree-install-k3s-selinux.service
+        ConditionPathExists=!/usr/local/bin/k3s
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/usr/bin/sh -c 'set -eu; cd /usr/local/bin; curl -fsSL -o k3s "https://github.com/k3s-io/k3s/releases/download/${k3s_version_url}/k3s"; curl -fsSL -o k3s.sha256 "https://github.com/k3s-io/k3s/releases/download/${k3s_version_url}/sha256sum-amd64.txt"; grep -E " k3s$" k3s.sha256 | sha256sum -c -; chmod 0755 k3s; rm -f k3s.sha256'
+        [Install]
+        WantedBy=multi-user.target
+
+    - name: k3s.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Lightweight Kubernetes
+        Wants=network-online.target
+        After=network-online.target k3s-install.service
+        [Service]
+        Type=notify
+        ExecStart=/usr/local/bin/k3s server --config /etc/rancher/k3s/config.yaml
+        Restart=always
+        RestartSec=5s
+        KillMode=process
+        Delegate=yes
+        [Install]
+        WantedBy=multi-user.target
+%{ endif ~}
