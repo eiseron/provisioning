@@ -1,7 +1,7 @@
 include:
   - project: eiseron/stack/ci
     file: /templates/terraform-validate.yml
-    ref: v0.9.47
+    ref: v0.9.50
     inputs:
       chdirs:
         - modules/preview_host
@@ -31,7 +31,7 @@ include:
         - modules/gitlab_runner
   - project: eiseron/stack/ci
     file: /templates/tofu-test.yml
-    ref: v0.9.47
+    ref: v0.9.50
     inputs:
       chdirs:
         - modules/preview_host
@@ -81,18 +81,6 @@ stages:
   - test
   - release
   - sync
-
-terraform-validate:
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - $CHDIR/**/*
-
-tofu-test:
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - $CHDIR/**/*
 
 workflow:
   rules:
