@@ -16,6 +16,7 @@ include:
         - modules/swarm_postgres/examples/validate
         - modules/swarm_app/examples/validate
         - modules/swarm_observability/examples/validate
+        - modules/k3s_platform/examples/validate
         - modules/tang_host
         - modules/sops_drift_schedule
         - modules/db_backup_r2
@@ -42,6 +43,7 @@ include:
         - modules/swarm_postgres/examples/validate
         - modules/swarm_app/examples/validate
         - modules/swarm_observability/examples/validate
+        - modules/k3s_platform/examples/validate
         - modules/tang_host
         - modules/sops_drift_schedule
         - modules/db_backup_r2
