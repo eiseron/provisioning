@@ -1,0 +1,71 @@
+variant: fcos
+version: 1.5.0
+
+passwd:
+  users:
+    - name: core
+      groups:
+        - sudo
+        - wheel
+      ssh_authorized_keys:
+        - ${deploy_ssh_authorized_key}
+
+storage:
+  files:
+    - path: /etc/ssh/sshd_config.d/10-hardening.conf
+      mode: 0600
+      overwrite: true
+      contents:
+        inline: |
+          PermitRootLogin no
+          PasswordAuthentication no
+          KbdInteractiveAuthentication no
+          ChallengeResponseAuthentication no
+          AllowUsers core
+          X11Forwarding no
+          MaxAuthTries 3
+          ClientAliveInterval 300
+          ClientAliveCountMax 2
+
+    - path: /etc/sysctl.d/99-hardening.conf
+      mode: 0644
+      overwrite: true
+      contents:
+        inline: |
+          net.ipv4.conf.all.rp_filter = 1
+          net.ipv4.conf.default.rp_filter = 1
+          net.ipv4.conf.all.accept_redirects = 0
+          net.ipv4.conf.default.accept_redirects = 0
+          net.ipv4.conf.all.send_redirects = 0
+          net.ipv4.conf.default.send_redirects = 0
+          net.ipv4.conf.all.accept_source_route = 0
+          net.ipv6.conf.all.accept_redirects = 0
+          net.ipv6.conf.all.accept_source_route = 0
+          kernel.kptr_restrict = 2
+          kernel.dmesg_restrict = 1
+          kernel.yama.ptrace_scope = 1
+          fs.protected_hardlinks = 1
+          fs.protected_symlinks = 1
+
+    - path: /etc/systemd/zram-generator.conf
+      mode: 0644
+      contents:
+        inline: |
+          [zram0]
+          zram-size = min(ram, 2048)
+
+    - path: /etc/hostname
+      mode: 0644
+      overwrite: true
+      contents:
+        inline: |
+          ${hostname}
+
+systemd:
+  units:
+    - name: zincati.service
+      dropins:
+        - name: 10-reboot-window.conf
+          contents: |
+            [Service]
+            Environment=ZINCATI_UPDATE_STRATEGY=periodic

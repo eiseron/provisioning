@@ -29,6 +29,12 @@ include:
     inputs:
       name: "-prod-host"
       chdir: modules/prod_host
+  - project: eiseron/stack/ci
+    file: /templates/terraform-validate.yml
+    ref: v0.1.8
+    inputs:
+      name: "-coreos-host"
+      chdir: modules/coreos_host/examples/validate
   # prod_platform needs injected provider configs (configuration_aliases), so it
   # is validated via a dummy-provider fixture root rather than the module dir.
   - project: eiseron/stack/ci
