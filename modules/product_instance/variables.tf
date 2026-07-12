@@ -146,29 +146,30 @@ variable "site_preview" {
 }
 
 variable "runtime" {
-  description = "App runtime-service wiring. When enable is true (and prod is enabled) the module stands up the product's runtime service, reusing the generated SECRET_KEY_BASE and building DATABASE_URL from db_tenant_password. The module owns the connection to the runtime host, so the consumer passes only data (never a provider). Dormant by default until the product cutover. Fields: host_ip and deploy_user are the production host address and SSH user the module connects to; app_host is the public host routed to the service; app_image is the image used only on create/recreate (the running image is owned by the deploy); observability_otlp_endpoint is where the app sends telemetry; admin_access_* wire the OIDC admin gate; placement_constraints select the host the app runs on."
+  description = "App runtime-service wiring. When enable is true (and prod is enabled) the module stands up the product's runtime service, reusing the generated SECRET_KEY_BASE and building DATABASE_URL from db_tenant_password. The module owns the connection to the runtime cluster, so the consumer passes only data (never a provider) and stays agnostic to the runtime implementation behind it. Dormant by default until the product cutover. The cluster bearer token is a separate sensitive variable (cluster_token), never part of this object, so it is not exposed in plan output. Fields: cluster_host and cluster_ca_cert are the runtime cluster API endpoint and base64 CA the module connects with; namespace is where the app runs; app_host is the public host routed to the service; app_image is the image used only on create/recreate (the running image is owned by the deploy); observability_otlp_endpoint is where the app sends telemetry; admin_access_* wire the OIDC admin gate; node_selector labels select the node the app runs on."
   type = object({
     enable                      = optional(bool, false)
-    host_ip                     = optional(string, "")
-    deploy_user                 = optional(string, "deploy")
+    cluster_host                = optional(string, "")
+    cluster_ca_cert             = optional(string, "")
+    namespace                   = optional(string, "")
     app_host                    = optional(string, "")
     app_image                   = optional(string, "")
     observability_otlp_endpoint = optional(string, "http://observability-collector:4318")
     admin_access_issuer         = optional(string, "")
     admin_access_certs_url      = optional(string, "")
     admin_access_audiences      = optional(string, "")
-    placement_constraints       = optional(list(string), ["node.role==manager"])
+    node_selector               = optional(map(string), {})
   })
   default = {}
 
   validation {
-    condition     = !var.runtime.enable || (var.runtime.app_host != "" && var.runtime.app_image != "" && var.runtime.host_ip != "")
-    error_message = "runtime.app_host, runtime.app_image and runtime.host_ip must be set when runtime.enable is true."
+    condition     = !var.runtime.enable || (var.runtime.app_host != "" && var.runtime.app_image != "" && var.runtime.cluster_host != "")
+    error_message = "runtime.app_host, runtime.app_image and runtime.cluster_host must be set when runtime.enable is true."
   }
 }
 
 variable "db_tenant_password" {
-  description = "Password of the product's Postgres tenant role, used to assemble the app service DATABASE_URL (ecto://<slug>:<pw>@platform-db/<slug>_prod). Generated in the org ops repo and injected as TF_VAR_db_tenant_password only on production applies; empty while dormant."
+  description = "Password of the product's Postgres tenant role, used to assemble the app service DATABASE_URL (ecto://<slug>:<pw>@platform-db-rw.platform/<slug>_prod). Generated in the org ops repo and injected as TF_VAR_db_tenant_password only on production applies; empty while dormant."
   type        = string
   sensitive   = true
   default     = ""
@@ -176,6 +177,18 @@ variable "db_tenant_password" {
   validation {
     condition     = !var.runtime.enable || var.db_tenant_password != ""
     error_message = "db_tenant_password must be set when runtime.enable is true (an empty password yields a DATABASE_URL the app cannot authenticate with)."
+  }
+}
+
+variable "cluster_token" {
+  description = "Bearer token the module uses to reach the runtime cluster API (paired with runtime.cluster_host). Kept as a separate sensitive variable so it never lands in the runtime object or the plan output. Injected as TF_VAR_cluster_token only on production applies; empty while dormant."
+  type        = string
+  sensitive   = true
+  default     = ""
+
+  validation {
+    condition     = !var.runtime.enable || var.cluster_token != ""
+    error_message = "cluster_token must be set when runtime.enable is true (an empty token cannot authenticate against the cluster API)."
   }
 }
 

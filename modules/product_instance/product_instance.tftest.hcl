@@ -23,7 +23,7 @@ variables {
   }
 }
 
-mock_provider "docker" {}
+mock_provider "kubernetes" {}
 
 run "uptime_cron_is_five_minutes" {
   command = plan
@@ -678,21 +678,16 @@ run "prod_with_r2_buckets_aws_secret_is_masked" {
   }
 }
 
-run "swarm_disabled_by_default_reads_no_networks" {
+run "runtime_disabled_by_default_is_inert" {
   command = plan
 
   assert {
-    condition     = length(data.docker_network.traefik) == 0
-    error_message = "No traefik network lookup must happen when swarm is disabled"
-  }
-
-  assert {
-    condition     = length(data.docker_network.internal) == 0
-    error_message = "No internal network lookup must happen when swarm is disabled"
+    condition     = local.k3s_enabled == false
+    error_message = "The app runtime must stay inert when runtime.enable is false"
   }
 }
 
-run "swarm_enabled_wires_the_app_service" {
+run "runtime_enabled_wires_the_app_service" {
   command = plan
 
   variables {
@@ -701,67 +696,93 @@ run "swarm_enabled_wires_the_app_service" {
     ops_project_path = "eiseron/myproduct/myproduct-ops"
     prod             = { enabled = true }
     runtime = {
-      enable    = true
-      host_ip   = "10.0.0.1"
-      app_host  = "app.example.com"
-      app_image = "registry.example.test/acme/app/prod:v1.0.0"
+      enable       = true
+      cluster_host = "https://10.0.0.1:6443"
+      app_host     = "app.example.com"
+      app_image    = "registry.example.test/acme/app/prod:v1.0.0"
     }
+    cluster_token      = "test-token"
     db_tenant_password = "tenant-pw"
   }
 
   assert {
-    condition     = length(data.docker_network.traefik) == 1
-    error_message = "Traefik network must be looked up when swarm is enabled"
+    condition     = local.k3s_enabled == true
+    error_message = "The app runtime must be enabled when runtime.enable and prod are both on"
   }
 
   assert {
-    condition     = length(data.docker_network.internal) == 1
-    error_message = "Internal network must be looked up when swarm is enabled"
+    condition     = module.k3s_app.service_name == var.slug
+    error_message = "The app service must be named after the product slug"
   }
 
   assert {
-    condition     = module.swarm_app.service_name == var.slug
-    error_message = "The swarm app service must be named after the product slug"
+    condition     = local.k3s_namespace == var.slug
+    error_message = "The app namespace must default to the product slug"
+  }
+
+  assert {
+    condition     = strcontains(local.k3s_database_url, "@platform-db-rw.platform/")
+    error_message = "DATABASE_URL must target the CloudNativePG read-write service in the platform namespace"
   }
 }
 
-run "swarm_disabled_when_prod_is_disabled" {
+run "runtime_disabled_when_prod_is_disabled" {
   command = plan
 
   variables {
     runtime = {
-      enable    = true
-      host_ip   = "10.0.0.1"
-      app_host  = "app.example.com"
-      app_image = "registry.example.test/acme/app/prod:v1.0.0"
+      enable       = true
+      cluster_host = "https://10.0.0.1:6443"
+      app_host     = "app.example.com"
+      app_image    = "registry.example.test/acme/app/prod:v1.0.0"
     }
+    cluster_token      = "test-token"
     db_tenant_password = "tenant-pw"
   }
 
   assert {
-    condition     = length(data.docker_network.traefik) == 0
-    error_message = "Swarm must stay inert when prod is not enabled (no SECRET_KEY_BASE to reuse)"
+    condition     = local.k3s_enabled == false
+    error_message = "The app runtime must stay inert when prod is not enabled (no SECRET_KEY_BASE to reuse)"
   }
 }
 
-run "swarm_enabled_requires_tenant_password" {
+run "runtime_enabled_requires_tenant_password" {
   command = plan
 
   variables {
     app_project_id = "87654321"
     prod           = { enabled = true }
     runtime = {
-      enable    = true
-      host_ip   = "10.0.0.1"
-      app_host  = "app.example.com"
-      app_image = "registry.example.test/acme/app/prod:v1.0.0"
+      enable       = true
+      cluster_host = "https://10.0.0.1:6443"
+      app_host     = "app.example.com"
+      app_image    = "registry.example.test/acme/app/prod:v1.0.0"
     }
+    cluster_token = "test-token"
   }
 
   expect_failures = [var.db_tenant_password]
 }
 
-run "runtime_enabled_requires_host_ip" {
+run "runtime_enabled_requires_cluster_token" {
+  command = plan
+
+  variables {
+    app_project_id = "87654321"
+    prod           = { enabled = true }
+    runtime = {
+      enable       = true
+      cluster_host = "https://10.0.0.1:6443"
+      app_host     = "app.example.com"
+      app_image    = "registry.example.test/acme/app/prod:v1.0.0"
+    }
+    db_tenant_password = "tenant-pw"
+  }
+
+  expect_failures = [var.cluster_token]
+}
+
+run "runtime_enabled_requires_cluster_host" {
   command = plan
 
   variables {
@@ -772,6 +793,7 @@ run "runtime_enabled_requires_host_ip" {
       app_host  = "app.example.com"
       app_image = "registry.example.test/acme/app/prod:v1.0.0"
     }
+    cluster_token      = "test-token"
     db_tenant_password = "tenant-pw"
   }
 

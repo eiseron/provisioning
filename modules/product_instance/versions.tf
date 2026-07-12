@@ -10,9 +10,9 @@ terraform {
       source  = "cloudflare/cloudflare"
       version = ">= 5.0"
     }
-    docker = {
-      source  = "kreuzwerker/docker"
-      version = "~> 3.0"
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">= 2.30"
     }
     github = {
       source  = "integrations/github"
