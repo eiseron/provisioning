@@ -842,49 +842,27 @@ run "standard_repos_created_when_group_id_set" {
   }
 
   assert {
-    condition     = length(module.gh_app_repo) == 0
-    error_message = "No GitHub app mirror must be created when repo.github is null"
-  }
-}
-
-run "app_repo_with_github_creates_mirror" {
-  command = plan
-
-  variables {
-    group_id = "11223344"
-    repo = {
-      description = "My product app"
-      topics      = ["elixir"]
-      github      = { homepage_url = "https://myproduct.io", has_projects = true }
-    }
-  }
-
-  assert {
-    condition     = length(module.gl_app_repo) == 1
-    error_message = "GitLab app repo must be created when group_id is set"
-  }
-
-  assert {
     condition     = length(module.gh_app_repo) == 1
-    error_message = "GitHub app mirror must be created when repo.github is set"
+    error_message = "GitHub app mirror must be created when group_id is set"
+  }
+
+  assert {
+    condition     = length(module.gh_site_repo) == 1
+    error_message = "GitHub site mirror must be created when group_id is set"
   }
 }
 
-run "site_repo_with_pages_creates_cloudflare_pages_project" {
+run "domain_creates_cloudflare_pages_project" {
   command = plan
 
   variables {
     group_id = "11223344"
-    site_repo = {
-      description = "My product site"
-      topics      = ["astro"]
-      pages       = { domains = ["myproduct.io", "www.myproduct.io"] }
-    }
+    domain   = "myproduct.io"
   }
 
   assert {
     condition     = length(cloudflare_pages_project.site) == 1
-    error_message = "Cloudflare Pages project must be created when site_repo.pages is set"
+    error_message = "Cloudflare Pages project must be created when domain is set"
   }
 
   assert {
@@ -894,7 +872,20 @@ run "site_repo_with_pages_creates_cloudflare_pages_project" {
 
   assert {
     condition     = length(cloudflare_pages_domain.site) == 2
-    error_message = "Two Cloudflare Pages domains must be created for the two apex+www entries"
+    error_message = "Two Cloudflare Pages domains must be created (apex and www)"
+  }
+}
+
+run "no_domain_creates_no_pages" {
+  command = plan
+
+  variables {
+    group_id = "11223344"
+  }
+
+  assert {
+    condition     = length(cloudflare_pages_project.site) == 0
+    error_message = "No Cloudflare Pages project must be created when domain is not set"
   }
 }
 
@@ -902,8 +893,8 @@ run "site_pages_name_defaults_to_slug_site" {
   command = plan
 
   variables {
-    group_id  = "11223344"
-    site_repo = { pages = {} }
+    group_id = "11223344"
+    domain   = "myproduct.io"
   }
 
   assert {
@@ -916,8 +907,8 @@ run "site_preview_pages_project_name_override_respected" {
   command = plan
 
   variables {
-    group_id  = "11223344"
-    site_repo = { pages = {} }
+    group_id = "11223344"
+    domain   = "myproduct.io"
     site_preview = {
       pages_project_name = "custom-pages-name"
     }
@@ -933,8 +924,7 @@ run "planning_repo_created_with_group_id" {
   command = plan
 
   variables {
-    group_id      = "11223344"
-    planning_repo = { description = "Strategic planning" }
+    group_id = "11223344"
   }
 
   assert {

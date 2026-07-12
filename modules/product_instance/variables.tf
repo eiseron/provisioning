@@ -192,47 +192,26 @@ variable "cluster_token" {
   }
 }
 
-variable "repo" {
-  description = "Configuration for the main repository, named after the product slug. Created automatically when group_id is set. If github is provided, a GitHub mirror is also created."
-  type = object({
-    description = optional(string, "")
-    topics      = optional(list(string), [])
-    github = optional(object({
-      homepage_url = optional(string, "")
-      has_projects = optional(bool, false)
-    }), null)
-  })
-  default = {}
+variable "description" {
+  description = "Product description, used as the description for all three standard repositories."
+  type        = string
+  default     = ""
 }
 
-variable "site_repo" {
-  description = "Configuration for the site repository, named {slug}-site. Created automatically when group_id is set. If pages is provided, a Cloudflare Pages project and domains are created. If github is provided, a GitHub mirror is created."
-  type = object({
-    description       = optional(string, "")
-    topics            = optional(list(string), [])
-    push_access_level = optional(string, "maintainer")
-    pages = optional(object({
-      production_branch = optional(string, "main")
-      domains           = optional(list(string), [])
-    }), null)
-    github = optional(object({
-      homepage_url = optional(string, "")
-    }), null)
-  })
-  default = {}
+variable "domain" {
+  description = "Product domain (e.g. afinados.io). When set: creates Cloudflare Pages for the site repo with domains [domain, www.domain]; sets GitHub homepage_url to https://domain for app and site mirrors."
+  type        = string
+  default     = ""
 }
 
-variable "planning_repo" {
-  description = "Configuration for the planning repository, named {slug}-planning. Created automatically when group_id is set."
-  type = object({
-    description = optional(string, "")
-    topics      = optional(list(string), [])
-  })
-  default = {}
+variable "topics" {
+  description = "Topics/tags applied to the main repository."
+  type        = list(string)
+  default     = []
 }
 
 variable "repositories" {
-  description = "Additional repositories managed for this product, beyond the standard repo, site, and planning repos. Each key creates a GitLab project named {slug}-{key} in the product group and, if github is provided, a GitHub mirror. If pages is provided, a Cloudflare Pages project and domains are created."
+  description = "Additional repositories managed for this product, beyond the standard slug, slug-site, and slug-planning repos. Each key creates a GitLab project named {slug}-{key} in the product group and, if github is provided, a GitHub mirror. If pages is provided, a Cloudflare Pages project and domains are created."
   type = map(object({
     description       = optional(string, "")
     topics            = optional(list(string), [])
