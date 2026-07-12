@@ -800,71 +800,73 @@ run "runtime_enabled_requires_cluster_host" {
   expect_failures = [var.runtime]
 }
 
-run "repos_disabled_by_default" {
+run "repos_not_created_without_group_id" {
   command = plan
 
   assert {
     condition     = length(module.gl_app_repo) == 0
-    error_message = "No app GitLab repo must be created when repositories has no app key"
+    error_message = "No app GitLab repo must be created when group_id is not set"
   }
 
   assert {
     condition     = length(module.gl_site_repo) == 0
-    error_message = "No site GitLab repo must be created when repositories has no site key"
+    error_message = "No site GitLab repo must be created when group_id is not set"
   }
 
   assert {
     condition     = length(module.gl_planning_repo) == 0
-    error_message = "No planning GitLab repo must be created when repositories has no planning key"
+    error_message = "No planning GitLab repo must be created when group_id is not set"
   }
 }
 
-run "app_repo_creates_gitlab_project" {
+run "standard_repos_created_when_group_id_set" {
   command = plan
 
   variables {
     group_id = "11223344"
-    repositories = {
-      app = {
-        description = "My product app"
-        topics      = ["elixir"]
-      }
-    }
   }
 
   assert {
     condition     = length(module.gl_app_repo) == 1
-    error_message = "GitLab app repo must be created when repositories.app is set"
+    error_message = "GitLab app repo must be created when group_id is set"
+  }
+
+  assert {
+    condition     = length(module.gl_site_repo) == 1
+    error_message = "GitLab site repo must be created when group_id is set"
+  }
+
+  assert {
+    condition     = length(module.gl_planning_repo) == 1
+    error_message = "GitLab planning repo must be created when group_id is set"
   }
 
   assert {
     condition     = length(module.gh_app_repo) == 0
-    error_message = "No GitHub app mirror must be created when repositories.app.github is null"
+    error_message = "No GitHub app mirror must be created when repo.github is null"
   }
 }
 
-run "app_repo_with_github_creates_both_repos" {
+run "app_repo_with_github_creates_mirror" {
   command = plan
 
   variables {
     group_id = "11223344"
-    repositories = {
-      app = {
-        description = "My product app"
-        topics      = ["elixir"]
-        github      = { homepage_url = "https://myproduct.io", has_projects = true }
-      }
+    repo = {
+      description = "My product app"
+      topics      = ["elixir"]
+      github      = { homepage_url = "https://myproduct.io", has_projects = true }
     }
   }
 
   assert {
     condition     = length(module.gl_app_repo) == 1
-    error_message = "GitLab app repo must be created when repositories.app is set"
+    error_message = "GitLab app repo must be created when group_id is set"
   }
 
   assert {
     condition     = length(module.gh_app_repo) == 1
-    error_message = "GitHub app mirror must be created when repositories.app.github is set"
+    error_message = "GitHub app mirror must be created when repo.github is set"
   }
 }
 
@@ -873,18 +875,16 @@ run "site_repo_with_pages_creates_cloudflare_pages_project" {
 
   variables {
     group_id = "11223344"
-    repositories = {
-      site = {
-        description = "My product site"
-        topics      = ["astro"]
-        pages       = { domains = ["myproduct.io", "www.myproduct.io"] }
-      }
+    site_repo = {
+      description = "My product site"
+      topics      = ["astro"]
+      pages       = { domains = ["myproduct.io", "www.myproduct.io"] }
     }
   }
 
   assert {
     condition     = length(cloudflare_pages_project.site) == 1
-    error_message = "Cloudflare Pages project must be created when repositories.site.pages is set"
+    error_message = "Cloudflare Pages project must be created when site_repo.pages is set"
   }
 
   assert {
@@ -902,10 +902,8 @@ run "site_pages_name_defaults_to_slug_site" {
   command = plan
 
   variables {
-    group_id = "11223344"
-    repositories = {
-      site = { pages = {} }
-    }
+    group_id  = "11223344"
+    site_repo = { pages = {} }
   }
 
   assert {
@@ -918,10 +916,8 @@ run "site_preview_pages_project_name_override_respected" {
   command = plan
 
   variables {
-    group_id = "11223344"
-    repositories = {
-      site = { pages = {} }
-    }
+    group_id  = "11223344"
+    site_repo = { pages = {} }
     site_preview = {
       pages_project_name = "custom-pages-name"
     }
@@ -933,19 +929,17 @@ run "site_preview_pages_project_name_override_respected" {
   }
 }
 
-run "planning_repo_creates_gitlab_project" {
+run "planning_repo_created_with_group_id" {
   command = plan
 
   variables {
-    group_id = "11223344"
-    repositories = {
-      planning = { description = "Strategic planning" }
-    }
+    group_id      = "11223344"
+    planning_repo = { description = "Strategic planning" }
   }
 
   assert {
     condition     = length(module.gl_planning_repo) == 1
-    error_message = "GitLab planning repo must be created when repositories.planning is set"
+    error_message = "GitLab planning repo must be created when group_id is set"
   }
 }
 
@@ -1016,21 +1010,18 @@ run "repositories_with_pages_creates_cloudflare_project" {
   }
 }
 
-run "prod_enabled_via_app_repo_uses_internal_project_id" {
+run "prod_enabled_with_group_id_uses_internal_project_id" {
   command = plan
 
   variables {
     group_id         = "11223344"
     ops_project_path = "eiseron/myproduct/myproduct-ops"
-    repositories = {
-      app = { description = "My product app" }
-    }
-    prod = { enabled = true }
+    prod             = { enabled = true }
   }
 
   assert {
     condition     = length(gitlab_pipeline_trigger.prod_deployer) == 1
-    error_message = "prod_deployer trigger must be created when prod.enabled is true and repositories.app is set"
+    error_message = "prod_deployer trigger must be created when prod.enabled is true and group_id is set"
   }
 
   assert {

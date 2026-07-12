@@ -1,26 +1,23 @@
 locals {
   _group_id_num = var.group_id != "" ? tonumber(var.group_id) : 0
 
-  _app_cfg      = try(var.repositories["app"], null)
-  _site_cfg     = try(var.repositories["site"], null)
-  _planning_cfg = try(var.repositories["planning"], null)
-  _extra_cfgs   = { for k, v in var.repositories : k => v if !contains(["app", "site", "planning"], k) }
+  _extra_cfgs = var.repositories
 
-  _app_project_id    = local._app_cfg != null ? tostring(module.gl_app_repo[0].id) : var.app_project_id
-  _app_project_path  = local._app_cfg != null ? module.gl_app_repo[0].path_with_namespace : var.app_project_path
-  _site_project_id   = local._site_cfg != null ? tostring(module.gl_site_repo[0].id) : var.site_preview.site_project_id
-  _site_project_path = local._site_cfg != null ? module.gl_site_repo[0].path_with_namespace : var.site_preview.site_project_path
+  _app_project_id    = local._group_id_num != 0 ? tostring(module.gl_app_repo[0].id) : var.app_project_id
+  _app_project_path  = local._group_id_num != 0 ? module.gl_app_repo[0].path_with_namespace : var.app_project_path
+  _site_project_id   = local._group_id_num != 0 ? tostring(module.gl_site_repo[0].id) : var.site_preview.site_project_id
+  _site_project_path = local._group_id_num != 0 ? module.gl_site_repo[0].path_with_namespace : var.site_preview.site_project_path
 }
 
 module "gl_app_repo" {
-  count  = local._app_cfg != null ? 1 : 0
+  count  = local._group_id_num != 0 ? 1 : 0
   source = "../gitlab_repository_protected"
 
   name                   = var.slug
-  description            = try(local._app_cfg.description, "")
+  description            = var.repo.description
   namespace_id           = local._group_id_num
   visibility_level       = "private"
-  topics                 = try(local._app_cfg.topics, [])
+  topics                 = var.repo.topics
   issues_access_level    = "enabled"
   wiki_access_level      = "disabled"
   initialize_with_readme = true
@@ -28,27 +25,27 @@ module "gl_app_repo" {
 }
 
 module "gl_site_repo" {
-  count  = local._site_cfg != null ? 1 : 0
+  count  = local._group_id_num != 0 ? 1 : 0
   source = "../gitlab_repository"
 
   name                     = "${var.slug}-site"
-  description              = try(local._site_cfg.description, "")
+  description              = var.site_repo.description
   namespace_id             = local._group_id_num
   visibility_level         = "private"
-  topics                   = try(local._site_cfg.topics, [])
+  topics                   = var.site_repo.topics
   issues_access_level      = "enabled"
   wiki_access_level        = "disabled"
   initialize_with_readme   = true
-  push_access_level        = try(local._site_cfg.push_access_level, "maintainer")
+  push_access_level        = var.site_repo.push_access_level
   protect_release_branches = false
 }
 
 module "gl_planning_repo" {
-  count  = local._planning_cfg != null ? 1 : 0
+  count  = local._group_id_num != 0 ? 1 : 0
   source = "../gitlab_repository"
 
   name                                  = "${var.slug}-planning"
-  description                           = try(local._planning_cfg.description, "")
+  description                           = var.planning_repo.description
   namespace_id                          = local._group_id_num
   visibility_level                      = "private"
   issues_access_level                   = "enabled"
@@ -58,28 +55,28 @@ module "gl_planning_repo" {
 }
 
 module "gh_app_repo" {
-  count  = local._app_cfg != null && try(local._app_cfg.github, null) != null ? 1 : 0
+  count  = local._group_id_num != 0 && var.repo.github != null ? 1 : 0
   source = "../github_repository_protected"
 
   name                    = var.slug
-  description             = try(local._app_cfg.description, "")
-  homepage_url            = try(local._app_cfg.github.homepage_url, "")
-  topics                  = try(local._app_cfg.topics, [])
+  description             = var.repo.description
+  homepage_url            = try(var.repo.github.homepage_url, "")
+  topics                  = var.repo.topics
   has_wiki                = false
-  has_projects            = try(local._app_cfg.github.has_projects, false)
+  has_projects            = try(var.repo.github.has_projects, false)
   delete_branch_on_merge  = true
   vulnerability_alerts    = true
   required_linear_history = true
 }
 
 module "gh_site_repo" {
-  count  = local._site_cfg != null && try(local._site_cfg.github, null) != null ? 1 : 0
+  count  = local._group_id_num != 0 && var.site_repo.github != null ? 1 : 0
   source = "../github_repository"
 
   name                     = "${var.slug}-site"
-  description              = try(local._site_cfg.description, "")
-  homepage_url             = try(local._site_cfg.github.homepage_url, "")
-  topics                   = try(local._site_cfg.topics, [])
+  description              = var.site_repo.description
+  homepage_url             = try(var.site_repo.github.homepage_url, "")
+  topics                   = var.site_repo.topics
   has_wiki                 = false
   has_projects             = false
   delete_branch_on_merge   = true

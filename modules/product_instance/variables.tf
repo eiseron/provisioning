@@ -192,8 +192,47 @@ variable "cluster_token" {
   }
 }
 
+variable "repo" {
+  description = "Configuration for the main repository, named after the product slug. Created automatically when group_id is set. If github is provided, a GitHub mirror is also created."
+  type = object({
+    description = optional(string, "")
+    topics      = optional(list(string), [])
+    github = optional(object({
+      homepage_url = optional(string, "")
+      has_projects = optional(bool, false)
+    }), null)
+  })
+  default = {}
+}
+
+variable "site_repo" {
+  description = "Configuration for the site repository, named {slug}-site. Created automatically when group_id is set. If pages is provided, a Cloudflare Pages project and domains are created. If github is provided, a GitHub mirror is created."
+  type = object({
+    description       = optional(string, "")
+    topics            = optional(list(string), [])
+    push_access_level = optional(string, "maintainer")
+    pages = optional(object({
+      production_branch = optional(string, "main")
+      domains           = optional(list(string), [])
+    }), null)
+    github = optional(object({
+      homepage_url = optional(string, "")
+    }), null)
+  })
+  default = {}
+}
+
+variable "planning_repo" {
+  description = "Configuration for the planning repository, named {slug}-planning. Created automatically when group_id is set."
+  type = object({
+    description = optional(string, "")
+    topics      = optional(list(string), [])
+  })
+  default = {}
+}
+
 variable "repositories" {
-  description = "All repositories managed for this product. Keyed by short name. Reserved keys 'app', 'site', and 'planning' trigger built-in wiring (prod/release/backup for app; preview pages for site; relaxed merge gates for planning); any other key creates an extra repo. Each entry creates a GitLab project in the product group and, if github is provided, a GitHub mirror. If pages is provided, a Cloudflare Pages project and domains are created."
+  description = "Additional repositories managed for this product, beyond the standard repo, site, and planning repos. Each key creates a GitLab project named {slug}-{key} in the product group and, if github is provided, a GitHub mirror. If pages is provided, a Cloudflare Pages project and domains are created."
   type = map(object({
     description       = optional(string, "")
     topics            = optional(list(string), [])
