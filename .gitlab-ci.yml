@@ -59,6 +59,14 @@ include:
         - modules/gitlab_repository
         - modules/gitlab_runner
   - project: eiseron/stack/ci
+    file: /templates/tofu-coverage.yml
+    ref: v0.9.51
+  - project: eiseron/stack/ci
+    file: /templates/coverage-gate.yml
+    ref: v0.9.51
+    inputs:
+      test_job_name: tofu-coverage
+  - project: eiseron/stack/ci
     file: /templates/ansible-collection.yml
     ref: v0.1.3
     inputs:
