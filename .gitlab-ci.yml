@@ -46,6 +46,7 @@ include:
         - modules/swarm_app/examples/validate
         - modules/swarm_observability/examples/validate
         - modules/k3s_platform/examples/validate
+        - modules/k3s_postgres
         - modules/k3s_postgres/examples/validate
         - modules/k3s_app/examples/validate
         - modules/tang_host

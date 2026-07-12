@@ -92,3 +92,38 @@ variable "backup" {
     error_message = "backup.endpoint_url, destination_path, access_key_id and secret_access_key must all be set when backup.enabled = true."
   }
 }
+
+variable "seed" {
+  description = "Seed the cluster from an existing external Postgres for a minimal-downtime blue/green cutover. mode streaming bootstraps the cluster as a replica cluster streaming from an external primary (host, port, database, external_username, external_password); detach later by disabling the seed to promote it. mode recovery bootstraps from the existing barmanObjectStore backup and requires backup.enabled = true. Dormant by default so existing callers are unaffected."
+  type = object({
+    enable            = optional(bool, false)
+    mode              = optional(string, "")
+    source_name       = optional(string, "external-source")
+    host              = optional(string, "")
+    port              = optional(number, 5432)
+    database          = optional(string, "postgres")
+    external_username = optional(string, "")
+    external_password = optional(string, "")
+  })
+  default = {}
+
+  validation {
+    condition     = !var.seed.enable || contains(["streaming", "recovery"], var.seed.mode)
+    error_message = "seed.mode must be one of streaming or recovery when seed.enable = true."
+  }
+
+  validation {
+    condition = !(var.seed.enable && var.seed.mode == "streaming") || (
+      var.seed.host != "" &&
+      var.seed.database != "" &&
+      var.seed.external_username != "" &&
+      var.seed.external_password != ""
+    )
+    error_message = "seed.host, database, external_username and external_password must all be set when seed.mode = streaming."
+  }
+
+  validation {
+    condition     = !(var.seed.enable && var.seed.mode == "recovery") || var.backup.enabled
+    error_message = "backup.enabled must be true when seed.mode = recovery."
+  }
+}

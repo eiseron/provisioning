@@ -39,4 +39,14 @@ module "k3s_postgres" {
     access_key_id     = "validate-only"
     secret_access_key = "validate-only"
   }
+
+  seed = {
+    enable            = true
+    mode              = "streaming"
+    host              = "app-external-db.internal"
+    port              = 5432
+    database          = "app"
+    external_username = "app"
+    external_password = "validate-only-placeholder"
+  }
 }
