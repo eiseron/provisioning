@@ -33,7 +33,7 @@ resource "gitlab_pipeline_schedule" "backup_verify" {
   count       = local.backup_enabled ? 1 : 0
   project     = var.ops_project_id
   description = "Daily backup-staleness verifier (fails if the newest backup is older than PROD_BACKUP_STALE_HOURS)"
-  ref         = "refs/heads/main"
+  ref         = "refs/heads/production"
   cron        = "0 11 * * *"
   active      = true
 }
@@ -50,7 +50,7 @@ resource "gitlab_pipeline_schedule" "backup_drill" {
   count       = local.backup_enabled ? 1 : 0
   project     = var.ops_project_id
   description = "Weekly DB restore drill (verifies the latest backup restores and the drill key decrypts)"
-  ref         = "refs/heads/main"
+  ref         = "refs/heads/production"
   cron        = "0 5 * * 1"
   active      = local.drill_enabled
 }

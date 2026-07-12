@@ -64,7 +64,7 @@ resource "gitlab_pipeline_schedule" "preview_sweep" {
 
   project       = module.repository[local.ops_repo_key].id
   description   = "Nightly preview sweep - remove orphaned Docker preview containers"
-  ref           = "refs/heads/main"
+  ref           = "refs/heads/production"
   cron          = "0 3 * * *"
   cron_timezone = "UTC"
   active        = true

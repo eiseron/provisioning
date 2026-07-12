@@ -17,7 +17,7 @@ variable "description" {
 variable "ref" {
   description = "Git ref the scheduled pipeline runs on."
   type        = string
-  default     = "refs/heads/main"
+  default     = "refs/heads/production"
 }
 
 variable "cron" {
