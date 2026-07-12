@@ -12,3 +12,8 @@ output "firewall_id" {
   description = "ID of the Hetzner Cloud Firewall attached to the host."
   value       = hcloud_firewall.this.id
 }
+
+output "data_volume_id" {
+  description = "ID of the persistent Hetzner Cloud data volume, or null when data_volume is disabled. Used by the rollback runbook to reattach the same encrypted volume to a replacement host."
+  value       = var.data_volume.enable ? hcloud_volume.data[0].id : null
+}

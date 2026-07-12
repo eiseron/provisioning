@@ -79,6 +79,21 @@ variable "luks" {
   }
 }
 
+variable "data_volume" {
+  description = "Persistent Hetzner Cloud block-storage volume for the encrypted data, decoupled from the immutable boot disk. When enable is true the module provisions a separate hcloud_volume, attaches it unformatted, and points the LUKS device at its stable /dev/disk/by-id path instead of luks.device; the volume survives host reprovision (coreos-installer only writes install_device, the boot disk), which is what makes rolling reprovision and rollback between servers possible without data loss. With a data volume the LUKS wipe is forced off so a reattached volume is unlocked in place rather than reformatted. Fields: size is the volume size in GB (min 10, grow-only in Hetzner); delete_protection guards the volume against accidental destroy (keep on for prod data)."
+  type = object({
+    enable            = optional(bool, false)
+    size              = optional(number, 10)
+    delete_protection = optional(bool, true)
+  })
+  default = {}
+
+  validation {
+    condition     = !var.data_volume.enable || var.data_volume.size >= 10
+    error_message = "data_volume.size must be at least 10 GB (the Hetzner Cloud volume minimum)."
+  }
+}
+
 variable "k3s" {
   description = "k3s server on this host. When enable is true, the Butane lays down the k3s config (Traefik kept bundled), layers the k3s-selinux policy via rpm-ostree, installs the pinned k3s binary from GitHub releases, and runs k3s server. Fields: version is the pinned release tag (e.g. v1.30.5+k3s1); tls_san lists extra SANs for the API server cert (the public host/IP so the extracted kubeconfig works remotely)."
   type = object({

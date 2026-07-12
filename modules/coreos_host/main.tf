@@ -22,9 +22,9 @@ locals {
     hostname                  = var.name
     luks_enabled              = var.luks.tang.url != ""
     luks_name                 = var.luks.name
-    luks_device               = var.luks.device
+    luks_device               = var.data_volume.enable ? "/dev/disk/by-id/scsi-0HC_Volume_${hcloud_volume.data[0].id}" : var.luks.device
     luks_mount                = var.luks.mount
-    luks_wipe                 = var.luks.wipe
+    luks_wipe                 = var.data_volume.enable ? false : var.luks.wipe
     tang_url                  = var.luks.tang.url
     tang_thumbprint           = var.luks.tang.thumbprint
     k3s_enabled               = var.k3s.enable
@@ -62,6 +62,14 @@ resource "hcloud_firewall" "this" {
     protocol   = "icmp"
     source_ips = ["0.0.0.0/0", "::/0"]
   }
+}
+
+resource "hcloud_volume" "data" {
+  count             = var.data_volume.enable ? 1 : 0
+  name              = "${var.name}-data"
+  size              = var.data_volume.size
+  location          = var.location
+  delete_protection = var.data_volume.delete_protection
 }
 
 resource "hcloud_server" "this" {
@@ -103,11 +111,36 @@ resource "hcloud_server" "this" {
     ]
   }
 
-  provisioner "remote-exec" {
-    inline = ["nohup sh -c 'sleep 2 && reboot' >/dev/null 2>&1 &"]
-  }
-
   lifecycle {
     ignore_changes = [rescue, image, ssh_keys]
+  }
+}
+
+resource "hcloud_volume_attachment" "data" {
+  count     = var.data_volume.enable ? 1 : 0
+  volume_id = hcloud_volume.data[0].id
+  server_id = hcloud_server.this.id
+  automount = false
+}
+
+resource "null_resource" "boot" {
+  triggers = {
+    server = hcloud_server.this.id
+  }
+
+  depends_on = [
+    hcloud_server.this,
+    hcloud_volume_attachment.data,
+  ]
+
+  connection {
+    host        = hcloud_server.this.ipv4_address
+    user        = "root"
+    private_key = var.ssh_private_key
+    timeout     = "5m"
+  }
+
+  provisioner "remote-exec" {
+    inline = ["nohup sh -c 'sleep 2 && reboot' >/dev/null 2>&1 &"]
   }
 }
