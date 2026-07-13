@@ -5,7 +5,7 @@ locals {
 }
 
 resource "kubernetes_namespace_v1" "app" {
-  count = var.enable ? 1 : 0
+  count = var.enable && var.manage_namespace ? 1 : 0
 
   metadata {
     name = var.namespace

@@ -724,6 +724,41 @@ run "runtime_enabled_wires_the_app_service" {
     condition     = strcontains(local.k3s_database_url, "@platform-db-rw.platform/")
     error_message = "DATABASE_URL must target the CloudNativePG read-write service in the platform namespace"
   }
+
+  assert {
+    condition     = module.k3s_app.manages_namespace == true
+    error_message = "The app runtime must create the namespace by default"
+  }
+}
+
+run "runtime_skips_namespace_when_platform_owns_it" {
+  command = plan
+
+  variables {
+    app_project_id   = "87654321"
+    app_project_path = "eiseron/myproduct/myproduct"
+    ops_project_path = "eiseron/myproduct/myproduct-ops"
+    prod             = { enabled = true }
+    runtime = {
+      enable           = true
+      manage_namespace = false
+      cluster_host     = "https://10.0.0.1:6443"
+      app_host         = "app.example.com"
+      app_image        = "registry.example.test/acme/app/prod:v1.0.0"
+    }
+    cluster_token      = "test-token"
+    db_tenant_password = "tenant-pw"
+  }
+
+  assert {
+    condition     = module.k3s_app.manages_namespace == false
+    error_message = "The app runtime must not create the namespace when runtime.manage_namespace is false"
+  }
+
+  assert {
+    condition     = module.k3s_app.service_name == var.slug
+    error_message = "The app service must still be wired when the namespace is platform-owned"
+  }
 }
 
 run "runtime_disabled_when_prod_is_disabled" {

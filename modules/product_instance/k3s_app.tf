@@ -39,11 +39,12 @@ module "k3s_app" {
     kubernetes = kubernetes
   }
 
-  enable    = local.k3s_enabled
-  name      = var.slug
-  namespace = local.k3s_namespace
-  image     = var.runtime.app_image
-  app_host  = var.runtime.app_host
+  enable           = local.k3s_enabled
+  name             = var.slug
+  namespace        = local.k3s_namespace
+  manage_namespace = var.runtime.manage_namespace
+  image            = var.runtime.app_image
+  app_host         = var.runtime.app_host
 
   env_clear  = local.k3s_env_clear
   env_secret = local.k3s_env_secret

@@ -152,6 +152,7 @@ variable "runtime" {
     cluster_host                = optional(string, "")
     cluster_ca_cert             = optional(string, "")
     namespace                   = optional(string, "")
+    manage_namespace            = optional(bool, true)
     app_host                    = optional(string, "")
     app_image                   = optional(string, "")
     observability_otlp_endpoint = optional(string, "http://observability-collector:4318")

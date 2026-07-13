@@ -26,6 +26,12 @@ variable "namespace" {
   }
 }
 
+variable "manage_namespace" {
+  description = "Create the app namespace. Set false when the platform (cluster owner) already owns the namespace and RBAC, so this module deploys into it rather than re-creating it. Default true keeps standalone behaviour where the module owns the namespace."
+  type        = bool
+  default     = true
+}
+
 variable "image" {
   description = "App image used only on create/recreate (the running image is owned by the deploy via kubectl set image; the Deployment ignores changes to it). Source it from the current-release CI var."
   type        = string
