@@ -85,3 +85,17 @@ run "k3s_uses_default_data_dir_without_luks" {
     error_message = "No encrypted-mount dependency must be rendered when LUKS is disabled"
   }
 }
+
+run "firewall_is_keyed_by_name_so_rename_replaces_it" {
+  command = plan
+
+  assert {
+    condition     = hcloud_firewall.this["acme-app-green-fw"].name == "acme-app-green-fw"
+    error_message = "The firewall must be keyed by its name so renaming the host replaces the firewall instead of updating it in place, which the provider mishandles for rule sets"
+  }
+
+  assert {
+    condition     = output.firewall_id == "1"
+    error_message = "firewall_id output must resolve through the name-keyed firewall"
+  }
+}

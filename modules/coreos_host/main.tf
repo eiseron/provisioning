@@ -44,7 +44,13 @@ locals {
 }
 
 resource "hcloud_firewall" "this" {
-  name = "${var.name}-fw"
+  for_each = toset(["${var.name}-fw"])
+
+  name = each.value
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   rule {
     direction  = "in"
@@ -89,7 +95,7 @@ resource "hcloud_server" "this" {
   image        = "debian-13"
   rescue       = "linux64"
   ssh_keys     = [hcloud_ssh_key.admin.id]
-  firewall_ids = [hcloud_firewall.this.id]
+  firewall_ids = [for f in hcloud_firewall.this : f.id]
 
   public_net {
     ipv4_enabled = true

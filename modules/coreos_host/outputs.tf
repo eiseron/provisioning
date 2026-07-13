@@ -10,7 +10,7 @@ output "vps_ipv6" {
 
 output "firewall_id" {
   description = "ID of the Hetzner Cloud Firewall attached to the host."
-  value       = hcloud_firewall.this.id
+  value       = one([for f in hcloud_firewall.this : f.id])
 }
 
 output "data_volume_id" {
