@@ -38,6 +38,7 @@ include:
         - modules/preview_cloudflare
         - modules/product_instance
         - modules/prod_host
+        - modules/coreos_host
         - modules/coreos_host/examples/validate
         - modules/prod_platform/examples/validate
         - modules/observability

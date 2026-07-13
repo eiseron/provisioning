@@ -67,6 +67,9 @@ storage:
       contents:
         inline: |
           write-kubeconfig-mode: "0640"
+%{ if k3s_data_dir != "" ~}
+          data-dir: ${k3s_data_dir}
+%{ endif ~}
           tls-san:
 %{ for san in k3s_tls_san ~}
             - ${san}
@@ -137,6 +140,11 @@ systemd:
         Description=Install the pinned k3s binary
         Wants=network-online.target
         After=network-online.target rpm-ostree-install-k3s-selinux.service
+%{ if k3s_data_dir != "" ~}
+        After=${luks_mount_unit}
+        Requires=${luks_mount_unit}
+        RequiresMountsFor=${luks_mount}
+%{ endif ~}
         ConditionPathExists=!/usr/local/bin/k3s
         [Service]
         Type=oneshot
@@ -152,6 +160,11 @@ systemd:
         Description=Lightweight Kubernetes
         Wants=network-online.target
         After=network-online.target k3s-install.service
+%{ if k3s_data_dir != "" ~}
+        After=${luks_mount_unit}
+        Requires=${luks_mount_unit}
+        RequiresMountsFor=${luks_mount}
+%{ endif ~}
         [Service]
         Type=notify
         ExecStart=/usr/local/bin/k3s server --config /etc/rancher/k3s/config.yaml

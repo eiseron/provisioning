@@ -17,17 +17,27 @@ locals {
     [for cidr in split("\n", trimspace(data.http.cloudflare_ipv6.response_body)) : cidr if trimspace(cidr) != ""],
   )
 
+  luks_enabled = var.luks.tang.url != ""
+
+  encrypted_k3s = local.luks_enabled && var.k3s.enable
+
+  k3s_data_dir = local.encrypted_k3s ? "${var.luks.mount}/rancher/k3s" : ""
+
+  luks_mount_unit = "${replace(trim(var.luks.mount, "/"), "/", "-")}.mount"
+
   butane = templatefile("${path.module}/butane/base.bu.tftpl", {
     deploy_ssh_authorized_key = var.deploy_ssh_authorized_key
     hostname                  = var.name
-    luks_enabled              = var.luks.tang.url != ""
+    luks_enabled              = local.luks_enabled
     luks_name                 = var.luks.name
     luks_device               = var.data_volume.enable ? "/dev/disk/by-id/scsi-0HC_Volume_${hcloud_volume.data[0].id}" : var.luks.device
     luks_mount                = var.luks.mount
+    luks_mount_unit           = local.luks_mount_unit
     luks_wipe                 = var.data_volume.enable ? false : var.luks.wipe
     tang_url                  = var.luks.tang.url
     tang_thumbprint           = var.luks.tang.thumbprint
     k3s_enabled               = var.k3s.enable
+    k3s_data_dir              = local.k3s_data_dir
     k3s_version_url           = replace(var.k3s.version, "+", "%2B")
     k3s_tls_san               = var.k3s.tls_san
   })

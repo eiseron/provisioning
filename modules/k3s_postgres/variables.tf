@@ -35,7 +35,7 @@ variable "storage_size" {
 }
 
 variable "storage_class" {
-  description = "StorageClass for the instance PVCs (local-path, on the encrypted volume)."
+  description = "StorageClass for the instance PVCs. local-path binds to the k3s bundled local-path-provisioner, which stores volumes under <k3s-data-dir>/storage; the data lands on the encrypted volume only when the host sets the k3s data-dir onto the LUKS mount (coreos_host does this when LUKS and k3s are both enabled)."
   type        = string
   default     = "local-path"
 }

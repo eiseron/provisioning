@@ -17,3 +17,13 @@ output "data_volume_id" {
   description = "ID of the persistent Hetzner Cloud data volume, or null when data_volume is disabled. Used by the rollback runbook to reattach the same encrypted volume to a replacement host."
   value       = var.data_volume.enable ? hcloud_volume.data[0].id : null
 }
+
+output "k3s_data_dir" {
+  description = "Filesystem path k3s stores its state and local-path PVCs in. On the encrypted LUKS mount when both LUKS and k3s are enabled, so persistent data (including CNPG Postgres PVCs under <data-dir>/storage) lands on the encrypted volume and survives reprovision; empty means the k3s default (/var/lib/rancher/k3s on the boot disk)."
+  value       = local.k3s_data_dir
+}
+
+output "butane_config" {
+  description = "Rendered Butane (Ignition source) config for the host."
+  value       = local.butane
+}

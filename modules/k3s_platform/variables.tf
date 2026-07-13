@@ -51,7 +51,7 @@ variable "platform_namespace" {
 }
 
 variable "acme_storage_size" {
-  description = "Size of the PVC backing Traefik's acme.json (local-path, on the encrypted volume)."
+  description = "Size of the PVC backing Traefik's acme.json. Uses the k3s bundled local-path provisioner (volumes under <k3s-data-dir>/storage); lands on the encrypted volume when the host points the k3s data-dir at the LUKS mount (coreos_host does this when LUKS and k3s are both enabled)."
   type        = string
   default     = "128Mi"
 }
