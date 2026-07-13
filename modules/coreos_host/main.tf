@@ -121,7 +121,7 @@ resource "hcloud_server" "this" {
       "update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy",
       "apt-get update -y",
       "apt-get install -y docker.io",
-      "docker run --rm -i ${var.butane_image} --strict < /root/config.yaml > /root/config.ign",
+      "docker run --privileged --rm -i ${var.butane_image} --strict < /root/config.yaml > /root/config.ign",
       "docker run --privileged --rm -v /dev:/dev -v /run/udev:/run/udev -v /root:/data -w /data ${var.coreos_installer_image} install ${var.install_device} -p ${var.platform} -i config.ign",
       "sync",
     ]
