@@ -116,7 +116,7 @@ resource "hcloud_server" "this" {
 
   provisioner "remote-exec" {
     inline = [
-      "set -euxo pipefail",
+      "set -eux",
       "update-alternatives --set iptables /usr/sbin/iptables-legacy",
       "update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy",
       "apt-get update -y",
