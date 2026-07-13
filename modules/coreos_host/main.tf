@@ -120,8 +120,11 @@ resource "hcloud_server" "this" {
       "update-alternatives --set iptables /usr/sbin/iptables-legacy",
       "update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy",
       "apt-get update -y",
-      "apt-get install -y docker.io",
-      "docker run --privileged --rm -i ${var.butane_image} --strict < /root/config.yaml > /root/config.ign",
+      "apt-get install -y docker.io curl",
+      "curl -fsSL -o /usr/sbin/runc https://github.com/opencontainers/runc/releases/download/${var.runc_version}/runc.amd64",
+      "echo '${var.runc_amd64_sha256}  /usr/sbin/runc' | sha256sum -c -",
+      "chmod 0755 /usr/sbin/runc",
+      "docker run --rm -i ${var.butane_image} --strict < /root/config.yaml > /root/config.ign",
       "docker run --privileged --rm -v /dev:/dev -v /run/udev:/run/udev -v /root:/data -w /data ${var.coreos_installer_image} install ${var.install_device} -p ${var.platform} -i config.ign",
       "sync",
     ]
