@@ -26,6 +26,7 @@ variables {
   ssh_public_key            = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIVALIDATEonly admin@ci"
   ssh_private_key           = "validate-only-placeholder"
   deploy_ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIVALIDATEonly deploy@ci"
+  hcloud_token              = "validate-only-placeholder"
   k3s = {
     enable  = true
     version = "v1.30.5+k3s1"
@@ -83,6 +84,15 @@ run "k3s_uses_default_data_dir_without_luks" {
   assert {
     condition     = !strcontains(output.butane_config, "RequiresMountsFor=")
     error_message = "No encrypted-mount dependency must be rendered when LUKS is disabled"
+  }
+}
+
+run "k3s_version_url_is_systemd_escaped" {
+  command = plan
+
+  assert {
+    condition     = strcontains(output.butane_config, "download/v1.30.5%%2Bk3s1/k3s")
+    error_message = "The k3s release URL is embedded in a systemd ExecStart where % starts a unit specifier; the + must render as %%2B so systemd emits a literal %2B for curl instead of failing to load the unit"
   }
 }
 

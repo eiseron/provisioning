@@ -38,7 +38,7 @@ locals {
     tang_thumbprint           = var.luks.tang.thumbprint
     k3s_enabled               = var.k3s.enable
     k3s_data_dir              = local.k3s_data_dir
-    k3s_version_url           = replace(var.k3s.version, "+", "%2B")
+    k3s_version_url           = replace(var.k3s.version, "+", "%%2B")
     k3s_tls_san               = var.k3s.tls_san
   })
 }
@@ -120,12 +120,23 @@ resource "hcloud_server" "this" {
       "update-alternatives --set iptables /usr/sbin/iptables-legacy",
       "update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy",
       "apt-get update -y",
-      "apt-get install -y docker.io curl",
-      "curl -fsSL -o /usr/sbin/runc https://github.com/opencontainers/runc/releases/download/${var.runc_version}/runc.amd64",
-      "echo '${var.runc_amd64_sha256}  /usr/sbin/runc' | sha256sum -c -",
-      "chmod 0755 /usr/sbin/runc",
-      "docker run --rm -i ${var.butane_image} --strict < /root/config.yaml > /root/config.ign",
-      "docker run --privileged --rm -v /dev:/dev -v /run/udev:/run/udev -v /root:/data -w /data ${var.coreos_installer_image} install ${var.install_device} -p ${var.platform} -i config.ign",
+      "apt-get install -y docker.io",
+      "BID=$(docker create ${var.butane_image})",
+      "docker cp $BID:/usr/local/bin/butane /usr/local/bin/butane",
+      "docker rm $BID",
+      "chmod 0755 /usr/local/bin/butane",
+      "/usr/local/bin/butane --strict < /root/config.yaml > /root/config.ign",
+      "CID=$(docker create ${var.coreos_installer_image})",
+      "mkdir -p /root/ci-root",
+      "docker export $CID | tar -x -C /root/ci-root",
+      "docker rm $CID",
+      "cp /root/config.ign /root/ci-root/config.ign",
+      "cp /etc/resolv.conf /root/ci-root/etc/resolv.conf",
+      "mount --rbind /dev /root/ci-root/dev",
+      "mount --rbind /proc /root/ci-root/proc",
+      "mount --rbind /sys /root/ci-root/sys",
+      "mount --rbind /run /root/ci-root/run",
+      "chroot /root/ci-root coreos-installer install ${var.install_device} -p ${var.platform} -i /config.ign",
       "sync",
     ]
   }
@@ -152,14 +163,23 @@ resource "null_resource" "boot" {
     hcloud_volume_attachment.data,
   ]
 
-  connection {
-    host        = hcloud_server.this.ipv4_address
-    user        = "root"
-    private_key = var.ssh_private_key
-    timeout     = "5m"
-  }
-
-  provisioner "remote-exec" {
-    inline = ["nohup sh -c 'sleep 2 && reboot' >/dev/null 2>&1 &"]
+  provisioner "local-exec" {
+    environment = {
+      HCLOUD_TOKEN = var.hcloud_token
+    }
+    command = <<-EOT
+      set -eu
+      SID=${hcloud_server.this.id}
+      AID=$(curl -sf -X POST -H "Authorization: Bearer $HCLOUD_TOKEN" "https://api.hetzner.cloud/v1/servers/$SID/actions/disable_rescue" | jq -r '.action.id')
+      echo "disable_rescue action $AID; waiting for completion before reset"
+      for i in $(seq 1 60); do
+        ST=$(curl -sf -H "Authorization: Bearer $HCLOUD_TOKEN" "https://api.hetzner.cloud/v1/actions/$AID" | jq -r '.action.status')
+        echo "disable_rescue status=$ST"
+        [ "$ST" = "success" ] && break
+        [ "$ST" = "error" ] && { echo "disable_rescue failed"; exit 1; }
+        sleep 2
+      done
+      curl -sf -X POST -H "Authorization: Bearer $HCLOUD_TOKEN" "https://api.hetzner.cloud/v1/servers/$SID/actions/reset"
+    EOT
   }
 }

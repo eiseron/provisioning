@@ -53,18 +53,6 @@ variable "install_device" {
   default     = "/dev/sda"
 }
 
-variable "runc_version" {
-  description = "runc release tag installed over the Debian rescue package before the containerized butane and coreos-installer steps. The bookworm docker.io runc predates the fix for bpf_prog_query(BPF_CGROUP_DEVICE) returning ENOSYS on kernels without the cgroup BPF device controller, so container creation fails in rescue; this pins a runc that tolerates it. Keep runc_amd64_sha256 in sync when changing this."
-  type        = string
-  default     = "v1.1.15"
-}
-
-variable "runc_amd64_sha256" {
-  description = "Expected SHA-256 of the runc.amd64 release binary for runc_version. Verified after download so a MITM or tampered release cannot substitute the runc that runs the root install containers. Update together with runc_version."
-  type        = string
-  default     = "d218e1f8be4dcb1f288dea754faee342375a36f695eac5ab37fc8b7270a78763"
-}
-
 variable "platform" {
   description = "coreos-installer platform id (-p). Hetzner Cloud is KVM, so qemu."
   type        = string
@@ -119,4 +107,10 @@ variable "k3s" {
     condition     = !var.k3s.enable || can(regex("^v[0-9]+\\.[0-9]+\\.[0-9]+\\+k3s[0-9]+$", var.k3s.version))
     error_message = "k3s.version must be a pinned release tag matching v<x>.<y>.<z>+k3s<n> (e.g. v1.30.5+k3s1); it is interpolated into a boot-time shell command, so the format is enforced to prevent injection."
   }
+}
+
+variable "hcloud_token" {
+  description = "Hetzner Cloud API token for the same project as the hcloud provider passed to this module. Used by the boot step to disable the rescue system and reset the server via the API so it boots the installed CoreOS from disk instead of netbooting the rescue again."
+  type        = string
+  sensitive   = true
 }
