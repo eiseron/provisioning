@@ -58,6 +58,36 @@ renders it as `%%2B`; systemd then emits a literal `%2B` for `curl`. A single `%
 there fails the unit with `Failed to resolve unit specifiers ... Invalid slot`
 and the k3s binary never downloads.
 
+## Tang keyserver role
+
+With `tang.enable`, the host serves the Network-Bound Disk Encryption
+advertisement that lets encrypted k3s hosts unlock their LUKS volumes at boot.
+The Butane layers the first-party Fedora `tang` package with
+`rpm-ostree install --apply-live` (no reboot, the same mechanism the k3s role
+uses for `k3s-selinux`), generates keys into `tang.keys_mount` on first boot,
+and starts the stock `tangd.socket`.
+
+Two SELinux constraints shape this role (FCOS runs enforcing):
+
+- **The port is not configurable.** The policy only allows `tangd` to bind the
+  port the stock socket unit ships; a custom port fails
+  `Failed to create listening socket: Permission denied` and would need
+  `semanage port` labeling, meaning layering `policycoreutils-python-utils`
+  onto a host meant to stay minimal. The security controls are the Clevis
+  thumbprint pin and the firewall allowlist, not the port number.
+- **The keys volume is relabeled.** The keys live on a fresh ext4 volume
+  mounted at `tang.keys_mount`; without `restorecon -RF` after keygen, the
+  confined `tangd` cannot read files carrying the unlabeled filesystem
+  defaults.
+
+The signing keys must persist, or a keyserver reprovision would regenerate them
+and lock every bound host out at boot, so `tang.enable` requires
+`data_volume.enable`: the keys live on the persistent volume and are reused
+across reprovision. A keyserver runs neither k3s nor LUKS itself (it is the root
+of trust and cannot Tang-unlock against its own advertisement), so `tang.enable`
+and `k3s.enable` are mutually exclusive. The firewall opens only the Tang port,
+to `tang.allowed_ips` (the consumer host IPs), never the k3s ingress ports.
+
 ## Data persistence
 
 With `data_volume.enable`, a separate Hetzner volume is attached and the LUKS

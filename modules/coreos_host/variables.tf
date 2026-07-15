@@ -109,6 +109,26 @@ variable "k3s" {
   }
 }
 
+variable "tang" {
+  description = "Tang keyserver role for this host. When enable is true the Butane layers the first-party Fedora tang package via rpm-ostree --apply-live (no reboot, mirroring the k3s-selinux step) and serves the Clevis advertisement on the stock tangd.socket port (80) so encrypted k3s hosts can unlock their LUKS volumes at boot over the network. The port is deliberately not configurable: SELinux enforcing on FCOS denies tangd binds outside the shipped policy (a custom port needs semanage port labeling, which would mean layering policycoreutils-python-utils onto a host meant to stay minimal), and the security controls are the Clevis thumbprint pin plus the firewall allowlist, not the port number. The signing keys live under keys_mount, which must be a persistent data_volume so a keyserver reprovision reuses the same keys and existing LUKS bindings keep unlocking (regenerated keys would lock every bound host out); the fresh ext4 volume is relabeled with restorecon after keygen so the confined tangd can read it. A keyserver runs neither k3s nor LUKS itself. allowed_ips is the Hetzner firewall allowlist for the Tang port (the consumer host IPs); empty leaves the port closed until an allowlist is set."
+  type = object({
+    enable      = optional(bool, false)
+    keys_mount  = optional(string, "/var/db/tang")
+    allowed_ips = optional(list(string), [])
+  })
+  default = {}
+
+  validation {
+    condition     = !var.tang.enable || var.data_volume.enable
+    error_message = "tang.enable requires data_volume.enable: the Tang signing keys must live on a persistent volume so a keyserver reprovision reuses them, otherwise every LUKS-bound host is locked out at boot."
+  }
+
+  validation {
+    condition     = !var.tang.enable || !var.k3s.enable
+    error_message = "tang.enable and k3s.enable are mutually exclusive: the keyserver must stay a minimal host running only Tang."
+  }
+}
+
 variable "hcloud_token" {
   description = "Hetzner Cloud API token for the same project as the hcloud provider passed to this module. Used by the boot step to disable the rescue system and reset the server via the API so it boots the installed CoreOS from disk instead of netbooting the rescue again."
   type        = string

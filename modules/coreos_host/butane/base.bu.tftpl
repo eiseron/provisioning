@@ -105,6 +105,16 @@ storage:
       label: crypt
       with_mount_unit: true
 %{ endif ~}
+%{ if tang_enabled ~}
+
+  filesystems:
+    - device: ${tang_keys_device}
+      format: ext4
+      path: ${tang_keys_mount}
+      label: tang-db
+      wipe_filesystem: false
+      with_mount_unit: true
+%{ endif ~}
 
 systemd:
   units:
@@ -172,6 +182,30 @@ systemd:
         RestartSec=5s
         KillMode=process
         Delegate=yes
+        [Install]
+        WantedBy=multi-user.target
+%{ endif ~}
+%{ if tang_enabled ~}
+
+    - name: rpm-ostree-install-tang.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Layer tang via rpm-ostree, generate keys and start tangd
+        Wants=network-online.target
+        After=network-online.target ${tang_keys_mount_unit}
+        Requires=${tang_keys_mount_unit}
+        RequiresMountsFor=${tang_keys_mount}
+        ConditionPathExists=!/var/lib/%N.done
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/usr/bin/rpm-ostree install --apply-live --allow-inactive --idempotent tang
+        ExecStart=/usr/bin/sh -c 'test -n "$(ls -A ${tang_keys_mount} 2>/dev/null || true)" || /usr/libexec/tangd-keygen ${tang_keys_mount}'
+        ExecStart=/usr/sbin/restorecon -RF ${tang_keys_mount}
+        ExecStart=/usr/bin/systemctl daemon-reload
+        ExecStart=/usr/bin/systemctl enable --now tangd.socket
+        ExecStart=/usr/bin/touch /var/lib/%N.done
         [Install]
         WantedBy=multi-user.target
 %{ endif ~}

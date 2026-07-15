@@ -25,6 +25,10 @@ locals {
 
   luks_mount_unit = "${replace(trim(var.luks.mount, "/"), "/", "-")}.mount"
 
+  tang_keys_device = var.data_volume.enable ? "/dev/disk/by-id/scsi-0HC_Volume_${hcloud_volume.data[0].id}" : ""
+
+  tang_keys_mount_unit = "${replace(trim(var.tang.keys_mount, "/"), "/", "-")}.mount"
+
   butane = templatefile("${path.module}/butane/base.bu.tftpl", {
     deploy_ssh_authorized_key = var.deploy_ssh_authorized_key
     hostname                  = var.name
@@ -40,6 +44,10 @@ locals {
     k3s_data_dir              = local.k3s_data_dir
     k3s_version_url           = replace(var.k3s.version, "+", "%%2B")
     k3s_tls_san               = var.k3s.tls_san
+    tang_enabled              = var.tang.enable
+    tang_keys_mount           = var.tang.keys_mount
+    tang_keys_device          = local.tang_keys_device
+    tang_keys_mount_unit      = local.tang_keys_mount_unit
   })
 }
 
@@ -59,18 +67,24 @@ resource "hcloud_firewall" "this" {
     source_ips = var.ssh_source_ips
   }
 
-  rule {
-    direction  = "in"
-    protocol   = "tcp"
-    port       = "80"
-    source_ips = local.cloudflare_ip_ranges
+  dynamic "rule" {
+    for_each = var.k3s.enable ? ["80", "443"] : []
+    content {
+      direction  = "in"
+      protocol   = "tcp"
+      port       = rule.value
+      source_ips = local.cloudflare_ip_ranges
+    }
   }
 
-  rule {
-    direction  = "in"
-    protocol   = "tcp"
-    port       = "443"
-    source_ips = local.cloudflare_ip_ranges
+  dynamic "rule" {
+    for_each = var.tang.enable && length(var.tang.allowed_ips) > 0 ? [1] : []
+    content {
+      direction  = "in"
+      protocol   = "tcp"
+      port       = "80"
+      source_ips = var.tang.allowed_ips
+    }
   }
 
   rule {

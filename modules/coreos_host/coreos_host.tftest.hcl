@@ -9,6 +9,16 @@ mock_provider "hcloud" {
       id = "1"
     }
   }
+  mock_resource "hcloud_volume" {
+    defaults = {
+      id = "100"
+    }
+  }
+  mock_resource "hcloud_server" {
+    defaults = {
+      id = "200"
+    }
+  }
 }
 mock_provider "null" {}
 mock_provider "http" {
@@ -94,6 +104,79 @@ run "k3s_version_url_is_systemd_escaped" {
     condition     = strcontains(output.butane_config, "download/v1.30.5%%2Bk3s1/k3s")
     error_message = "The k3s release URL is embedded in a systemd ExecStart where % starts a unit specifier; the + must render as %%2B so systemd emits a literal %2B for curl instead of failing to load the unit"
   }
+}
+
+run "tang_keyserver_renders_tang_units_and_no_k3s" {
+  command = plan
+
+  variables {
+    k3s         = { enable = false }
+    data_volume = { enable = true }
+    tang = {
+      enable      = true
+      allowed_ips = ["203.0.113.10/32"]
+    }
+  }
+
+  assert {
+    condition     = strcontains(output.butane_config, "rpm-ostree install --apply-live --allow-inactive --idempotent tang")
+    error_message = "The keyserver must layer the tang package via rpm-ostree without a reboot"
+  }
+
+  assert {
+    condition     = strcontains(output.butane_config, "restorecon -RF /var/db/tang")
+    error_message = "The keys volume must be relabeled after keygen or SELinux blocks the confined tangd from reading the keys"
+  }
+
+  assert {
+    condition     = !strcontains(output.butane_config, "tangd.socket.d")
+    error_message = "tangd.socket must keep its stock port; SELinux denies tangd binds outside the shipped policy"
+  }
+
+  assert {
+    condition     = strcontains(output.butane_config, "path: /var/db/tang")
+    error_message = "The Tang signing keys must be mounted from the persistent volume so they survive reprovision"
+  }
+
+  assert {
+    condition     = !strcontains(output.butane_config, "k3s server")
+    error_message = "A keyserver must not run k3s"
+  }
+}
+
+run "tang_firewall_opens_only_the_tang_port" {
+  command = plan
+
+  variables {
+    k3s         = { enable = false }
+    data_volume = { enable = true }
+    tang = {
+      enable      = true
+      allowed_ips = ["203.0.113.10/32"]
+    }
+  }
+
+  assert {
+    condition     = length([for r in hcloud_firewall.this["acme-app-green-fw"].rule : r if r.port == "80" && tolist(r.source_ips) == tolist(["203.0.113.10/32"])]) == 1
+    error_message = "The keyserver firewall must open the stock Tang port only to the allowlist"
+  }
+
+  assert {
+    condition     = length([for r in hcloud_firewall.this["acme-app-green-fw"].rule : r if r.port == "443"]) == 0
+    error_message = "A keyserver must not expose the k3s ingress ports"
+  }
+}
+
+run "tang_requires_a_persistent_data_volume" {
+  command = plan
+
+  variables {
+    k3s         = { enable = false }
+    data_volume = { enable = false }
+    tang        = { enable = true }
+  }
+
+  expect_failures = [var.tang]
 }
 
 run "firewall_is_keyed_by_name_so_rename_replaces_it" {
