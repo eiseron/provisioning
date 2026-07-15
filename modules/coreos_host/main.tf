@@ -110,6 +110,7 @@ resource "hcloud_server" "this" {
   rescue       = "linux64"
   ssh_keys     = [hcloud_ssh_key.admin.id]
   firewall_ids = [for f in hcloud_firewall.this : f.id]
+  user_data    = "#install-fingerprint ${sha256(local.butane)}"
 
   public_net {
     ipv4_enabled = true

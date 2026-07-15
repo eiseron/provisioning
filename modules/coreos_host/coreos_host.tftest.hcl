@@ -179,6 +179,15 @@ run "tang_requires_a_persistent_data_volume" {
   expect_failures = [var.tang]
 }
 
+run "install_fingerprint_drives_replacement" {
+  command = plan
+
+  assert {
+    condition     = hcloud_server.this.user_data == "#install-fingerprint ${sha256(output.butane_config)}"
+    error_message = "user_data must carry the butane fingerprint so any install-config change forces an ordered same-address replacement of the server"
+  }
+}
+
 run "firewall_is_keyed_by_name_so_rename_replaces_it" {
   command = plan
 

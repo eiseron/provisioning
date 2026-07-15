@@ -88,6 +88,26 @@ of trust and cannot Tang-unlock against its own advertisement), so `tang.enable`
 and `k3s.enable` are mutually exclusive. The firewall opens only the Tang port,
 to `tang.allowed_ips` (the consumer host IPs), never the k3s ingress ports.
 
+## Declarative reprovision
+
+The server carries a fingerprint of its rendered Butane in `user_data`
+(`#install-fingerprint <sha256>`). `user_data` is a force-new attribute on
+`hcloud_server`, so ANY change to the install configuration replaces the server
+through an ordered same-address destroy-then-create, which reruns the full
+rescue install with the new Ignition in a single apply. No taint, no manual
+step, no cross-resource ordering races. With `platform = qemu` the Ignition is
+embedded on disk and CoreOS never reads the Hetzner user_data, so the value is
+inert; its only role is driving replacement.
+
+Consequence to respect: editing anything that renders into the Butane
+reprovisions the host. Persistent data must live on the `data_volume` (which
+survives replacement); anything on the boot disk is disposable by design.
+
+Upgrade note: servers created before v0.156.0 carry no `user_data`, so the
+first apply after bumping to this version replaces every existing server once,
+even with an unchanged Butane. Plan that apply as a reprovision: data on the
+`data_volume` survives, the boot disk is rebuilt.
+
 ## Data persistence
 
 With `data_volume.enable`, a separate Hetzner volume is attached and the LUKS
