@@ -1,5 +1,6 @@
 mock_provider "kubernetes" {}
 mock_provider "helm" {}
+mock_provider "kubectl" {}
 
 variables {
   enable             = true
@@ -10,17 +11,17 @@ run "seed_disabled_uses_initdb" {
   command = plan
 
   assert {
-    condition     = can(kubernetes_manifest.cluster[0].manifest.spec.bootstrap.initdb)
+    condition     = can(yamldecode(kubectl_manifest.cluster[0].yaml_body).spec.bootstrap.initdb)
     error_message = "Default cluster must bootstrap with initdb"
   }
 
   assert {
-    condition     = !can(kubernetes_manifest.cluster[0].manifest.spec.replica)
+    condition     = !can(yamldecode(kubectl_manifest.cluster[0].yaml_body).spec.replica)
     error_message = "Default cluster must not set spec.replica"
   }
 
   assert {
-    condition     = !can(kubernetes_manifest.cluster[0].manifest.spec.externalClusters)
+    condition     = !can(yamldecode(kubectl_manifest.cluster[0].yaml_body).spec.externalClusters)
     error_message = "Default cluster must not set externalClusters"
   }
 
@@ -46,17 +47,17 @@ run "seed_streaming_bootstraps_replica" {
   }
 
   assert {
-    condition     = can(kubernetes_manifest.cluster[0].manifest.spec.bootstrap.pg_basebackup)
+    condition     = can(yamldecode(kubectl_manifest.cluster[0].yaml_body).spec.bootstrap.pg_basebackup)
     error_message = "Streaming seed must bootstrap with pg_basebackup"
   }
 
   assert {
-    condition     = kubernetes_manifest.cluster[0].manifest.spec.replica.enabled == true
+    condition     = yamldecode(kubectl_manifest.cluster[0].yaml_body).spec.replica.enabled == true
     error_message = "Streaming seed must set replica.enabled = true"
   }
 
   assert {
-    condition     = length(kubernetes_manifest.cluster[0].manifest.spec.externalClusters) == 1
+    condition     = length(yamldecode(kubectl_manifest.cluster[0].yaml_body).spec.externalClusters) == 1
     error_message = "Streaming seed must declare one externalClusters entry"
   }
 
@@ -84,17 +85,31 @@ run "seed_recovery_bootstraps_from_backup" {
   }
 
   assert {
-    condition     = can(kubernetes_manifest.cluster[0].manifest.spec.bootstrap.recovery)
+    condition     = can(yamldecode(kubectl_manifest.cluster[0].yaml_body).spec.bootstrap.recovery)
     error_message = "Recovery seed must bootstrap with recovery"
   }
 
   assert {
-    condition     = !can(kubernetes_manifest.cluster[0].manifest.spec.replica)
+    condition     = !can(yamldecode(kubectl_manifest.cluster[0].yaml_body).spec.replica)
     error_message = "Recovery seed must not set spec.replica"
   }
 
   assert {
-    condition     = can(kubernetes_manifest.cluster[0].manifest.spec.externalClusters[0].barmanObjectStore)
+    condition     = can(yamldecode(kubectl_manifest.cluster[0].yaml_body).spec.externalClusters[0].barmanObjectStore)
     error_message = "Recovery seed externalClusters must carry the barmanObjectStore"
+  }
+}
+
+run "cluster_manifest_is_a_cnpg_cluster" {
+  command = plan
+
+  assert {
+    condition     = yamldecode(kubectl_manifest.cluster[0].yaml_body).kind == "Cluster"
+    error_message = "The rendered manifest kind must be Cluster"
+  }
+
+  assert {
+    condition     = yamldecode(kubectl_manifest.cluster[0].yaml_body).apiVersion == "postgresql.cnpg.io/v1"
+    error_message = "The rendered manifest must target the CNPG apiVersion"
   }
 }

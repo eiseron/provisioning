@@ -8,6 +8,10 @@ terraform {
       source  = "hashicorp/helm"
       version = ">= 2.13"
     }
+    kubectl = {
+      source  = "gavinbunney/kubectl"
+      version = ">= 1.14"
+    }
   }
 }
 
@@ -21,12 +25,17 @@ provider "helm" {
   }
 }
 
+provider "kubectl" {
+  config_path = "~/.kube/validate-only"
+}
+
 module "k3s_postgres" {
   source = "../.."
 
   providers = {
     kubernetes = kubernetes
     helm       = helm
+    kubectl    = kubectl
   }
 
   enable             = true

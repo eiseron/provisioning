@@ -161,10 +161,10 @@ resource "kubernetes_secret_v1" "seed_source" {
   }
 }
 
-resource "kubernetes_manifest" "cluster" {
+resource "kubectl_manifest" "cluster" {
   count = var.enable ? 1 : 0
 
-  manifest = {
+  yaml_body = yamlencode({
     apiVersion = "postgresql.cnpg.io/v1"
     kind       = "Cluster"
     metadata = {
@@ -172,7 +172,7 @@ resource "kubernetes_manifest" "cluster" {
       namespace = var.namespace
     }
     spec = local.cluster_spec
-  }
+  })
 
   depends_on = [helm_release.cnpg_operator]
 }
