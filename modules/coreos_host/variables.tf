@@ -95,11 +95,12 @@ variable "data_volume" {
 }
 
 variable "k3s" {
-  description = "k3s server on this host. When enable is true, the Butane lays down the k3s config (Traefik kept bundled), layers the k3s-selinux policy via rpm-ostree, installs the pinned k3s binary from GitHub releases, and runs k3s server. Fields: version is the pinned release tag (e.g. v1.30.5+k3s1); tls_san lists extra SANs for the API server cert (the public host/IP so the extracted kubeconfig works remotely)."
+  description = "k3s server on this host. When enable is true, the Butane lays down the k3s config (Traefik kept bundled), layers the k3s-selinux policy via rpm-ostree, installs the pinned k3s binary from GitHub releases, and runs k3s server. Fields: version is the pinned release tag (e.g. v1.30.5+k3s1); tls_san lists extra SANs for the API server cert (the public host/IP so the extracted kubeconfig works remotely); api_source_ips is the firewall source list for the API port (6443), open by default because kubernetes_manifest resources need the API reachable from CI at PLAN time, so a wrong allowlist locks the plan out of applying its own fix, and the API's real access control is mTLS client certificates. Set to [] to close the port entirely."
   type = object({
-    enable  = optional(bool, false)
-    version = optional(string, "")
-    tls_san = optional(list(string), [])
+    enable         = optional(bool, false)
+    version        = optional(string, "")
+    tls_san        = optional(list(string), [])
+    api_source_ips = optional(list(string), ["0.0.0.0/0", "::/0"])
   })
   default = {}
 

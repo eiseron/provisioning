@@ -78,6 +78,16 @@ resource "hcloud_firewall" "this" {
   }
 
   dynamic "rule" {
+    for_each = var.k3s.enable && length(var.k3s.api_source_ips) > 0 ? [1] : []
+    content {
+      direction  = "in"
+      protocol   = "tcp"
+      port       = "6443"
+      source_ips = var.k3s.api_source_ips
+    }
+  }
+
+  dynamic "rule" {
     for_each = var.tang.enable && length(var.tang.allowed_ips) > 0 ? [1] : []
     content {
       direction  = "in"

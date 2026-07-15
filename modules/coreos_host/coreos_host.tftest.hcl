@@ -179,6 +179,15 @@ run "tang_requires_a_persistent_data_volume" {
   expect_failures = [var.tang]
 }
 
+run "k3s_api_port_opens_for_plan_time_access" {
+  command = plan
+
+  assert {
+    condition     = length([for r in hcloud_firewall.this["acme-app-green-fw"].rule : r if r.port == "6443"]) == 1
+    error_message = "The k3s API port must be reachable from CI: kubernetes_manifest resources need the API at plan time, and mTLS is the access control"
+  }
+}
+
 run "install_fingerprint_drives_replacement" {
   command = plan
 
