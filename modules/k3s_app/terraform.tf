@@ -7,5 +7,10 @@ terraform {
       version               = ">= 2.30"
       configuration_aliases = [kubernetes]
     }
+    kubectl = {
+      source                = "gavinbunney/kubectl"
+      version               = ">= 1.14"
+      configuration_aliases = [kubectl]
+    }
   }
 }

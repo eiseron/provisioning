@@ -1,4 +1,5 @@
 mock_provider "kubernetes" {}
+mock_provider "kubectl" {}
 
 variables {
   enable    = true
@@ -67,5 +68,29 @@ run "skips_namespace_when_unmanaged" {
   assert {
     condition     = kubernetes_network_policy_v1.app[0].metadata[0].namespace == var.namespace
     error_message = "The NetworkPolicy must still target var.namespace when the namespace is unmanaged"
+  }
+}
+
+run "ingressroute_is_a_traefik_route_via_kubectl_manifest" {
+  command = plan
+
+  assert {
+    condition     = yamldecode(kubectl_manifest.ingressroute[0].yaml_body).kind == "IngressRoute"
+    error_message = "The IngressRoute manifest must be kind IngressRoute"
+  }
+
+  assert {
+    condition     = yamldecode(kubectl_manifest.ingressroute[0].yaml_body).apiVersion == "traefik.io/v1alpha1"
+    error_message = "The IngressRoute manifest must target traefik.io/v1alpha1"
+  }
+
+  assert {
+    condition     = yamldecode(kubectl_manifest.ingressroute[0].yaml_body).metadata.namespace == var.namespace
+    error_message = "The IngressRoute must target var.namespace"
+  }
+
+  assert {
+    condition     = yamldecode(kubectl_manifest.ingressroute[0].yaml_body).spec.routes[0].services[0].name == var.name
+    error_message = "The IngressRoute must route to the app's own Service"
   }
 }

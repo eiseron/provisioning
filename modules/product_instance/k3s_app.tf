@@ -4,6 +4,13 @@ provider "kubernetes" {
   cluster_ca_certificate = var.runtime.cluster_ca_cert != "" ? base64decode(var.runtime.cluster_ca_cert) : ""
 }
 
+provider "kubectl" {
+  host                   = var.runtime.cluster_host != "" ? var.runtime.cluster_host : "https://localhost:6443"
+  token                  = var.cluster_token
+  cluster_ca_certificate = var.runtime.cluster_ca_cert != "" ? base64decode(var.runtime.cluster_ca_cert) : ""
+  load_config_file       = false
+}
+
 locals {
   k3s_enabled = var.runtime.enable && local.prod_enabled
 
@@ -37,6 +44,7 @@ module "k3s_app" {
 
   providers = {
     kubernetes = kubernetes
+    kubectl    = kubectl
   }
 
   enable           = local.k3s_enabled

@@ -24,6 +24,7 @@ variables {
 }
 
 mock_provider "kubernetes" {}
+mock_provider "kubectl" {}
 
 run "uptime_cron_is_five_minutes" {
   command = plan

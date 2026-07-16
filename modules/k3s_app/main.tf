@@ -117,10 +117,10 @@ resource "kubernetes_service_v1" "app" {
   }
 }
 
-resource "kubernetes_manifest" "ingressroute" {
+resource "kubectl_manifest" "ingressroute" {
   count = var.enable ? 1 : 0
 
-  manifest = {
+  yaml_body = yamlencode({
     apiVersion = "traefik.io/v1alpha1"
     kind       = "IngressRoute"
     metadata = {
@@ -145,7 +145,7 @@ resource "kubernetes_manifest" "ingressroute" {
         certResolver = var.cert_resolver
       }
     }
-  }
+  })
 }
 
 resource "kubernetes_network_policy_v1" "app" {
