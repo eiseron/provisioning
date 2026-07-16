@@ -41,6 +41,10 @@ locals {
       size         = var.acme_storage_size
       path         = "/data"
     }
+    podSecurityContext = {
+      fsGroup             = 65532
+      fsGroupChangePolicy = "OnRootMismatch"
+    }
   }
 }
 
