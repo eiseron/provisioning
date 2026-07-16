@@ -108,3 +108,9 @@ variable "healthcheck_path" {
   type        = string
   default     = "/up"
 }
+
+variable "image_pull_secret_name" {
+  description = "Name of an existing dockerconfigjson Secret in var.namespace used to pull var.image from a private registry. Empty skips imagePullSecrets (public image or same-namespace default token)."
+  type        = string
+  default     = ""
+}

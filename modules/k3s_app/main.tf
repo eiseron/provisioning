@@ -56,6 +56,13 @@ resource "kubernetes_deployment_v1" "app" {
       spec {
         node_selector = var.node_selector
 
+        dynamic "image_pull_secrets" {
+          for_each = var.image_pull_secret_name != "" ? [1] : []
+          content {
+            name = var.image_pull_secret_name
+          }
+        }
+
         container {
           name  = var.name
           image = var.image

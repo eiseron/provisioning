@@ -71,6 +71,28 @@ run "skips_namespace_when_unmanaged" {
   }
 }
 
+run "no_image_pull_secrets_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(kubernetes_deployment_v1.app[0].spec[0].template[0].spec[0].image_pull_secrets) == 0
+    error_message = "No imagePullSecrets must be set when image_pull_secret_name is empty"
+  }
+}
+
+run "image_pull_secret_wired_to_deployment" {
+  command = plan
+
+  variables {
+    image_pull_secret_name = "app-registry-pull"
+  }
+
+  assert {
+    condition     = kubernetes_deployment_v1.app[0].spec[0].template[0].spec[0].image_pull_secrets[0].name == "app-registry-pull"
+    error_message = "The Deployment must reference image_pull_secret_name as an imagePullSecret"
+  }
+}
+
 run "ingressroute_is_a_traefik_route_via_kubectl_manifest" {
   command = plan
 

@@ -39,6 +39,29 @@ locals {
   )
 }
 
+resource "kubernetes_secret_v1" "registry_pull" {
+  count = local.k3s_enabled ? 1 : 0
+
+  metadata {
+    name      = "${var.slug}-registry-pull"
+    namespace = local.k3s_namespace
+  }
+
+  type = "kubernetes.io/dockerconfigjson"
+
+  data = {
+    ".dockerconfigjson" = jsonencode({
+      auths = {
+        "registry.gitlab.com" = {
+          username = gitlab_project_deploy_token.prod_registry[0].username
+          password = gitlab_project_deploy_token.prod_registry[0].token
+          auth     = base64encode("${gitlab_project_deploy_token.prod_registry[0].username}:${gitlab_project_deploy_token.prod_registry[0].token}")
+        }
+      }
+    })
+  }
+}
+
 module "k3s_app" {
   source = "../k3s_app"
 
@@ -47,12 +70,13 @@ module "k3s_app" {
     kubectl    = kubectl
   }
 
-  enable           = local.k3s_enabled
-  name             = var.slug
-  namespace        = local.k3s_namespace
-  manage_namespace = var.runtime.manage_namespace
-  image            = var.runtime.app_image
-  app_host         = var.runtime.app_host
+  enable                 = local.k3s_enabled
+  name                   = var.slug
+  namespace              = local.k3s_namespace
+  manage_namespace       = var.runtime.manage_namespace
+  image                  = var.runtime.app_image
+  app_host               = var.runtime.app_host
+  image_pull_secret_name = local.k3s_enabled ? kubernetes_secret_v1.registry_pull[0].metadata[0].name : ""
 
   env_clear  = local.k3s_env_clear
   env_secret = local.k3s_env_secret

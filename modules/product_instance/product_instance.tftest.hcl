@@ -730,6 +730,16 @@ run "runtime_enabled_wires_the_app_service" {
     condition     = module.k3s_app.manages_namespace == true
     error_message = "The app runtime must create the namespace by default"
   }
+
+  assert {
+    condition     = kubernetes_secret_v1.registry_pull[0].metadata[0].namespace == local.k3s_namespace
+    error_message = "The registry pull Secret must live in the app namespace"
+  }
+
+  assert {
+    condition     = kubernetes_secret_v1.registry_pull[0].type == "kubernetes.io/dockerconfigjson"
+    error_message = "The registry pull Secret must be a dockerconfigjson Secret"
+  }
 }
 
 run "runtime_skips_namespace_when_platform_owns_it" {
