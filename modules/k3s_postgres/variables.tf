@@ -52,6 +52,13 @@ variable "operator_chart_version" {
   default     = "0.22.1"
 }
 
+variable "managed_roles" {
+  description = "Tenant roles managed declaratively by CloudNativePG, as a map of role name to password. Each entry becomes a basic-auth secret plus a spec.managed.roles item with ensure=present and login=true pointing at that secret, so the operator owns the role's password and reconciles it continuously; this is the supported way to control the password of a role that already exists (including the initdb owner), instead of an imperative ALTER ROLE the operator may fight. Role names are lifted out of the sensitive mark internally (they name public secrets already), so only the password values stay redacted."
+  type        = map(string)
+  default     = {}
+  sensitive   = true
+}
+
 variable "superuser_password" {
   description = "Postgres superuser password, delivered as a secret CloudNativePG binds as the cluster superuser. Empty while dormant."
   type        = string

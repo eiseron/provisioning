@@ -7,3 +7,8 @@ output "manages_namespace" {
   description = "Whether this module owns (creates) the app namespace. False when the platform already owns it."
   value       = var.enable && var.manage_namespace
 }
+
+output "router_hosts" {
+  description = "Every host the IngressRoute matches (app_host plus extra_hosts)."
+  value       = local.router_hosts
+}

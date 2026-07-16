@@ -113,3 +113,52 @@ run "cluster_manifest_is_a_cnpg_cluster" {
     error_message = "The rendered manifest must target the CNPG apiVersion"
   }
 }
+
+run "no_managed_roles_by_default" {
+  command = plan
+
+  assert {
+    condition     = !can(yamldecode(kubectl_manifest.cluster[0].yaml_body).spec.managed)
+    error_message = "spec.managed must be absent when managed_roles is empty"
+  }
+
+  assert {
+    condition     = length(kubernetes_secret_v1.managed_role) == 0
+    error_message = "No role secrets must be created when managed_roles is empty"
+  }
+}
+
+run "managed_roles_reconcile_passwords_via_secrets" {
+  command = plan
+
+  variables {
+    managed_roles = {
+      acme = "role-password-validate-only"
+    }
+  }
+
+  assert {
+    condition     = yamldecode(kubectl_manifest.cluster[0].yaml_body).spec.managed.roles[0].name == "acme"
+    error_message = "The managed role must carry the role name"
+  }
+
+  assert {
+    condition     = yamldecode(kubectl_manifest.cluster[0].yaml_body).spec.managed.roles[0].ensure == "present"
+    error_message = "The managed role must be ensured present"
+  }
+
+  assert {
+    condition     = yamldecode(kubectl_manifest.cluster[0].yaml_body).spec.managed.roles[0].login == true
+    error_message = "The managed role must be a login role"
+  }
+
+  assert {
+    condition     = yamldecode(kubectl_manifest.cluster[0].yaml_body).spec.managed.roles[0].passwordSecret.name == kubernetes_secret_v1.managed_role["acme"].metadata[0].name
+    error_message = "The managed role's passwordSecret must reference the module-created secret"
+  }
+
+  assert {
+    condition     = kubernetes_secret_v1.managed_role["acme"].type == "kubernetes.io/basic-auth"
+    error_message = "The role secret must be a basic-auth secret"
+  }
+}

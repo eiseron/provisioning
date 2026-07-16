@@ -700,6 +700,7 @@ run "runtime_enabled_wires_the_app_service" {
       enable       = true
       cluster_host = "https://10.0.0.1:6443"
       app_host     = "app.example.com"
+      extra_hosts  = ["next.example.com"]
       app_image    = "registry.example.test/acme/app/prod:v1.0.0"
     }
     cluster_token      = "test-token"
@@ -739,6 +740,16 @@ run "runtime_enabled_wires_the_app_service" {
   assert {
     condition     = kubernetes_secret_v1.registry_pull[0].type == "kubernetes.io/dockerconfigjson"
     error_message = "The registry pull Secret must be a dockerconfigjson Secret"
+  }
+
+  assert {
+    condition     = contains(module.k3s_app.router_hosts, "next.example.com")
+    error_message = "runtime.extra_hosts must reach the IngressRoute's matched hosts"
+  }
+
+  assert {
+    condition     = contains(module.k3s_app.router_hosts, "app.example.com")
+    error_message = "app_host must stay in the IngressRoute's matched hosts alongside extra_hosts"
   }
 }
 

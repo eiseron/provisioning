@@ -146,7 +146,7 @@ variable "site_preview" {
 }
 
 variable "runtime" {
-  description = "App runtime-service wiring. When enable is true (and prod is enabled) the module stands up the product's runtime service, reusing the generated SECRET_KEY_BASE and building DATABASE_URL from db_tenant_password. The module owns the connection to the runtime cluster, so the consumer passes only data (never a provider) and stays agnostic to the runtime implementation behind it. Dormant by default until the product cutover. The cluster bearer token is a separate sensitive variable (cluster_token), never part of this object, so it is not exposed in plan output. Fields: cluster_host and cluster_ca_cert are the runtime cluster API endpoint and base64 CA the module connects with; namespace is where the app runs; app_host is the public host routed to the service; app_image is the image used only on create/recreate (the running image is owned by the deploy); observability_otlp_endpoint is where the app sends telemetry; admin_access_* wire the OIDC admin gate; node_selector labels select the node the app runs on."
+  description = "App runtime-service wiring. When enable is true (and prod is enabled) the module stands up the product's runtime service, reusing the generated SECRET_KEY_BASE and building DATABASE_URL from db_tenant_password. The module owns the connection to the runtime cluster, so the consumer passes only data (never a provider) and stays agnostic to the runtime implementation behind it. Dormant by default until the product cutover. The cluster bearer token is a separate sensitive variable (cluster_token), never part of this object, so it is not exposed in plan output. Fields: cluster_host and cluster_ca_cert are the runtime cluster API endpoint and base64 CA the module connects with; namespace is where the app runs; app_host is the public host routed to the service; extra_hosts are additional hosts the IngressRoute also matches (e.g. a verification subdomain); app_image is the image used only on create/recreate (the running image is owned by the deploy); observability_otlp_endpoint is where the app sends telemetry; admin_access_* wire the OIDC admin gate; node_selector labels select the node the app runs on."
   type = object({
     enable                      = optional(bool, false)
     cluster_host                = optional(string, "")
@@ -154,6 +154,7 @@ variable "runtime" {
     namespace                   = optional(string, "")
     manage_namespace            = optional(bool, true)
     app_host                    = optional(string, "")
+    extra_hosts                 = optional(list(string), [])
     app_image                   = optional(string, "")
     observability_otlp_endpoint = optional(string, "http://observability-collector:4318")
     admin_access_issuer         = optional(string, "")

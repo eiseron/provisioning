@@ -1,6 +1,8 @@
 locals {
   backup_enabled = var.enable && var.backup.enabled
 
+  managed_role_names = sort(nonsensitive(keys(var.managed_roles)))
+
   seed_streaming = var.enable && var.seed.enable && var.seed.mode == "streaming"
   seed_recovery  = var.enable && var.seed.enable && var.seed.mode == "recovery"
 
@@ -98,6 +100,18 @@ locals {
     },
     local.cluster_external_spec,
     local.cluster_replica == null ? {} : { replica = local.cluster_replica },
+    length(local.managed_role_names) == 0 ? {} : {
+      managed = {
+        roles = [for name in local.managed_role_names : {
+          name   = name
+          ensure = "present"
+          login  = true
+          passwordSecret = {
+            name = "${var.cluster_name}-role-${name}"
+          }
+        }]
+      }
+    },
   )
 }
 
@@ -142,6 +156,22 @@ resource "kubernetes_secret_v1" "backup_r2" {
   data = {
     ACCESS_KEY_ID     = var.backup.access_key_id
     SECRET_ACCESS_KEY = var.backup.secret_access_key
+  }
+}
+
+resource "kubernetes_secret_v1" "managed_role" {
+  for_each = var.enable ? toset(local.managed_role_names) : toset([])
+
+  metadata {
+    name      = "${var.cluster_name}-role-${each.key}"
+    namespace = var.namespace
+  }
+
+  type = "kubernetes.io/basic-auth"
+
+  data = {
+    username = each.key
+    password = var.managed_roles[each.key]
   }
 }
 

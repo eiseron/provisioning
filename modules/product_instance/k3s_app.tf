@@ -76,6 +76,7 @@ module "k3s_app" {
   manage_namespace       = var.runtime.manage_namespace
   image                  = var.runtime.app_image
   app_host               = var.runtime.app_host
+  extra_hosts            = var.runtime.extra_hosts
   image_pull_secret_name = local.k3s_enabled ? kubernetes_secret_v1.registry_pull[0].metadata[0].name : ""
 
   env_clear  = local.k3s_env_clear
