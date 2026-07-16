@@ -1,19 +1,17 @@
 locals {
   traefik_values = {
-    certificatesResolvers = {
-      cf = {
-        acme = merge(
-          {
-            email   = var.acme_email
-            storage = "/data/acme.json"
-            dnsChallenge = {
-              provider  = "cloudflare"
-              resolvers = ["1.1.1.1:53", "8.8.8.8:53"]
-            }
-          },
-          var.acme_use_staging ? { caServer = "https://acme-staging-v02.api.letsencrypt.org/directory" } : {},
-        )
-      }
+    certResolvers = {
+      cf = merge(
+        {
+          email   = var.acme_email
+          storage = "/data/acme.json"
+          dnsChallenge = {
+            provider  = "cloudflare"
+            resolvers = ["1.1.1.1:53", "8.8.8.8:53"]
+          }
+        },
+        var.acme_use_staging ? { caServer = "https://acme-staging-v02.api.letsencrypt.org/directory" } : {},
+      )
     }
     env = [
       {
