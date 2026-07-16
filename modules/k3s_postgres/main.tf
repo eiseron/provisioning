@@ -160,7 +160,7 @@ resource "kubernetes_secret_v1" "backup_r2" {
 }
 
 resource "kubernetes_secret_v1" "managed_role" {
-  for_each = var.enable ? toset(local.managed_role_names) : toset([])
+  for_each = nonsensitive(var.enable) ? toset(local.managed_role_names) : toset([])
 
   metadata {
     name      = "${var.cluster_name}-role-${each.key}"
