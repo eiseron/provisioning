@@ -95,3 +95,40 @@ run "github_gitignore_template_accepted" {
     error_message = "github.gitignore_template must reflect the provided value"
   }
 }
+
+run "media_outputs_are_null_when_media_disabled" {
+  command = plan
+
+  assert {
+    condition     = output.media_public_base_url == null
+    error_message = "media_public_base_url must be null when media_subdomain is unset"
+  }
+
+  assert {
+    condition     = output.media_r2_bucket == null
+    error_message = "media_r2_bucket must be null when media_subdomain is unset"
+  }
+}
+
+run "media_outputs_derive_from_subdomain_when_enabled" {
+  command = plan
+
+  variables {
+    media_subdomain = "img"
+  }
+
+  assert {
+    condition     = output.media_r2_bucket == "myproduct-media"
+    error_message = "media_r2_bucket must be <slug>-media so the runtime targets the product's own bucket"
+  }
+
+  assert {
+    condition     = output.media_public_base_url == "https://img.myproduct.io"
+    error_message = "media_public_base_url must be the media subdomain on the product domain so the app CSP and image URLs resolve"
+  }
+
+  assert {
+    condition     = output.media_r2_endpoint == "https://b406da57022f7381e45749bddbee7f8a.r2.cloudflarestorage.com"
+    error_message = "media_r2_endpoint must be the account's S3-compatible R2 endpoint"
+  }
+}

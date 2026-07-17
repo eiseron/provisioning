@@ -28,6 +28,7 @@ locals {
     },
     var.runtime.admin_access_issuer == "" ? {} : { ADMIN_ACCESS_ISSUER = var.runtime.admin_access_issuer },
     var.runtime.admin_access_certs_url == "" ? {} : { ADMIN_ACCESS_CERTS_URL = var.runtime.admin_access_certs_url },
+    var.runtime.env_clear,
   )
 
   k3s_env_secret = merge(
@@ -36,6 +37,7 @@ locals {
       DATABASE_URL    = local.k3s_database_url
     },
     var.runtime.admin_access_audiences == "" ? {} : { ADMIN_ACCESS_AUDIENCES = var.runtime.admin_access_audiences },
+    var.runtime.env_secret,
   )
 
   k3s_migrate_command = var.runtime.release_module != "" ? ["/bin/sh", "-c", "bin/${var.slug} eval '${var.runtime.release_module}.Release.migrate' && bin/${var.slug} eval '${var.runtime.release_module}.Release.seed'"] : []

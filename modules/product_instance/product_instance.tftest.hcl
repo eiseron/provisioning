@@ -1111,3 +1111,50 @@ run "runtime_release_module_wires_deploy_migration" {
     error_message = "The k3s app deployment must gain a migrate init container when release_module is set"
   }
 }
+
+run "runtime_env_passthrough_reaches_the_app" {
+  command = plan
+
+  variables {
+    app_project_id   = "87654321"
+    app_project_path = "eiseron/myproduct/myproduct"
+    ops_project_path = "eiseron/myproduct/myproduct-ops"
+    prod             = { enabled = true }
+    runtime = {
+      enable       = true
+      cluster_host = "https://10.0.0.1:6443"
+      app_host     = "app.example.com"
+      app_image    = "registry.example.test/acme/app/prod:v1.0.0"
+      env_clear = {
+        MEDIA_R2_BUCKET       = "myproduct-media"
+        MEDIA_PUBLIC_BASE_URL = "https://img.example.io"
+      }
+      env_secret = {
+        MEDIA_R2_ACCESS_KEY_ID     = "access-key"
+        MEDIA_R2_SECRET_ACCESS_KEY = "secret-key"
+      }
+    }
+    cluster_token      = "test-token"
+    db_tenant_password = "tenant-pw"
+  }
+
+  assert {
+    condition     = module.k3s_app.env_clear["MEDIA_PUBLIC_BASE_URL"] == "https://img.example.io"
+    error_message = "runtime.env_clear must reach the app's non-secret environment so the CSP and media host resolve"
+  }
+
+  assert {
+    condition     = module.k3s_app.env_clear["PHX_HOST"] == "app.example.com"
+    error_message = "The module's own clear env must survive merging the caller's env_clear passthrough"
+  }
+
+  assert {
+    condition     = contains(module.k3s_app.env_secret_keys, "MEDIA_R2_ACCESS_KEY_ID")
+    error_message = "runtime.env_secret must reach the app's Secret so media upload credentials are delivered"
+  }
+
+  assert {
+    condition     = contains(module.k3s_app.env_secret_keys, "SECRET_KEY_BASE")
+    error_message = "The module's own secret env must survive merging the caller's env_secret passthrough"
+  }
+}

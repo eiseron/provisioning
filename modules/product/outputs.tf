@@ -98,3 +98,30 @@ output "admin_access_aud" {
   description = "Cloudflare Access AUD tag for the admin application, or null when the admin gate is disabled."
   value       = one(cloudflare_zero_trust_access_application.admin[*].aud)
 }
+
+output "media_r2_bucket" {
+  description = "Name of the product's media R2 bucket, or null when media is disabled."
+  value       = local.media_enabled ? local.media_bucket : null
+}
+
+output "media_r2_endpoint" {
+  description = "S3-compatible endpoint for the product's media R2 bucket, or null when media is disabled."
+  value       = local.media_enabled ? "https://${var.cloudflare_account_id}.r2.cloudflarestorage.com" : null
+}
+
+output "media_r2_access_key_id" {
+  description = "Access key id (R2 write token id) for the product's media bucket, or null when media is disabled."
+  value       = local.media_enabled ? one(cloudflare_api_token.media_write[*].id) : null
+  sensitive   = true
+}
+
+output "media_r2_secret_access_key" {
+  description = "Secret access key (sha256 of the R2 write token) for the product's media bucket, or null when media is disabled."
+  value       = local.media_enabled ? sha256(one(cloudflare_api_token.media_write[*].value)) : null
+  sensitive   = true
+}
+
+output "media_public_base_url" {
+  description = "Public base URL the product serves media from (the R2 custom domain), or null when media is disabled."
+  value       = local.media_enabled ? "https://${local.media_host}" : null
+}

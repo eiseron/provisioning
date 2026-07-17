@@ -17,3 +17,13 @@ output "migrate_container_present" {
   description = "Whether the deployment runs a migrate init container before the app (true when migrate_command is set)."
   value       = length(var.migrate_command) > 0
 }
+
+output "env_clear" {
+  description = "The non-secret environment the app container receives, after the caller's extra variables are merged in."
+  value       = var.env_clear
+}
+
+output "env_secret_keys" {
+  description = "The names (not values) of the secret environment variables delivered to the app via its Secret, so callers can assert coverage without exposing the values."
+  value       = nonsensitive(keys(var.env_secret))
+}
