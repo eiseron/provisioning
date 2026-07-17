@@ -63,6 +63,29 @@ resource "kubernetes_deployment_v1" "app" {
           }
         }
 
+        dynamic "init_container" {
+          for_each = length(var.migrate_command) > 0 ? [1] : []
+          content {
+            name    = "migrate"
+            image   = var.image
+            command = var.migrate_command
+
+            dynamic "env" {
+              for_each = var.env_clear
+              content {
+                name  = env.key
+                value = env.value
+              }
+            }
+
+            env_from {
+              secret_ref {
+                name = "${var.name}-env"
+              }
+            }
+          }
+        }
+
         container {
           name  = var.name
           image = var.image

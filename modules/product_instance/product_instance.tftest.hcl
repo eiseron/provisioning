@@ -728,6 +728,11 @@ run "runtime_enabled_wires_the_app_service" {
   }
 
   assert {
+    condition     = length(local.k3s_migrate_command) == 0
+    error_message = "Deploy-time migrations must stay off when runtime.release_module is unset"
+  }
+
+  assert {
     condition     = module.k3s_app.manages_namespace == true
     error_message = "The app runtime must create the namespace by default"
   }
@@ -1074,5 +1079,35 @@ run "prod_enabled_with_group_id_uses_internal_project_id" {
   assert {
     condition     = length(gitlab_project_deploy_token.prod_registry) == 1
     error_message = "prod_registry deploy token must be created on the internal app project"
+  }
+}
+
+run "runtime_release_module_wires_deploy_migration" {
+  command = plan
+
+  variables {
+    app_project_id   = "87654321"
+    app_project_path = "eiseron/myproduct/myproduct"
+    ops_project_path = "eiseron/myproduct/myproduct-ops"
+    prod             = { enabled = true }
+    runtime = {
+      enable         = true
+      cluster_host   = "https://10.0.0.1:6443"
+      app_host       = "app.example.com"
+      app_image      = "registry.example.test/acme/app/prod:v1.0.0"
+      release_module = "Myproduct"
+    }
+    cluster_token      = "test-token"
+    db_tenant_password = "tenant-pw"
+  }
+
+  assert {
+    condition     = local.k3s_migrate_command == tolist(["bin/test-product", "eval", "Myproduct.Release.migrate"])
+    error_message = "release_module must build the deploy-time migration command bin/<slug> eval '<module>.Release.migrate'"
+  }
+
+  assert {
+    condition     = module.k3s_app.migrate_container_present == true
+    error_message = "The k3s app deployment must gain a migrate init container when release_module is set"
   }
 }

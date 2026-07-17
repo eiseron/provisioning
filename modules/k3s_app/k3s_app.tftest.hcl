@@ -93,6 +93,43 @@ run "image_pull_secret_wired_to_deployment" {
   }
 }
 
+run "no_migrate_init_container_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(kubernetes_deployment_v1.app[0].spec[0].template[0].spec[0].init_container) == 0
+    error_message = "No migrate init container must be created when migrate_command is empty"
+  }
+}
+
+run "migrate_init_container_runs_before_the_app" {
+  command = plan
+
+  variables {
+    migrate_command = ["bin/app", "eval", "App.Release.migrate"]
+  }
+
+  assert {
+    condition     = kubernetes_deployment_v1.app[0].spec[0].template[0].spec[0].init_container[0].name == "migrate"
+    error_message = "The migrate init container must be present when migrate_command is set"
+  }
+
+  assert {
+    condition     = kubernetes_deployment_v1.app[0].spec[0].template[0].spec[0].init_container[0].command == tolist(var.migrate_command)
+    error_message = "The migrate init container must run migrate_command verbatim"
+  }
+
+  assert {
+    condition     = kubernetes_deployment_v1.app[0].spec[0].template[0].spec[0].init_container[0].image == var.image
+    error_message = "The migrate init container must run the same image as the app so it migrates with the deployed release"
+  }
+
+  assert {
+    condition     = kubernetes_deployment_v1.app[0].spec[0].template[0].spec[0].init_container[0].env_from[0].secret_ref[0].name == "${var.name}-env"
+    error_message = "The migrate init container must load the app env secret so it reaches the database with DATABASE_URL"
+  }
+}
+
 run "ingressroute_is_a_traefik_route_via_kubectl_manifest" {
   command = plan
 

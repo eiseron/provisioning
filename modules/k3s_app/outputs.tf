@@ -12,3 +12,8 @@ output "router_hosts" {
   description = "Every host the IngressRoute matches (app_host plus extra_hosts)."
   value       = local.router_hosts
 }
+
+output "migrate_container_present" {
+  description = "Whether the deployment runs a migrate init container before the app (true when migrate_command is set)."
+  value       = length(var.migrate_command) > 0
+}

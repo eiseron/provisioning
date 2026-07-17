@@ -37,6 +37,8 @@ locals {
     },
     var.runtime.admin_access_audiences == "" ? {} : { ADMIN_ACCESS_AUDIENCES = var.runtime.admin_access_audiences },
   )
+
+  k3s_migrate_command = var.runtime.release_module != "" ? ["bin/${var.slug}", "eval", "${var.runtime.release_module}.Release.migrate"] : []
 }
 
 resource "kubernetes_secret_v1" "registry_pull" {
@@ -82,5 +84,6 @@ module "k3s_app" {
   env_clear  = local.k3s_env_clear
   env_secret = local.k3s_env_secret
 
-  node_selector = var.runtime.node_selector
+  migrate_command = local.k3s_migrate_command
+  node_selector   = var.runtime.node_selector
 }
