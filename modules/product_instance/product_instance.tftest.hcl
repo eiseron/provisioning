@@ -1102,7 +1102,7 @@ run "runtime_release_module_wires_deploy_migration" {
   }
 
   assert {
-    condition     = local.k3s_migrate_command == tolist(["bin/test-product", "eval", "Myproduct.Release.migrate"])
+    condition     = local.k3s_migrate_command == tolist(["/bin/sh", "-c", "bin/test-product eval 'Myproduct.Release.migrate' && bin/test-product eval 'Myproduct.Release.seed'"])
     error_message = "release_module must build the deploy-time migration command bin/<slug> eval '<module>.Release.migrate'"
   }
 

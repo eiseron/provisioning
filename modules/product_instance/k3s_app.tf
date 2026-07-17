@@ -38,7 +38,7 @@ locals {
     var.runtime.admin_access_audiences == "" ? {} : { ADMIN_ACCESS_AUDIENCES = var.runtime.admin_access_audiences },
   )
 
-  k3s_migrate_command = var.runtime.release_module != "" ? ["bin/${var.slug}", "eval", "${var.runtime.release_module}.Release.migrate"] : []
+  k3s_migrate_command = var.runtime.release_module != "" ? ["/bin/sh", "-c", "bin/${var.slug} eval '${var.runtime.release_module}.Release.migrate' && bin/${var.slug} eval '${var.runtime.release_module}.Release.seed'"] : []
 }
 
 resource "kubernetes_secret_v1" "registry_pull" {

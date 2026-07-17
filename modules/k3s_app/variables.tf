@@ -116,7 +116,7 @@ variable "image_pull_secret_name" {
 }
 
 variable "migrate_command" {
-  description = "Command run as an init container (same image and env as the app) before the app container starts, so every deploy migrates the database first. The app container only starts once it completes, so a failed migration blocks the rollout instead of serving a stale schema. Ecto's migration lock makes concurrent replicas safe. Empty disables the init container. Example: [\"bin/app\", \"eval\", \"App.Release.migrate\"]."
+  description = "Command run as an init container (same image and env as the app) before the app container starts, so every deploy prepares the database first (migrations and seeds). The app container only starts once it completes, so a failed migration blocks the rollout instead of serving a stale schema. Ecto's migration lock makes concurrent replicas safe. Empty disables the init container. Example: [\"bin/app\", \"eval\", \"App.Release.migrate\"]."
   type        = list(string)
   default     = []
 }
