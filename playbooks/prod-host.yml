@@ -54,7 +54,6 @@
     - eiseron.provisioning.ufw
     - eiseron.provisioning.fail2ban
     - eiseron.provisioning.docker
-    - eiseron.provisioning.swarm
     - role: eiseron.provisioning.pg_luks
       when: encrypt_at_rest | bool
     - eiseron.provisioning.netdata

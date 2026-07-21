@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-kamal app exec --version "$KAMAL_VERSION" "bin/${APP_SERVICE} eval '${APP_RELEASE_MODULE}.Release.migrate'"
-kamal app exec --version "$KAMAL_VERSION" "bin/${APP_SERVICE} eval '${APP_RELEASE_MODULE}.Release.seed'"

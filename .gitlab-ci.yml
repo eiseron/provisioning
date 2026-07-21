@@ -12,10 +12,6 @@ include:
         - modules/coreos_host/examples/validate
         - modules/prod_platform/examples/validate
         - modules/observability
-        - modules/swarm_stack/examples/validate
-        - modules/swarm_postgres/examples/validate
-        - modules/swarm_app/examples/validate
-        - modules/swarm_observability/examples/validate
         - modules/k3s_platform/examples/validate
         - modules/k3s_postgres/examples/validate
         - modules/k3s_app/examples/validate
@@ -42,10 +38,6 @@ include:
         - modules/coreos_host/examples/validate
         - modules/prod_platform/examples/validate
         - modules/observability
-        - modules/swarm_stack/examples/validate
-        - modules/swarm_postgres/examples/validate
-        - modules/swarm_app/examples/validate
-        - modules/swarm_observability/examples/validate
         - modules/k3s_platform/examples/validate
         - modules/k3s_postgres
         - modules/k3s_postgres/examples/validate
@@ -99,7 +91,7 @@ workflow:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
 
-kamal-render:
+render-checks:
   stage: validate
   image: ruby:3.3-alpine
   tags:
@@ -108,9 +100,6 @@ kamal-render:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
-    - ruby test/kamal/render_app_deploy_test.rb
-    - ruby test/kamal/render_observability_deploy_test.rb
-    - ruby test/kamal/observability_collector_redaction_test.rb
     - ruby test/tofu/observability_password_policy_test.rb
     - ruby test/tofu/release_branch_protection_test.rb
     - ruby test/tofu/cloudflare_pages_phase4_test.rb

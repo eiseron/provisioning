@@ -1,2 +1,0 @@
-FROM openobserve/openobserve@sha256:e1ff0445fab3e748ac4cf630308cc8493579e50d19ad255bb3a3b8c1b710aaf7
-LABEL service="observability"
