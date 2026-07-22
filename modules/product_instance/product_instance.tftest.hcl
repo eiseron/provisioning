@@ -411,8 +411,8 @@ run "prod_enabled_creates_trigger_token_and_deploy_token" {
   }
 
   assert {
-    condition     = length(gitlab_project_variable.prod_ops) == 7
-    error_message = "Seven prod ops CI vars must be created (KAMAL_REGISTRY_USERNAME, KAMAL_REGISTRY_PASSWORD, SECRET_KEY_BASE, PROD_PROJECT, PROD_APP_HOST, PROD_NAMESPACE, PROD_APP_IMAGE); PROD_CLOUDFLARE_ACCOUNT_ID is published separately with a wildcard environment_scope"
+    condition     = length(gitlab_project_variable.prod_ops) == 9
+    error_message = "Nine prod ops CI vars must be created (KAMAL_REGISTRY_USERNAME, KAMAL_REGISTRY_PASSWORD, SECRET_KEY_BASE, PROD_PROJECT, PROD_APP_HOST, PROD_NAMESPACE, PROD_APP_IMAGE, PROD_SLUG, PROD_RELEASE_MODULE); PROD_CLOUDFLARE_ACCOUNT_ID is published separately with a wildcard environment_scope"
   }
 
   assert {
@@ -443,6 +443,16 @@ run "prod_enabled_creates_trigger_token_and_deploy_token" {
   assert {
     condition     = gitlab_project_variable.prod_ops["PROD_APP_HOST"].masked == false
     error_message = "PROD_APP_HOST is not a secret and must not be masked, so the app CI pipeline can read it directly as an input"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_ops["PROD_SLUG"].value == var.slug
+    error_message = "PROD_SLUG must carry the module's slug, so app_name/tenant_slug facade inputs stop duplicating it"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_ops["PROD_RELEASE_MODULE"].value == var.runtime.release_module
+    error_message = "PROD_RELEASE_MODULE must carry runtime.release_module, so the app_release_module facade input stops duplicating it"
   }
 
   assert {
@@ -1238,6 +1248,11 @@ run "runtime_release_module_wires_deploy_migration" {
   assert {
     condition     = module.k3s_app.migrate_container_present == true
     error_message = "The k3s app deployment must gain a migrate init container when release_module is set"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_ops["PROD_RELEASE_MODULE"].value == "Myproduct"
+    error_message = "PROD_RELEASE_MODULE must carry the same release_module used to build the migrate command, so the CI facade's app_release_module input can default to it instead of repeating the literal"
   }
 }
 

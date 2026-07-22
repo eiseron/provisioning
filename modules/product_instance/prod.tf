@@ -23,6 +23,8 @@ locals {
     PROD_APP_HOST           = var.runtime.app_host
     PROD_NAMESPACE          = local.k3s_namespace
     PROD_APP_IMAGE          = var.runtime.app_image
+    PROD_SLUG               = var.slug
+    PROD_RELEASE_MODULE     = var.runtime.release_module
   } : {}
 
   prod_cloudflare_account_id_vars = local.prod_enabled ? {
@@ -70,7 +72,7 @@ resource "gitlab_project_variable" "prod_ops" {
   project           = var.ops_project_id
   key               = each.key
   value             = each.value
-  masked            = !contains(["KAMAL_REGISTRY_USERNAME", "PROD_PROJECT", "OBSERVABILITY_OTLP_ENDPOINT", "PROD_APP_HOST", "PROD_NAMESPACE", "PROD_APP_IMAGE"], each.key)
+  masked            = !contains(["KAMAL_REGISTRY_USERNAME", "PROD_PROJECT", "OBSERVABILITY_OTLP_ENDPOINT", "PROD_APP_HOST", "PROD_NAMESPACE", "PROD_APP_IMAGE", "PROD_SLUG", "PROD_RELEASE_MODULE"], each.key)
   protected         = true
   environment_scope = "production"
 }
