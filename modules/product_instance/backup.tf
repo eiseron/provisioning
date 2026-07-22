@@ -1,12 +1,94 @@
 locals {
   backup_enabled = nonsensitive(var.backup.bucket_name != "")
   drill_enabled  = local.backup_enabled && nonsensitive(var.backup.drill_key != "")
+  backup_cronjob_enabled = local.backup_enabled && local.k3s_enabled && nonsensitive(
+    var.backup.access_key_id != "" && var.backup.secret_access_key != ""
+  )
 
   backup_ci_vars = local.backup_enabled ? {
     PROD_BACKUP_BUCKET         = var.backup.bucket_name
-    PROD_BACKUP_NAME           = var.backup.name
+    PROD_BACKUP_NAME           = var.slug
     PROD_BACKUP_AGE_RECIPIENTS = var.backup.age_recipients
   } : {}
+
+  backup_gem_runtime_image = "registry.gitlab.com/eiseron/stack/public-image-bases/gem-runtime@sha256:d20433ca616fd03204cb8ff712d8a99a154752fc6aef1a14a2e09c408c98c70f"
+}
+
+resource "kubernetes_cron_job_v1" "db_backup" {
+  count = local.backup_cronjob_enabled ? 1 : 0
+
+  metadata {
+    name      = "${var.slug}-db-backup"
+    namespace = local.k3s_namespace
+  }
+
+  spec {
+    schedule                      = var.backup_schedule
+    concurrency_policy            = "Forbid"
+    successful_jobs_history_limit = 3
+    failed_jobs_history_limit     = 3
+
+    job_template {
+      metadata {}
+      spec {
+        backoff_limit = 0
+
+        template {
+          metadata {}
+          spec {
+            restart_policy = "Never"
+
+            container {
+              name    = "backup"
+              image   = local.backup_gem_runtime_image
+              command = ["eiseron", "db", "backup"]
+
+              env {
+                name  = "PGHOST"
+                value = "platform-db-rw.platform"
+              }
+              env {
+                name  = "PGUSER"
+                value = var.slug
+              }
+              env {
+                name  = "PROD_BACKUP_DATABASE"
+                value = "${var.slug}_prod"
+              }
+              env {
+                name  = "PROD_BACKUP_NAME"
+                value = var.slug
+              }
+              env {
+                name  = "PROD_BACKUP_BUCKET"
+                value = var.backup.bucket_name
+              }
+              env {
+                name  = "PROD_BACKUP_AGE_RECIPIENTS"
+                value = var.backup.age_recipients
+              }
+              env {
+                name  = "CLOUDFLARE_ACCOUNT_ID"
+                value = var.cloudflare_account_id
+              }
+              env {
+                name  = "PGPASSWORD"
+                value = var.db_tenant_password
+              }
+              env {
+                name  = "AWS_ACCESS_KEY_ID"
+                value = var.backup.access_key_id
+              }
+              env {
+                name  = "AWS_SECRET_ACCESS_KEY"
+                value = var.backup.secret_access_key
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 resource "gitlab_project_variable" "backup" {

@@ -80,7 +80,6 @@ run "backup_enabled_creates_ci_vars_and_schedules" {
   variables {
     backup = {
       bucket_name    = "my-backups"
-      name           = "myproduct"
       age_recipients = "age1abc123"
       drill_key      = ""
     }
@@ -123,7 +122,6 @@ run "backup_drill_key_activates_drill_schedule" {
   variables {
     backup = {
       bucket_name    = "my-backups"
-      name           = "myproduct"
       age_recipients = "age1abc123"
       drill_key      = "secret-drill-key"
     }
@@ -137,6 +135,116 @@ run "backup_drill_key_activates_drill_schedule" {
   assert {
     condition     = gitlab_pipeline_schedule.backup_drill[0].active == true
     error_message = "backup_drill schedule must be active when drill_key is set"
+  }
+}
+
+run "backup_without_credentials_creates_no_cronjob" {
+  command = plan
+
+  variables {
+    app_project_id   = "87654321"
+    app_project_path = "eiseron/myproduct/myproduct"
+    ops_project_path = "eiseron/myproduct/myproduct-ops"
+    prod             = { enabled = true }
+    runtime = {
+      enable       = true
+      cluster_host = "https://10.0.0.1:6443"
+      app_host     = "app.example.com"
+      app_image    = "registry.example.test/acme/app/prod:v1.0.0"
+    }
+    cluster_token      = "test-token"
+    db_tenant_password = "tenant-pw"
+    backup = {
+      bucket_name    = "my-backups"
+      age_recipients = "age1abc123"
+    }
+  }
+
+  assert {
+    condition     = length(kubernetes_cron_job_v1.db_backup) == 0
+    error_message = "No backup CronJob must be created when backup.access_key_id/secret_access_key are not set"
+  }
+}
+
+run "backup_with_credentials_creates_cronjob" {
+  command = plan
+
+  variables {
+    app_project_id   = "87654321"
+    app_project_path = "eiseron/myproduct/myproduct"
+    ops_project_path = "eiseron/myproduct/myproduct-ops"
+    prod             = { enabled = true }
+    runtime = {
+      enable       = true
+      cluster_host = "https://10.0.0.1:6443"
+      app_host     = "app.example.com"
+      app_image    = "registry.example.test/acme/app/prod:v1.0.0"
+    }
+    cluster_token      = "test-token"
+    db_tenant_password = "tenant-pw"
+    backup = {
+      bucket_name       = "my-backups"
+      age_recipients    = "age1abc123"
+      access_key_id     = "test-access-key"
+      secret_access_key = "test-secret-key"
+    }
+  }
+
+  assert {
+    condition     = length(kubernetes_cron_job_v1.db_backup) == 1
+    error_message = "The backup CronJob must be created when backup credentials are set and runtime is enabled"
+  }
+
+  assert {
+    condition     = kubernetes_cron_job_v1.db_backup[0].spec[0].schedule == "0 4 * * *"
+    error_message = "The backup CronJob must default to the 0 4 * * * schedule"
+  }
+
+  assert {
+    condition = one([
+      for env in kubernetes_cron_job_v1.db_backup[0].spec[0].job_template[0].spec[0].template[0].spec[0].container[0].env :
+      env.value if env.name == "PROD_BACKUP_DATABASE"
+    ]) == "test-product_prod"
+    error_message = "PROD_BACKUP_DATABASE must scope the dump to this product's own tenant database"
+  }
+
+  assert {
+    condition = one([
+      for env in kubernetes_cron_job_v1.db_backup[0].spec[0].job_template[0].spec[0].template[0].spec[0].container[0].env :
+      env.value if env.name == "PGPASSWORD"
+    ]) == "tenant-pw"
+    error_message = "PGPASSWORD must be the product's own tenant password, not a shared superuser credential"
+  }
+}
+
+run "backup_cronjob_respects_custom_schedule" {
+  command = plan
+
+  variables {
+    app_project_id   = "87654321"
+    app_project_path = "eiseron/myproduct/myproduct"
+    ops_project_path = "eiseron/myproduct/myproduct-ops"
+    prod             = { enabled = true }
+    runtime = {
+      enable       = true
+      cluster_host = "https://10.0.0.1:6443"
+      app_host     = "app.example.com"
+      app_image    = "registry.example.test/acme/app/prod:v1.0.0"
+    }
+    cluster_token      = "test-token"
+    db_tenant_password = "tenant-pw"
+    backup = {
+      bucket_name       = "my-backups"
+      age_recipients    = "age1abc123"
+      access_key_id     = "test-access-key"
+      secret_access_key = "test-secret-key"
+    }
+    backup_schedule = "30 2 * * *"
+  }
+
+  assert {
+    condition     = kubernetes_cron_job_v1.db_backup[0].spec[0].schedule == "30 2 * * *"
+    error_message = "backup_schedule must override the default cron"
   }
 }
 

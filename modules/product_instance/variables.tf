@@ -102,15 +102,22 @@ variable "prod" {
 }
 
 variable "backup" {
-  description = "DB backup wiring. When bucket_name is set the module creates three protected CI variables on the ops project (PROD_BACKUP_BUCKET, PROD_BACKUP_NAME, PROD_BACKUP_AGE_RECIPIENTS) plus two pipeline schedules: a daily staleness verifier and a weekly restore drill. The drill schedule is activated only when drill_key is also set, and the key lands as a masked CI variable (PROD_BACKUP_DRILL_KEY). Defaults leave no resources created."
+  description = "DB backup wiring. When bucket_name is set the module creates three protected CI variables on the ops project (PROD_BACKUP_BUCKET, PROD_BACKUP_NAME, PROD_BACKUP_AGE_RECIPIENTS) plus two pipeline schedules: a daily staleness verifier and a weekly restore drill. PROD_BACKUP_NAME is always var.slug (the R2 object-key prefix and the PGUSER/PROD_BACKUP_DATABASE default the backup gem falls back to; no reason for it to ever differ from the product's own slug). The drill schedule is activated only when drill_key is also set, and the key lands as a masked CI variable (PROD_BACKUP_DRILL_KEY). When access_key_id and secret_access_key are also set, the module additionally runs the backup itself as a Kubernetes CronJob in the product's own namespace (eiseron db backup: pg_dump scoped to the product's own tenant database, age-encrypted, uploaded to bucket_name). The R2 write token behind those credentials must be minted by the caller (an account-scoped Cloudflare token, which is what most *-ops repos carry, cannot create new API tokens; only a user-scoped token can) and passed in here already resolved -- this module never creates the token itself. Defaults leave no resources created."
   type = object({
-    bucket_name    = optional(string, "")
-    name           = optional(string, "")
-    age_recipients = optional(string, "")
-    drill_key      = optional(string, "")
+    bucket_name       = optional(string, "")
+    age_recipients    = optional(string, "")
+    drill_key         = optional(string, "")
+    access_key_id     = optional(string, "")
+    secret_access_key = optional(string, "")
   })
   default   = {}
   sensitive = true
+}
+
+variable "backup_schedule" {
+  description = "Cron schedule (Kubernetes CronJob syntax, UTC) for the in-cluster backup job. Only used when backup.access_key_id and backup.secret_access_key are set."
+  type        = string
+  default     = "0 4 * * *"
 }
 
 variable "prod_host" {
