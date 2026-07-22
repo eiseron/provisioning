@@ -54,6 +54,11 @@ include:
         - modules/gitlab_repository
         - modules/gitlab_runner
   - project: eiseron/stack/ci
+    file: /templates/tofu-lint.yml
+    ref: v0.9.57
+    inputs:
+      stage: validate
+  - project: eiseron/stack/ci
     file: /templates/tofu-coverage.yml
     ref: v0.9.51
   - project: eiseron/stack/ci

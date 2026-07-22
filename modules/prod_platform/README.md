@@ -78,7 +78,7 @@ outputs (`vps_ipv4`, `deploy_private_key`) and live with the product, not here.
 Encryption is opt-in per seat. The consumer collects a per-seat `encrypt`
 flag, aggregates it (`encrypt_at_rest = anytrue(seats)`), and passes the result
 to both `encrypt_db` (this module) and the `ENCRYPT_AT_REST` env of the
-`prod-host` playbook — they turn on together:
+`prod-host` playbook: they turn on together.
 
 - `encrypt_db = true` composes [`tang_host`](../tang_host) (a cheap, dedicated
   Hetzner box, stable unlike the CI runner) and publishes `TANG_HOST_IP` +
@@ -87,16 +87,16 @@ to both `encrypt_db` (this module) and the `ENCRYPT_AT_REST` env of the
   Clevis-bound to that Tang host).
 
 The key server host is created only when there is a prod host to unlock
-(`enable = true`) **and** encryption is on (`encrypt_db = true`) — so the
+(`enable = true`) **and** encryption is on (`encrypt_db = true`), so the
 dormant default (`enable = false`) never leaves an orphan key server, and no
-seat encrypting ⇒ no key server (no cost), no LUKS.
+seat encrypting means no key server (no cost), no LUKS.
 
 **The caller must configure the `hcloud` provider even when `encrypt_db =
 false`** (the module declares it as a requirement).
 
 **Disabling is one-way once a host is encrypted.** Setting `encrypt_db = false`
 destroys the Tang host (its keys die with it), but the prod host keeps its
-`crypttab` / `_netdev` mount / docker `RequiresMountsFor` / LUKS volume — so the
+`crypttab` / `_netdev` mount / docker `RequiresMountsFor` / LUKS volume, so the
 next reboot hangs unlocking against a Tang that no longer exists. Only disable
 **before any host is encrypted**; afterwards follow the decommission procedure
 (eiseron-planning#45). The `prod-host` playbook has a tripwire that fails the

@@ -1,9 +1,3 @@
-# Validate-only fixture: prod_platform requires injected provider configs
-# (hcloud + hcloud.keyserver via configuration_aliases), so it is not a valid
-# root module on its own. This root supplies dummy providers so `terraform
-# validate` can check the module's HCL in CI. The dummy tokens are only
-# format-checked by the hcloud provider (hence 64 chars); no API is ever called.
-
 terraform {
   required_providers {
     hcloud = {

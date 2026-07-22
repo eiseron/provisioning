@@ -1,9 +1,7 @@
 locals {
-  backup_enabled = nonsensitive(var.backup.bucket_name != "")
-  drill_enabled  = local.backup_enabled && nonsensitive(var.backup.drill_key != "")
-  backup_cronjob_enabled = local.backup_enabled && local.k3s_enabled && nonsensitive(
-    var.backup.access_key_id != "" && var.backup.secret_access_key != ""
-  )
+  backup_enabled         = nonsensitive(var.backup.bucket_name != "")
+  drill_enabled          = local.backup_enabled && nonsensitive(var.backup.drill_key != "")
+  backup_cronjob_enabled = local.backup_enabled && local.k3s_enabled
 
   backup_ci_vars = local.backup_enabled ? {
     PROD_BACKUP_BUCKET         = var.backup.bucket_name
@@ -12,6 +10,22 @@ locals {
   } : {}
 
   backup_gem_runtime_image = "registry.gitlab.com/eiseron/stack/public-image-bases/gem-runtime@sha256:d20433ca616fd03204cb8ff712d8a99a154752fc6aef1a14a2e09c408c98c70f"
+}
+
+data "gitlab_project_variable" "backup_r2_access_key_id" {
+  count = local.backup_cronjob_enabled ? 1 : 0
+
+  project           = var.ops_project_id
+  key               = "PROD_BACKUP_AWS_ACCESS_KEY_ID"
+  environment_scope = "production"
+}
+
+data "gitlab_project_variable" "backup_r2_secret_access_key" {
+  count = local.backup_cronjob_enabled ? 1 : 0
+
+  project           = var.ops_project_id
+  key               = "PROD_BACKUP_AWS_SECRET_ACCESS_KEY"
+  environment_scope = "production"
 }
 
 resource "kubernetes_cron_job_v1" "db_backup" {
@@ -77,11 +91,11 @@ resource "kubernetes_cron_job_v1" "db_backup" {
               }
               env {
                 name  = "AWS_ACCESS_KEY_ID"
-                value = var.backup.access_key_id
+                value = data.gitlab_project_variable.backup_r2_access_key_id[0].value
               }
               env {
                 name  = "AWS_SECRET_ACCESS_KEY"
-                value = var.backup.secret_access_key
+                value = data.gitlab_project_variable.backup_r2_secret_access_key[0].value
               }
             }
           }

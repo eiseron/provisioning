@@ -40,13 +40,13 @@ variable "image" {
 }
 
 variable "key_server_thumbprint" {
-  description = "Encryption key server (Tang) advertisement thumbprint — a runtime artifact generated when the key server first starts; not secret. Set it once the key server is up."
+  description = "Encryption key server (Tang) advertisement thumbprint, a runtime artifact generated when the key server first starts; not secret. Set it once the key server is up."
   type        = string
   default     = "placeholder"
 }
 
 variable "encrypt_db" {
-  description = "Encrypt the production databases at rest. When true, provisions the dedicated Tang host (Hetzner) and the prod host's pg_luks (LUKS data root). Defaults to true (secure by default); set false only when no database needs encryption (then no Tang host, no cost). WARNING: only safe to disable BEFORE any host is encrypted — once a host has LUKS, turning this off destroys the Tang key server and bricks the next boot; follow the decommission procedure first (see README / eiseron-planning#45)."
+  description = "Encrypt the production databases at rest. When true, provisions the dedicated Tang host (Hetzner) and the prod host's pg_luks (LUKS data root). Defaults to true (secure by default); set false only when no database needs encryption (then no Tang host, no cost). WARNING: only safe to disable BEFORE any host is encrypted, since once a host has LUKS, turning this off destroys the Tang key server and bricks the next boot; follow the decommission procedure first (see README / eiseron-planning#45)."
   type        = bool
   default     = true
 }

@@ -4,6 +4,11 @@ mock_provider "gitlab" {
       content = "eA=="
     }
   }
+  mock_data "gitlab_project_variable" {
+    defaults = {
+      value = "mocked-r2-credential"
+    }
+  }
 }
 mock_provider "cloudflare" {}
 mock_provider "github" {}
@@ -138,7 +143,27 @@ run "backup_drill_key_activates_drill_schedule" {
   }
 }
 
-run "backup_without_credentials_creates_no_cronjob" {
+run "backup_set_but_runtime_disabled_creates_no_cronjob" {
+  command = plan
+
+  variables {
+    app_project_id   = "87654321"
+    app_project_path = "eiseron/myproduct/myproduct"
+    ops_project_path = "eiseron/myproduct/myproduct-ops"
+    prod             = { enabled = true }
+    backup = {
+      bucket_name    = "my-backups"
+      age_recipients = "age1abc123"
+    }
+  }
+
+  assert {
+    condition     = length(kubernetes_cron_job_v1.db_backup) == 0
+    error_message = "No backup CronJob must be created when runtime.enable is not set, even with backup.bucket_name set"
+  }
+}
+
+run "backup_enabled_creates_cronjob" {
   command = plan
 
   variables {
@@ -161,38 +186,8 @@ run "backup_without_credentials_creates_no_cronjob" {
   }
 
   assert {
-    condition     = length(kubernetes_cron_job_v1.db_backup) == 0
-    error_message = "No backup CronJob must be created when backup.access_key_id/secret_access_key are not set"
-  }
-}
-
-run "backup_with_credentials_creates_cronjob" {
-  command = plan
-
-  variables {
-    app_project_id   = "87654321"
-    app_project_path = "eiseron/myproduct/myproduct"
-    ops_project_path = "eiseron/myproduct/myproduct-ops"
-    prod             = { enabled = true }
-    runtime = {
-      enable       = true
-      cluster_host = "https://10.0.0.1:6443"
-      app_host     = "app.example.com"
-      app_image    = "registry.example.test/acme/app/prod:v1.0.0"
-    }
-    cluster_token      = "test-token"
-    db_tenant_password = "tenant-pw"
-    backup = {
-      bucket_name       = "my-backups"
-      age_recipients    = "age1abc123"
-      access_key_id     = "test-access-key"
-      secret_access_key = "test-secret-key"
-    }
-  }
-
-  assert {
     condition     = length(kubernetes_cron_job_v1.db_backup) == 1
-    error_message = "The backup CronJob must be created when backup credentials are set and runtime is enabled"
+    error_message = "The backup CronJob must be created when backup.bucket_name is set and runtime is enabled"
   }
 
   assert {
@@ -215,6 +210,14 @@ run "backup_with_credentials_creates_cronjob" {
     ]) == "tenant-pw"
     error_message = "PGPASSWORD must be the product's own tenant password, not a shared superuser credential"
   }
+
+  assert {
+    condition = one([
+      for env in kubernetes_cron_job_v1.db_backup[0].spec[0].job_template[0].spec[0].template[0].spec[0].container[0].env :
+      env.value if env.name == "AWS_ACCESS_KEY_ID"
+    ]) == "mocked-r2-credential"
+    error_message = "AWS_ACCESS_KEY_ID must come from the data-source lookup of the existing PROD_BACKUP_AWS_ACCESS_KEY_ID CI variable, not a caller-supplied field"
+  }
 }
 
 run "backup_cronjob_respects_custom_schedule" {
@@ -234,10 +237,8 @@ run "backup_cronjob_respects_custom_schedule" {
     cluster_token      = "test-token"
     db_tenant_password = "tenant-pw"
     backup = {
-      bucket_name       = "my-backups"
-      age_recipients    = "age1abc123"
-      access_key_id     = "test-access-key"
-      secret_access_key = "test-secret-key"
+      bucket_name    = "my-backups"
+      age_recipients = "age1abc123"
     }
     backup_schedule = "30 2 * * *"
   }

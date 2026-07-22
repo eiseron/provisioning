@@ -26,10 +26,6 @@ module "host" {
   image          = var.image
 }
 
-# Dedicated key server (Tang) host, provisioned only when there is a prod host
-# to unlock (enable) AND encryption is on (encrypt_db). Runs under the SEPARATE
-# hcloud.keyserver provider (its own Hetzner project/token), so the prod token
-# cannot reach it — preserves the two-credential property of at-rest encryption.
 module "tang" {
   source = "../tang_host"
 
@@ -83,10 +79,6 @@ resource "gitlab_project_variable" "tang_ansible_ssh_key" {
   environment_scope = "production"
 }
 
-# Public IPv4 of the host, consumed by the provision job (inventory) and DNS.
-# Scope "*" (not "production"): the IP is not a secret (the protection is
-# protected=true), and a job without environment: production (e.g. the runner
-# provisioner that uses it as the Tang allowlist) must still see it.
 resource "gitlab_project_variable" "host_ip" {
   count             = var.enable ? 1 : 0
   project           = var.ops_project_id
@@ -116,11 +108,6 @@ resource "gitlab_project_variable" "deploy_public_key" {
   environment_scope = "production"
 }
 
-# Break-glass passphrase (LUKS fallback keyslot). Deliberately a placeholder
-# with ignore_changes: a Terraform-generated value would live forever in the
-# state backend, defeating a key meant to survive an online infra compromise.
-# The operator sets the real value out of band once for bootstrap and removes
-# it afterward (pg_luks only needs it on the first run).
 resource "gitlab_project_variable" "luks_breakglass" {
   project           = var.ops_project_id
   key               = "PROD_LUKS_BREAKGLASS"
