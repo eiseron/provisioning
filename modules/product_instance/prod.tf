@@ -16,10 +16,14 @@ locals {
   prod_otlp_endpoint = nonsensitive(var.prod.observability_otlp_endpoint)
 
   prod_ops_vars_base = local.prod_enabled ? {
-    KAMAL_REGISTRY_USERNAME = gitlab_project_deploy_token.prod_registry[0].username
-    KAMAL_REGISTRY_PASSWORD = gitlab_project_deploy_token.prod_registry[0].token
-    SECRET_KEY_BASE         = random_password.secret_key_base[0].result
-    PROD_PROJECT            = local._app_project_path
+    KAMAL_REGISTRY_USERNAME    = gitlab_project_deploy_token.prod_registry[0].username
+    KAMAL_REGISTRY_PASSWORD    = gitlab_project_deploy_token.prod_registry[0].token
+    SECRET_KEY_BASE            = random_password.secret_key_base[0].result
+    PROD_PROJECT               = local._app_project_path
+    PROD_APP_HOST              = var.runtime.app_host
+    PROD_NAMESPACE             = local.k3s_namespace
+    PROD_APP_IMAGE             = var.runtime.app_image
+    PROD_CLOUDFLARE_ACCOUNT_ID = var.cloudflare_account_id
   } : {}
 
   prod_ops_vars_observability = local.prod_enabled && local.prod_otlp_endpoint != "" ? {
@@ -63,7 +67,7 @@ resource "gitlab_project_variable" "prod_ops" {
   project           = var.ops_project_id
   key               = each.key
   value             = each.value
-  masked            = !contains(["KAMAL_REGISTRY_USERNAME", "PROD_PROJECT", "OBSERVABILITY_OTLP_ENDPOINT"], each.key)
+  masked            = !contains(["KAMAL_REGISTRY_USERNAME", "PROD_PROJECT", "OBSERVABILITY_OTLP_ENDPOINT", "PROD_APP_HOST", "PROD_NAMESPACE", "PROD_APP_IMAGE", "PROD_CLOUDFLARE_ACCOUNT_ID"], each.key)
   protected         = true
   environment_scope = "production"
 }

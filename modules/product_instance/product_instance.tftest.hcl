@@ -411,8 +411,8 @@ run "prod_enabled_creates_trigger_token_and_deploy_token" {
   }
 
   assert {
-    condition     = length(gitlab_project_variable.prod_ops) == 4
-    error_message = "Four prod ops CI vars must be created (KAMAL_REGISTRY_USERNAME, KAMAL_REGISTRY_PASSWORD, SECRET_KEY_BASE, PROD_PROJECT)"
+    condition     = length(gitlab_project_variable.prod_ops) == 8
+    error_message = "Eight prod ops CI vars must be created (KAMAL_REGISTRY_USERNAME, KAMAL_REGISTRY_PASSWORD, SECRET_KEY_BASE, PROD_PROJECT, PROD_APP_HOST, PROD_NAMESPACE, PROD_APP_IMAGE, PROD_CLOUDFLARE_ACCOUNT_ID)"
   }
 
   assert {
@@ -423,6 +423,21 @@ run "prod_enabled_creates_trigger_token_and_deploy_token" {
   assert {
     condition     = gitlab_project_variable.prod_ops["KAMAL_REGISTRY_PASSWORD"].masked == true
     error_message = "KAMAL_REGISTRY_PASSWORD must be masked"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_ops["PROD_NAMESPACE"].value == var.slug
+    error_message = "PROD_NAMESPACE must fall back to the product slug when runtime.namespace is not set"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_ops["PROD_CLOUDFLARE_ACCOUNT_ID"].value == var.cloudflare_account_id
+    error_message = "PROD_CLOUDFLARE_ACCOUNT_ID must carry the module's cloudflare_account_id"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_ops["PROD_APP_HOST"].masked == false
+    error_message = "PROD_APP_HOST is not a secret and must not be masked, so the app CI pipeline can read it directly as an input"
   }
 
   assert {
