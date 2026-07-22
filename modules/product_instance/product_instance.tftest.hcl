@@ -411,8 +411,8 @@ run "prod_enabled_creates_trigger_token_and_deploy_token" {
   }
 
   assert {
-    condition     = length(gitlab_project_variable.prod_ops) == 8
-    error_message = "Eight prod ops CI vars must be created (KAMAL_REGISTRY_USERNAME, KAMAL_REGISTRY_PASSWORD, SECRET_KEY_BASE, PROD_PROJECT, PROD_APP_HOST, PROD_NAMESPACE, PROD_APP_IMAGE, PROD_CLOUDFLARE_ACCOUNT_ID)"
+    condition     = length(gitlab_project_variable.prod_ops) == 7
+    error_message = "Seven prod ops CI vars must be created (KAMAL_REGISTRY_USERNAME, KAMAL_REGISTRY_PASSWORD, SECRET_KEY_BASE, PROD_PROJECT, PROD_APP_HOST, PROD_NAMESPACE, PROD_APP_IMAGE); PROD_CLOUDFLARE_ACCOUNT_ID is published separately with a wildcard environment_scope"
   }
 
   assert {
@@ -431,8 +431,13 @@ run "prod_enabled_creates_trigger_token_and_deploy_token" {
   }
 
   assert {
-    condition     = gitlab_project_variable.prod_ops["PROD_CLOUDFLARE_ACCOUNT_ID"].value == var.cloudflare_account_id
+    condition     = gitlab_project_variable.prod_cloudflare_account_id["PROD_CLOUDFLARE_ACCOUNT_ID"].value == var.cloudflare_account_id
     error_message = "PROD_CLOUDFLARE_ACCOUNT_ID must carry the module's cloudflare_account_id"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_cloudflare_account_id["PROD_CLOUDFLARE_ACCOUNT_ID"].environment_scope == "*"
+    error_message = "PROD_CLOUDFLARE_ACCOUNT_ID must be scoped to all environments so pipeline-level rules (e.g. the preview-pages-deploy include gate) can read it, since environment-scoped vars are invisible outside a job that declares a matching environment"
   }
 
   assert {
