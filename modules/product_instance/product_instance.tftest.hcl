@@ -1249,6 +1249,7 @@ run "runtime_release_module_wires_deploy_migration" {
       cluster_host   = "https://10.0.0.1:6443"
       app_host       = "app.example.com"
       app_image      = "registry.example.test/acme/app/prod:v1.0.0"
+      app_image_repo = "acme/app/prod"
       release_module = "Myproduct"
     }
     cluster_token      = "test-token"
@@ -1272,7 +1273,7 @@ run "runtime_release_module_wires_deploy_migration" {
 
   assert {
     condition     = gitlab_project_variable.prod_ops["PROD_APP_IMAGE_REPO"].value == "acme/app/prod"
-    error_message = "PROD_APP_IMAGE_REPO must strip the registry host and tag from runtime.app_image, so the CI facade's app_image input can default to it instead of repeating the literal"
+    error_message = "PROD_APP_IMAGE_REPO must carry the caller-supplied runtime.app_image_repo literal, so the CI facade's app_image input can default to it instead of repeating the literal"
   }
 }
 

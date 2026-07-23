@@ -15,8 +15,6 @@ locals {
 
   prod_otlp_endpoint = nonsensitive(var.prod.observability_otlp_endpoint)
 
-  app_image_repo = var.runtime.app_image != "" ? regex("^[^/]+/(.*):[^:]+$", var.runtime.app_image)[0] : ""
-
   prod_ops_vars_base = local.prod_enabled ? {
     KAMAL_REGISTRY_USERNAME = gitlab_project_deploy_token.prod_registry[0].username
     KAMAL_REGISTRY_PASSWORD = gitlab_project_deploy_token.prod_registry[0].token
@@ -24,7 +22,7 @@ locals {
     PROD_APP_HOST           = var.runtime.app_host
     PROD_NAMESPACE          = local.k3s_namespace
     PROD_APP_IMAGE          = var.runtime.app_image
-    PROD_APP_IMAGE_REPO     = local.app_image_repo
+    PROD_APP_IMAGE_REPO     = var.runtime.app_image_repo
   } : {}
 
   prod_ops_global_vars = local.prod_enabled ? {
