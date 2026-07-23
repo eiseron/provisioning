@@ -411,8 +411,8 @@ run "prod_enabled_creates_trigger_token_and_deploy_token" {
   }
 
   assert {
-    condition     = length(gitlab_project_variable.prod_ops) == 6
-    error_message = "Six prod ops CI vars must be created (KAMAL_REGISTRY_USERNAME, KAMAL_REGISTRY_PASSWORD, SECRET_KEY_BASE, PROD_APP_HOST, PROD_NAMESPACE, PROD_APP_IMAGE); PROD_CLOUDFLARE_ACCOUNT_ID/PROD_SLUG/PROD_RELEASE_MODULE/PROD_PROJECT are published separately with a wildcard environment_scope"
+    condition     = length(gitlab_project_variable.prod_ops) == 7
+    error_message = "Seven prod ops CI vars must be created (KAMAL_REGISTRY_USERNAME, KAMAL_REGISTRY_PASSWORD, SECRET_KEY_BASE, PROD_APP_HOST, PROD_NAMESPACE, PROD_APP_IMAGE, PROD_APP_IMAGE_REPO); PROD_CLOUDFLARE_ACCOUNT_ID/PROD_SLUG/PROD_RELEASE_MODULE/PROD_PROJECT are published separately with a wildcard environment_scope"
   }
 
   assert {
@@ -1268,6 +1268,11 @@ run "runtime_release_module_wires_deploy_migration" {
   assert {
     condition     = gitlab_project_variable.prod_ops_global["PROD_RELEASE_MODULE"].value == "Myproduct"
     error_message = "PROD_RELEASE_MODULE must carry the same release_module used to build the migrate command, so the CI facade's app_release_module input can default to it instead of repeating the literal"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_ops["PROD_APP_IMAGE_REPO"].value == "acme/app/prod"
+    error_message = "PROD_APP_IMAGE_REPO must strip the registry host and tag from runtime.app_image, so the CI facade's app_image input can default to it instead of repeating the literal"
   }
 }
 
