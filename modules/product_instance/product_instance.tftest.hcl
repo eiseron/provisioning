@@ -411,8 +411,13 @@ run "prod_enabled_creates_trigger_token_and_deploy_token" {
   }
 
   assert {
-    condition     = length(gitlab_project_variable.prod_ops) == 9
-    error_message = "Nine prod ops CI vars must be created (KAMAL_REGISTRY_USERNAME, KAMAL_REGISTRY_PASSWORD, SECRET_KEY_BASE, PROD_PROJECT, PROD_APP_HOST, PROD_NAMESPACE, PROD_APP_IMAGE, PROD_SLUG, PROD_RELEASE_MODULE); PROD_CLOUDFLARE_ACCOUNT_ID is published separately with a wildcard environment_scope"
+    condition     = length(gitlab_project_variable.prod_ops) == 6
+    error_message = "Six prod ops CI vars must be created (KAMAL_REGISTRY_USERNAME, KAMAL_REGISTRY_PASSWORD, SECRET_KEY_BASE, PROD_APP_HOST, PROD_NAMESPACE, PROD_APP_IMAGE); PROD_CLOUDFLARE_ACCOUNT_ID/PROD_SLUG/PROD_RELEASE_MODULE/PROD_PROJECT are published separately with a wildcard environment_scope"
+  }
+
+  assert {
+    condition     = length(gitlab_project_variable.prod_ops_global) == 4
+    error_message = "Four wildcard-scoped prod ops CI vars must be created (PROD_CLOUDFLARE_ACCOUNT_ID, PROD_SLUG, PROD_RELEASE_MODULE, PROD_PROJECT), readable from jobs outside the production environment (e.g. preview)"
   }
 
   assert {
@@ -431,12 +436,12 @@ run "prod_enabled_creates_trigger_token_and_deploy_token" {
   }
 
   assert {
-    condition     = gitlab_project_variable.prod_cloudflare_account_id["PROD_CLOUDFLARE_ACCOUNT_ID"].value == var.cloudflare_account_id
+    condition     = gitlab_project_variable.prod_ops_global["PROD_CLOUDFLARE_ACCOUNT_ID"].value == var.cloudflare_account_id
     error_message = "PROD_CLOUDFLARE_ACCOUNT_ID must carry the module's cloudflare_account_id"
   }
 
   assert {
-    condition     = gitlab_project_variable.prod_cloudflare_account_id["PROD_CLOUDFLARE_ACCOUNT_ID"].environment_scope == "*"
+    condition     = gitlab_project_variable.prod_ops_global["PROD_CLOUDFLARE_ACCOUNT_ID"].environment_scope == "*"
     error_message = "PROD_CLOUDFLARE_ACCOUNT_ID must be scoped to all environments so pipeline-level rules (e.g. the preview-pages-deploy include gate) can read it, since environment-scoped vars are invisible outside a job that declares a matching environment"
   }
 
@@ -446,13 +451,23 @@ run "prod_enabled_creates_trigger_token_and_deploy_token" {
   }
 
   assert {
-    condition     = gitlab_project_variable.prod_ops["PROD_SLUG"].value == var.slug
-    error_message = "PROD_SLUG must carry the module's slug, so app_name/tenant_slug facade inputs stop duplicating it"
+    condition     = gitlab_project_variable.prod_ops_global["PROD_SLUG"].value == var.slug
+    error_message = "PROD_SLUG must carry the module's slug, so app_name/tenant_slug/app_service facade inputs stop duplicating it"
   }
 
   assert {
-    condition     = gitlab_project_variable.prod_ops["PROD_RELEASE_MODULE"].value == var.runtime.release_module
+    condition     = gitlab_project_variable.prod_ops_global["PROD_SLUG"].environment_scope == "*"
+    error_message = "PROD_SLUG must be scoped to all environments so non-production jobs (e.g. preview) can also read it"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_ops_global["PROD_RELEASE_MODULE"].value == var.runtime.release_module
     error_message = "PROD_RELEASE_MODULE must carry runtime.release_module, so the app_release_module facade input stops duplicating it"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_ops_global["PROD_PROJECT"].value == local._app_project_path
+    error_message = "PROD_PROJECT must carry the app project path, scoped to all environments so preview jobs (which reference it as PREVIEW_PROJECT_PATH) can also read it"
   }
 
   assert {
@@ -1251,7 +1266,7 @@ run "runtime_release_module_wires_deploy_migration" {
   }
 
   assert {
-    condition     = gitlab_project_variable.prod_ops["PROD_RELEASE_MODULE"].value == "Myproduct"
+    condition     = gitlab_project_variable.prod_ops_global["PROD_RELEASE_MODULE"].value == "Myproduct"
     error_message = "PROD_RELEASE_MODULE must carry the same release_module used to build the migrate command, so the CI facade's app_release_module input can default to it instead of repeating the literal"
   }
 }

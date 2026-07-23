@@ -19,16 +19,16 @@ locals {
     KAMAL_REGISTRY_USERNAME = gitlab_project_deploy_token.prod_registry[0].username
     KAMAL_REGISTRY_PASSWORD = gitlab_project_deploy_token.prod_registry[0].token
     SECRET_KEY_BASE         = random_password.secret_key_base[0].result
-    PROD_PROJECT            = local._app_project_path
     PROD_APP_HOST           = var.runtime.app_host
     PROD_NAMESPACE          = local.k3s_namespace
     PROD_APP_IMAGE          = var.runtime.app_image
-    PROD_SLUG               = var.slug
-    PROD_RELEASE_MODULE     = var.runtime.release_module
   } : {}
 
-  prod_cloudflare_account_id_vars = local.prod_enabled ? {
+  prod_ops_global_vars = local.prod_enabled ? {
     PROD_CLOUDFLARE_ACCOUNT_ID = var.cloudflare_account_id
+    PROD_SLUG                  = var.slug
+    PROD_RELEASE_MODULE        = var.runtime.release_module
+    PROD_PROJECT               = local._app_project_path
   } : {}
 
   prod_ops_vars_observability = local.prod_enabled && local.prod_otlp_endpoint != "" ? {
@@ -72,13 +72,13 @@ resource "gitlab_project_variable" "prod_ops" {
   project           = var.ops_project_id
   key               = each.key
   value             = each.value
-  masked            = !contains(["KAMAL_REGISTRY_USERNAME", "PROD_PROJECT", "OBSERVABILITY_OTLP_ENDPOINT", "PROD_APP_HOST", "PROD_NAMESPACE", "PROD_APP_IMAGE", "PROD_SLUG", "PROD_RELEASE_MODULE"], each.key)
+  masked            = !contains(["KAMAL_REGISTRY_USERNAME", "PROD_PROJECT", "OBSERVABILITY_OTLP_ENDPOINT", "PROD_APP_HOST", "PROD_NAMESPACE", "PROD_APP_IMAGE"], each.key)
   protected         = true
   environment_scope = "production"
 }
 
-resource "gitlab_project_variable" "prod_cloudflare_account_id" {
-  for_each          = local.prod_cloudflare_account_id_vars
+resource "gitlab_project_variable" "prod_ops_global" {
+  for_each          = local.prod_ops_global_vars
   project           = var.ops_project_id
   key               = each.key
   value             = each.value
@@ -88,6 +88,21 @@ resource "gitlab_project_variable" "prod_cloudflare_account_id" {
 }
 
 moved {
-  from = gitlab_project_variable.prod_ops["PROD_CLOUDFLARE_ACCOUNT_ID"]
-  to   = gitlab_project_variable.prod_cloudflare_account_id["PROD_CLOUDFLARE_ACCOUNT_ID"]
+  from = gitlab_project_variable.prod_cloudflare_account_id["PROD_CLOUDFLARE_ACCOUNT_ID"]
+  to   = gitlab_project_variable.prod_ops_global["PROD_CLOUDFLARE_ACCOUNT_ID"]
+}
+
+moved {
+  from = gitlab_project_variable.prod_ops["PROD_SLUG"]
+  to   = gitlab_project_variable.prod_ops_global["PROD_SLUG"]
+}
+
+moved {
+  from = gitlab_project_variable.prod_ops["PROD_RELEASE_MODULE"]
+  to   = gitlab_project_variable.prod_ops_global["PROD_RELEASE_MODULE"]
+}
+
+moved {
+  from = gitlab_project_variable.prod_ops["PROD_PROJECT"]
+  to   = gitlab_project_variable.prod_ops_global["PROD_PROJECT"]
 }
