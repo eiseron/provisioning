@@ -9,6 +9,11 @@ mock_provider "gitlab" {
       value = "mocked-r2-credential"
     }
   }
+  mock_data "gitlab_group" {
+    defaults = {
+      id = 11223344
+    }
+  }
 }
 mock_provider "cloudflare" {}
 mock_provider "github" {}
@@ -1065,6 +1070,24 @@ run "standard_repos_created_when_group_id_set" {
   assert {
     condition     = length(module.gh_site_repo) == 1
     error_message = "GitHub site mirror must be created when group_id is set"
+  }
+}
+
+run "standard_repos_created_when_group_path_set" {
+  command = plan
+
+  variables {
+    group_path = "eiseron/test-product"
+  }
+
+  assert {
+    condition     = length(module.gl_app_repo) == 1
+    error_message = "GitLab app repo must be created when group_path resolves a group id"
+  }
+
+  assert {
+    condition     = local.resolved_group_id == "11223344"
+    error_message = "resolved_group_id must come from the mocked gitlab_group data source"
   }
 }
 

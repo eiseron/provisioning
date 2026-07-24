@@ -71,7 +71,13 @@ variable "release_token" {
 }
 
 variable "group_id" {
-  description = "Numeric ID of the product's GitLab group (e.g. the afinados group). Required when ci_vars tokens are set; group variables land here so every pipeline in the group inherits them without repeating the secret in each project."
+  description = "Numeric ID of the product's GitLab group (e.g. the afinados group). Required when ci_vars tokens are set; group variables land here so every pipeline in the group inherits them without repeating the secret in each project. Prefer group_path; this stays for callers that already resolved the numeric ID themselves."
+  type        = string
+  default     = ""
+}
+
+variable "group_path" {
+  description = "Full path of the product's GitLab group (e.g. eiseron/afinados). The module resolves this to the numeric group ID itself, so callers no longer need their own data \"gitlab_group\" lookup. Ignored when group_id is set."
   type        = string
   default     = ""
 }

@@ -4,16 +4,16 @@ locals {
       GITHUB_TOKEN         = var.ci_vars.github_token
       GITLAB_TOKEN         = var.ci_vars.gitlab_token
       CLOUDFLARE_API_TOKEN = var.ci_vars.cloudflare_api_token
-    } : k => v if nonsensitive(v != "") && nonsensitive(var.group_id != "")
+    } : k => v if nonsensitive(v != "") && nonsensitive(local.resolved_group_id != "")
   }
 
-  cloudflare_account_id_set = nonsensitive(var.ci_vars.cloudflare_account_id != "") && nonsensitive(var.group_id != "")
+  cloudflare_account_id_set = nonsensitive(var.ci_vars.cloudflare_account_id != "") && nonsensitive(local.resolved_group_id != "")
   secrets_file_set          = nonsensitive(var.ci_vars.secrets_file != "")
 }
 
 resource "gitlab_group_variable" "ci_token" {
   for_each  = local.group_token_vars
-  group     = var.group_id
+  group     = local.resolved_group_id
   key       = each.key
   value     = each.value
   masked    = true
@@ -22,7 +22,7 @@ resource "gitlab_group_variable" "ci_token" {
 
 resource "gitlab_group_variable" "cloudflare_account_id" {
   count     = local.cloudflare_account_id_set ? 1 : 0
-  group     = var.group_id
+  group     = local.resolved_group_id
   key       = "CLOUDFLARE_ACCOUNT_ID"
   value     = var.ci_vars.cloudflare_account_id
   masked    = false

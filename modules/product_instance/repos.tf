@@ -1,5 +1,5 @@
 locals {
-  _group_id_num = var.group_id != "" ? tonumber(var.group_id) : 0
+  _group_id_num = local.resolved_group_id != "" ? tonumber(local.resolved_group_id) : 0
 
   _extra_cfgs = var.repositories
 
