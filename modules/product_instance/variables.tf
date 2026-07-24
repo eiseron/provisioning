@@ -96,12 +96,12 @@ variable "ci_vars" {
 }
 
 variable "prod" {
-  description = "Production deployment wiring. When enabled (and app_project_id is set) provisions: a pipeline trigger on the ops project (PROD_DEPLOYER_TRIGGER_TOKEN + PROD_DEPLOYER_PROJECT on the app project); a registry pull deploy token (KAMAL_REGISTRY_USERNAME + KAMAL_REGISTRY_PASSWORD on the ops project, production scope); a generated 64-char SECRET_KEY_BASE (ops project, production scope); PROD_PROJECT (ops project, production scope). Optionally passes R2 asset credentials as AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY on the app project when r2_access_key_id is set. When observability_otlp_endpoint is set it lands as OBSERVABILITY_OTLP_ENDPOINT (ops project, production scope, unmasked) so the app exports OTLP logs/traces to the co-located collector; the caller passes the concrete collector address (e.g. http://observability-collector:4318). Defaults skip all resource creation."
+  description = "Production deployment wiring. When enabled (and app_project_id is set) provisions: a pipeline trigger on the ops project (PROD_DEPLOYER_TRIGGER_TOKEN + PROD_DEPLOYER_PROJECT on the app project); a registry pull deploy token (KAMAL_REGISTRY_USERNAME + KAMAL_REGISTRY_PASSWORD on the ops project, production scope); a generated 64-char SECRET_KEY_BASE (ops project, production scope); PROD_PROJECT (ops project, production scope). Optionally passes R2 asset credentials as AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY on the app project when r2_access_key_id is set. observability_otlp_endpoint lands as OBSERVABILITY_OTLP_ENDPOINT on both the ops project (production scope) and the app project (production scope), defaulting to the co-located in-cluster collector; pass an empty string to skip creating it entirely. Defaults skip all other resource creation."
   type = object({
     enabled                     = optional(bool, false)
     r2_access_key_id            = optional(string, "")
     r2_secret_access_key        = optional(string, "")
-    observability_otlp_endpoint = optional(string, "")
+    observability_otlp_endpoint = optional(string, "http://observability-collector:4318")
   })
   default   = {}
   sensitive = true

@@ -392,7 +392,7 @@ run "prod_enabled_creates_trigger_token_and_deploy_token" {
     app_project_id   = "87654321"
     app_project_path = "eiseron/myproduct/myproduct"
     ops_project_path = "eiseron/myproduct/myproduct-ops"
-    prod             = { enabled = true }
+    prod             = { enabled = true, observability_otlp_endpoint = "" }
   }
 
   assert {
@@ -481,7 +481,7 @@ run "prod_enabled_creates_trigger_token_and_deploy_token" {
   }
 }
 
-run "prod_observability_endpoint_lands_as_unmasked_ops_var" {
+run "prod_observability_endpoint_lands_as_unmasked_ops_and_app_var" {
   command = plan
 
   variables {
@@ -496,7 +496,7 @@ run "prod_observability_endpoint_lands_as_unmasked_ops_var" {
 
   assert {
     condition     = contains(keys(gitlab_project_variable.prod_ops), "OBSERVABILITY_OTLP_ENDPOINT")
-    error_message = "OBSERVABILITY_OTLP_ENDPOINT must be created when prod.observability_otlp_endpoint is set"
+    error_message = "OBSERVABILITY_OTLP_ENDPOINT must be created on the ops project when prod.observability_otlp_endpoint is set"
   }
 
   assert {
@@ -511,7 +511,43 @@ run "prod_observability_endpoint_lands_as_unmasked_ops_var" {
 
   assert {
     condition     = gitlab_project_variable.prod_ops["OBSERVABILITY_OTLP_ENDPOINT"].environment_scope == "production"
-    error_message = "OBSERVABILITY_OTLP_ENDPOINT must be scoped to production"
+    error_message = "OBSERVABILITY_OTLP_ENDPOINT must be scoped to production on the ops project"
+  }
+
+  assert {
+    condition     = contains(keys(gitlab_project_variable.prod_app), "OBSERVABILITY_OTLP_ENDPOINT")
+    error_message = "OBSERVABILITY_OTLP_ENDPOINT must also be created on the app project, so the app's own CI pipeline can export telemetry"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_app["OBSERVABILITY_OTLP_ENDPOINT"].value == "http://observability-collector:4318"
+    error_message = "OBSERVABILITY_OTLP_ENDPOINT on the app project must carry the same collector address"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_app["OBSERVABILITY_OTLP_ENDPOINT"].masked == false
+    error_message = "OBSERVABILITY_OTLP_ENDPOINT is a non-secret URL and must not be masked on the app project either"
+  }
+}
+
+run "prod_enabled_defaults_to_incluster_collector_endpoint" {
+  command = plan
+
+  variables {
+    app_project_id   = "87654321"
+    app_project_path = "eiseron/myproduct/myproduct"
+    ops_project_path = "eiseron/myproduct/myproduct-ops"
+    prod             = { enabled = true }
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_ops["OBSERVABILITY_OTLP_ENDPOINT"].value == "http://observability-collector:4318"
+    error_message = "prod.observability_otlp_endpoint must default to the co-located in-cluster collector when the caller does not override it"
+  }
+
+  assert {
+    condition     = gitlab_project_variable.prod_app["OBSERVABILITY_OTLP_ENDPOINT"].value == "http://observability-collector:4318"
+    error_message = "The default collector address must also reach the app project"
   }
 }
 
@@ -523,9 +559,10 @@ run "prod_with_r2_creates_four_app_vars" {
     app_project_path = "eiseron/myproduct/myproduct"
     ops_project_path = "eiseron/myproduct/myproduct-ops"
     prod = {
-      enabled              = true
-      r2_access_key_id     = "r2-key-id"
-      r2_secret_access_key = "r2-secret"
+      enabled                     = true
+      r2_access_key_id            = "r2-key-id"
+      r2_secret_access_key        = "r2-secret"
+      observability_otlp_endpoint = ""
     }
   }
 

@@ -11,9 +11,13 @@ locals {
     AWS_SECRET_ACCESS_KEY = local.assets_enabled ? sha256(cloudflare_api_token.assets_write[0].value) : var.prod.r2_secret_access_key
   } : {}
 
-  prod_app_vars = merge(local.prod_app_vars_base, local.prod_app_vars_r2)
-
   prod_otlp_endpoint = nonsensitive(var.prod.observability_otlp_endpoint)
+
+  prod_app_vars_observability = local.prod_enabled && local.prod_otlp_endpoint != "" ? {
+    OBSERVABILITY_OTLP_ENDPOINT = local.prod_otlp_endpoint
+  } : {}
+
+  prod_app_vars = merge(local.prod_app_vars_base, local.prod_app_vars_r2, local.prod_app_vars_observability)
 
   prod_ops_vars_base = local.prod_enabled ? {
     KAMAL_REGISTRY_USERNAME = gitlab_project_deploy_token.prod_registry[0].username
@@ -63,7 +67,7 @@ resource "gitlab_project_variable" "prod_app" {
   project           = local._app_project_id
   key               = each.key
   value             = each.value
-  masked            = each.key != "PROD_DEPLOYER_PROJECT"
+  masked            = !contains(["PROD_DEPLOYER_PROJECT", "OBSERVABILITY_OTLP_ENDPOINT"], each.key)
   protected         = true
   environment_scope = "*"
 }
