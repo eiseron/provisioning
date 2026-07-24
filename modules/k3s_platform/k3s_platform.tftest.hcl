@@ -19,6 +19,14 @@ run "traefik_acme_storage_is_writable_by_the_pod" {
     condition     = yamldecode(kubernetes_manifest.traefik[0].manifest.spec.valuesContent).persistence.enabled == true
     error_message = "ACME storage persistence must stay enabled"
   }
+
+  assert {
+    condition = anytrue([
+      for c in yamldecode(kubernetes_manifest.traefik[0].manifest.spec.valuesContent).deployment.initContainers :
+      strcontains(c.command[2], "chmod 600 /data/acme.json")
+    ])
+    error_message = "An initContainer must chmod acme.json back to 600 on every start, since kubelet's fsGroup ownership leaves it group-writable and Traefik refuses to load a non-600 ACME account file"
+  }
 }
 
 run "traefik_acme_resolver_uses_the_chart_certResolvers_key" {

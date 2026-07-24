@@ -43,6 +43,21 @@ locals {
       fsGroup             = 65532
       fsGroupChangePolicy = "OnRootMismatch"
     }
+    deployment = {
+      initContainers = [
+        {
+          name    = "acme-storage-permissions"
+          image   = "busybox:latest"
+          command = ["sh", "-c", "touch /data/acme.json && chmod 600 /data/acme.json"]
+          volumeMounts = [
+            {
+              name      = "data"
+              mountPath = "/data"
+            }
+          ]
+        }
+      ]
+    }
   }
 }
 
