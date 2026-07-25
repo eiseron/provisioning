@@ -38,3 +38,8 @@ output "group_full_path" {
   description = "Full path of the organization's top-level GitLab group"
   value       = gitlab_group.this.full_path
 }
+
+output "avatar_path" {
+  description = "Echoes var.avatar_path back, so callers that need the same image for sibling resources (a subgroup, per-product repos) can reference this output instead of repeating their own literal path."
+  value       = var.avatar_path
+}
