@@ -1,18 +1,19 @@
 locals {
   _group_id_num = local.resolved_group_id != "" ? tonumber(local.resolved_group_id) : 0
+  _manage_repos = var.manage_repos && local._group_id_num != 0
 
   _extra_cfgs = var.repositories
 
   _homepage_url = var.domain != "" ? "https://${var.domain}" : ""
 
-  _app_project_id    = local._group_id_num != 0 ? tostring(module.gl_app_repo[0].id) : var.app_project_id
-  _app_project_path  = local._group_id_num != 0 ? module.gl_app_repo[0].path_with_namespace : var.app_project_path
-  _site_project_id   = local._group_id_num != 0 ? tostring(module.gl_site_repo[0].id) : var.site_preview.site_project_id
-  _site_project_path = local._group_id_num != 0 ? module.gl_site_repo[0].path_with_namespace : var.site_preview.site_project_path
+  _app_project_id    = local._manage_repos ? tostring(module.gl_app_repo[0].id) : var.app_project_id
+  _app_project_path  = local._manage_repos ? module.gl_app_repo[0].path_with_namespace : var.app_project_path
+  _site_project_id   = local._manage_repos ? tostring(module.gl_site_repo[0].id) : var.site_preview.site_project_id
+  _site_project_path = local._manage_repos ? module.gl_site_repo[0].path_with_namespace : var.site_preview.site_project_path
 }
 
 module "gl_app_repo" {
-  count  = local._group_id_num != 0 ? 1 : 0
+  count  = local._manage_repos ? 1 : 0
   source = "../gitlab_repository_protected"
 
   name                   = var.slug
@@ -27,7 +28,7 @@ module "gl_app_repo" {
 }
 
 module "gl_site_repo" {
-  count  = local._group_id_num != 0 ? 1 : 0
+  count  = local._manage_repos ? 1 : 0
   source = "../gitlab_repository"
 
   name                     = "${var.slug}-site"
@@ -43,7 +44,7 @@ module "gl_site_repo" {
 }
 
 module "gl_planning_repo" {
-  count  = local._group_id_num != 0 ? 1 : 0
+  count  = local._manage_repos ? 1 : 0
   source = "../gitlab_repository"
 
   name                                  = "${var.slug}-planning"
@@ -57,7 +58,7 @@ module "gl_planning_repo" {
 }
 
 module "gh_app_repo" {
-  count  = local._group_id_num != 0 ? 1 : 0
+  count  = local._manage_repos ? 1 : 0
   source = "../github_repository_protected"
 
   name                    = var.slug
@@ -72,7 +73,7 @@ module "gh_app_repo" {
 }
 
 module "gh_site_repo" {
-  count  = local._group_id_num != 0 ? 1 : 0
+  count  = local._manage_repos ? 1 : 0
   source = "../github_repository"
 
   name                     = "${var.slug}-site"
@@ -87,7 +88,7 @@ module "gh_site_repo" {
 }
 
 module "gl_extra_repos" {
-  for_each = local._extra_cfgs
+  for_each = local._manage_repos ? local._extra_cfgs : {}
   source   = "../gitlab_repository"
 
   name                     = "${var.slug}-${each.key}"
@@ -103,7 +104,7 @@ module "gl_extra_repos" {
 }
 
 module "gh_extra_repos" {
-  for_each = { for k, v in local._extra_cfgs : k => v if v.github != null }
+  for_each = local._manage_repos ? { for k, v in local._extra_cfgs : k => v if v.github != null } : {}
   source   = "../github_repository"
 
   name                     = "${var.slug}-${each.key}"

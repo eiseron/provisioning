@@ -45,8 +45,14 @@ variable "workers_ref" {
   default     = ""
 }
 
+variable "manage_repos" {
+  description = "When true (default) and group_id/group_path resolves, this module creates the product's repos (app, site, planning, extras). Set to false when a different module (e.g. stack/provisioning's product module) already owns repo creation for this product; app_project_id/app_project_path and site_preview.site_project_id/site_project_path must then be supplied as inputs."
+  type        = bool
+  default     = true
+}
+
 variable "app_project_id" {
-  description = "Numeric ID of the app project. Required when prod.enabled is true; used for the registry pull deploy token and app-project CI variables."
+  description = "Numeric ID of the app project. Required when prod.enabled is true, or when manage_repos is false; used for the registry pull deploy token and app-project CI variables."
   type        = string
   default     = ""
 }

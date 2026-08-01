@@ -1209,6 +1209,50 @@ run "planning_repo_created_with_group_id" {
   }
 }
 
+run "manage_repos_false_skips_all_repo_creation_and_uses_inputs" {
+  command = plan
+
+  variables {
+    group_id         = "11223344"
+    manage_repos     = false
+    app_project_id   = "82429800"
+    app_project_path = "eiseron/test-product/test-product"
+    repositories = {
+      docs = { description = "Documentation repo" }
+    }
+  }
+
+  assert {
+    condition     = length(module.gl_app_repo) == 0
+    error_message = "App repo must not be created when manage_repos is false"
+  }
+
+  assert {
+    condition     = length(module.gl_site_repo) == 0
+    error_message = "Site repo must not be created when manage_repos is false"
+  }
+
+  assert {
+    condition     = length(module.gl_planning_repo) == 0
+    error_message = "Planning repo must not be created when manage_repos is false"
+  }
+
+  assert {
+    condition     = length(module.gl_extra_repos) == 0
+    error_message = "Extra repos must not be created when manage_repos is false"
+  }
+
+  assert {
+    condition     = output.app_project_id == "82429800"
+    error_message = "app_project_id output must echo the input when manage_repos is false"
+  }
+
+  assert {
+    condition     = output.app_project_path == "eiseron/test-product/test-product"
+    error_message = "app_project_path output must echo the input when manage_repos is false"
+  }
+}
+
 run "repositories_empty_by_default_creates_no_repos" {
   command = plan
 
