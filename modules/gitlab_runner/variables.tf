@@ -48,3 +48,9 @@ variable "maximum_timeout" {
   type        = number
   default     = 28800
 }
+
+variable "decommission" {
+  description = "Whether to tear the runner down. The VM, its Hetzner SSH key and the GitLab runner registration used to carry lifecycle.prevent_destroy, which made an intentional teardown impossible: prevent_destroy takes a literal, so it cannot be relaxed by an input. This flag replaces that guard. The protection is now that a teardown requires an explicit change in a reviewed merge request rather than being unreachable, which still rules out the accidental destroy prevent_destroy existed to catch. Flipping it back to false rebuilds all three from scratch."
+  type        = bool
+  default     = false
+}
