@@ -1,5 +1,5 @@
 locals {
-  site_preview_enabled = local._site_project_id != ""
+  site_preview_enabled = !var.decommission && local._site_project_id != ""
 
   site_preview_ops_vars = local.site_preview_enabled ? {
     PREVIEW_PAGES_PROJECT = local._pages_project_name

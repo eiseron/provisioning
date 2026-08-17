@@ -1196,6 +1196,100 @@ run "site_preview_pages_project_name_override_respected" {
   }
 }
 
+run "decommission_destroys_site_pages_hosting" {
+  command = plan
+
+  variables {
+    group_id     = "11223344"
+    domain       = "myproduct.io"
+    decommission = true
+  }
+
+  assert {
+    condition     = length(cloudflare_pages_project.site) == 0
+    error_message = "Decommission must remove the Cloudflare Pages project even though domain is set"
+  }
+
+  assert {
+    condition     = length(cloudflare_pages_domain.site) == 0
+    error_message = "Decommission must remove the apex and www Pages custom domains"
+  }
+}
+
+run "decommission_unwires_mr_preview_dispatch" {
+  command = plan
+
+  variables {
+    group_id     = "11223344"
+    domain       = "myproduct.io"
+    decommission = true
+  }
+
+  assert {
+    condition     = length(gitlab_pipeline_trigger.site_preview) == 0
+    error_message = "Decommission must remove the pages deployer pipeline trigger"
+  }
+
+  assert {
+    condition     = length(gitlab_project_variable.site_preview_ops) == 0
+    error_message = "Decommission must remove PREVIEW_PAGES_PROJECT and PREVIEW_SITE_PROJECT from the ops project"
+  }
+
+  assert {
+    condition     = length(gitlab_project_variable.site_preview_site) == 0
+    error_message = "Decommission must remove PREVIEW_DEPLOYER_PROJECT and PREVIEW_DEPLOYER_TRIGGER_TOKEN from the site project"
+  }
+
+  assert {
+    condition     = length(gitlab_project_job_token_scope.site_allows_ops) == 0
+    error_message = "Decommission must revoke the job-token allowlist letting the site trigger the ops deployer"
+  }
+}
+
+run "decommission_keeps_every_repository" {
+  command = plan
+
+  variables {
+    group_id     = "11223344"
+    domain       = "myproduct.io"
+    decommission = true
+  }
+
+  assert {
+    condition     = length(module.gl_app_repo) == 1
+    error_message = "Decommission must keep the app repository: only hosting goes away, never code"
+  }
+
+  assert {
+    condition     = length(module.gl_site_repo) == 1
+    error_message = "Decommission must keep the site repository even with its Pages hosting destroyed"
+  }
+
+  assert {
+    condition     = length(module.gl_planning_repo) == 1
+    error_message = "Decommission must keep the planning repository"
+  }
+}
+
+run "decommission_defaults_to_false_so_hosting_survives" {
+  command = plan
+
+  variables {
+    group_id = "11223344"
+    domain   = "myproduct.io"
+  }
+
+  assert {
+    condition     = length(cloudflare_pages_project.site) == 1
+    error_message = "Pages hosting must survive when decommission is left at its default, so the flag is opt-in"
+  }
+
+  assert {
+    condition     = length(gitlab_pipeline_trigger.site_preview) == 1
+    error_message = "MR preview dispatch must survive when decommission is left at its default"
+  }
+}
+
 run "planning_repo_created_with_group_id" {
   command = plan
 

@@ -45,6 +45,12 @@ variable "workers_ref" {
   default     = ""
 }
 
+variable "decommission" {
+  description = "When true, tears down the product's static-site hosting and its MR preview wiring while leaving every repository in place: the Cloudflare Pages project and custom domains for the site and for extra repos, the deployer pipeline trigger, the PREVIEW_* variables on both the ops and site projects, and the job-token allowlist. Repos, DNS, R2 and prod wiring are untouched, so the product's code and history stay accessible and editable. Exists because commenting the resources out loses the declaration and the module ref, which is what makes coming back expensive; a boolean keeps the intent recorded and reversible by flipping one value. Set back to false to restore hosting exactly as declared here."
+  type        = bool
+  default     = false
+}
+
 variable "manage_repos" {
   description = "When true (default) and group_id/group_path resolves, this module creates the product's repos (app, site, planning, extras). Set to false when a different module (e.g. stack/provisioning's product module) already owns repo creation for this product; app_project_id/app_project_path and site_preview.site_project_id/site_project_path must then be supplied as inputs."
   type        = bool

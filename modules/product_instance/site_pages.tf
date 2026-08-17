@@ -1,11 +1,11 @@
 locals {
   _pages_project_name = var.site_preview.pages_project_name != "" ? var.site_preview.pages_project_name : "${var.slug}-site"
-  _site_pages_enabled = var.domain != "" && var.cloudflare_account_id != "" && local._group_id_num != 0
+  _site_pages_enabled = !var.decommission && var.domain != "" && var.cloudflare_account_id != "" && local._group_id_num != 0
   _site_pages_domains = local._site_pages_enabled ? [var.domain, "www.${var.domain}"] : []
 
   _extra_pages_repos = {
     for k, v in local._extra_cfgs : k => v
-    if v.pages != null && var.cloudflare_account_id != ""
+    if !var.decommission && v.pages != null && var.cloudflare_account_id != ""
   }
   _extra_pages_domains = {
     for pair in flatten([
